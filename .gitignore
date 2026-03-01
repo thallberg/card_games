@@ -1,0 +1,27 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vs/
+*.user
+
+# Frontend (Next.js)
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/.vercel
+frontend/.env*
+frontend/*.tsbuildinfo
+
+# Backend (.NET)
+backend/bin/
+backend/obj/
+
+# Logs & misc
+*.log
+.env
+.env.local
+.env.*.local

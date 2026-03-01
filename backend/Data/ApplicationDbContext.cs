@@ -1,0 +1,56 @@
+using Microsoft.EntityFrameworkCore;
+using Backend.Models;
+
+namespace Backend.Data;
+
+public class ApplicationDbContext : DbContext
+{
+    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+        : base(options)
+    {
+    }
+
+    public DbSet<User> Users => Set<User>();
+    public DbSet<FriendRequest> FriendRequests => Set<FriendRequest>();
+    public DbSet<UserFriend> UserFriends => Set<UserFriend>();
+    public DbSet<GameSession> GameSessions => Set<GameSession>();
+    public DbSet<GameSessionPlayer> GameSessionPlayers => Set<GameSessionPlayer>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<User>(e =>
+        {
+            e.HasIndex(u => u.Email).IsUnique();
+            e.Property(u => u.Email).HasMaxLength(256);
+            e.Property(u => u.DisplayName).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<FriendRequest>(e =>
+        {
+            e.HasOne(f => f.FromUser).WithMany(u => u.SentFriendRequests).HasForeignKey(f => f.FromUserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(f => f.ToUser).WithMany(u => u.ReceivedFriendRequests).HasForeignKey(f => f.ToUserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(f => new { f.FromUserId, f.ToUserId });
+        });
+
+        modelBuilder.Entity<UserFriend>(e =>
+        {
+            e.HasKey(uf => new { uf.UserId, uf.FriendId });
+            e.HasOne(uf => uf.User).WithMany(u => u.FriendsAsUser).HasForeignKey(uf => uf.UserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(uf => uf.Friend).WithMany(u => u.FriendsAsFriend).HasForeignKey(uf => uf.FriendId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<GameSession>(e =>
+        {
+            e.HasOne(g => g.Leader).WithMany(u => u.LedGameSessions).HasForeignKey(g => g.LeaderId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<GameSessionPlayer>(e =>
+        {
+            e.HasKey(gp => new { gp.GameSessionId, gp.UserId });
+            e.HasOne(gp => gp.GameSession).WithMany(g => g.Players).HasForeignKey(gp => gp.GameSessionId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(gp => gp.User).WithMany(u => u.GameSessionPlayers).HasForeignKey(gp => gp.UserId).OnDelete(DeleteBehavior.Restrict);
+        });
+    }
+}

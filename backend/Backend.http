@@ -1,0 +1,73 @@
+@Backend_HostAddress = http://localhost:5236
+@Token = <sätt din JWT efter login>
+
+### Health
+GET {{Backend_HostAddress}}/api/health
+
+### Registrera
+POST {{Backend_HostAddress}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "hemligt123",
+  "displayName": "Testanvändare"
+}
+
+### Logga in
+# @name login
+POST {{Backend_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "hemligt123"
+}
+
+### Vänner (kräver Authorization: Bearer {{Token}})
+GET {{Backend_HostAddress}}/api/friends
+Authorization: Bearer {{Token}}
+
+###
+GET {{Backend_HostAddress}}/api/friends/requests/received
+Authorization: Bearer {{Token}}
+
+###
+POST {{Backend_HostAddress}}/api/friends/request
+Authorization: Bearer {{Token}}
+Content-Type: application/json
+
+{
+  "toUserId": "guid-här"
+}
+
+### Sök användare
+GET {{Backend_HostAddress}}/api/users/search?q=test
+Authorization: Bearer {{Token}}
+
+### Skapa lobby (partyleader)
+POST {{Backend_HostAddress}}/api/gamesessions
+Authorization: Bearer {{Token}}
+Content-Type: application/json
+
+{
+  "gameType": 0,
+  "maxPlayers": 6
+}
+
+### Mina sessioner
+GET {{Backend_HostAddress}}/api/gamesessions
+Authorization: Bearer {{Token}}
+
+### Byta kortspel (partyleader)
+PATCH {{Backend_HostAddress}}/api/gamesessions/{{sessionId}}
+Authorization: Bearer {{Token}}
+Content-Type: application/json
+
+{
+  "gameType": 1
+}
+
+### Starta spel (partyleader)
+POST {{Backend_HostAddress}}/api/gamesessions/{{sessionId}}/start
+Authorization: Bearer {{Token}}
