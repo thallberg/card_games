@@ -57,7 +57,16 @@ export function useGameStateMultiplayer(sessionId: string | undefined) {
   }, [sessionId, state?.currentPlayerId, state?.phase, myPlayerId, loadState, state]);
 
   const runAction = useCallback(
-    async (action: string, payload?: { cardIndex?: number; cardIndices?: number[]; meldId?: string }) => {
+    async (
+      action: string,
+      payload?: {
+        cardIndex?: number;
+        cardIndices?: number[];
+        meldId?: string;
+        wildRepresents?: Record<number, Card>;
+        wildAs?: Card;
+      }
+    ) => {
       if (!sessionId) return;
       const result = await sendFiveHundredAction(sessionId, action, payload);
       if (result) {
@@ -73,9 +82,14 @@ export function useGameStateMultiplayer(sessionId: string | undefined) {
   const skipDraw = useCallback(() => runAction("skipDraw"), [runAction]);
   const discardCard = useCallback((handIndex: number) => runAction("discard", { cardIndex: handIndex }), [runAction]);
   const passWithoutDiscard = useCallback(() => runAction("pass"), [runAction]);
-  const addMeld = useCallback((cardIndices: number[]) => runAction("addMeld", { cardIndices }), [runAction]);
+  const addMeld = useCallback(
+    (cardIndices: number[], wildRepresents?: Record<number, Card>) =>
+      runAction("addMeld", { cardIndices, wildRepresents }),
+    [runAction]
+  );
   const addCardToExistingMeld = useCallback(
-    (meldId: string, handIndex: number) => runAction("addCardToMeld", { meldId, cardIndex: handIndex }),
+    (meldId: string, handIndex: number, wildAs?: Card) =>
+      runAction("addCardToMeld", { meldId, cardIndex: handIndex, wildAs }),
     [runAction]
   );
   const advanceToNextTurn = useCallback(() => {}, []);

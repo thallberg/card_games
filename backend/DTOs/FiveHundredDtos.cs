@@ -30,6 +30,8 @@ public class MeldDto
     public string Id { get; set; } = "";
     public List<CardDto> Cards { get; set; } = new();
     public string Type { get; set; } = "set";
+    /// <summary>Index i Cards -> vilket kort en 2:a (wild) ska räknas som.</summary>
+    public Dictionary<int, CardDto>? WildRepresents { get; set; }
 }
 
 public class FiveHundredActionRequest
@@ -45,4 +47,10 @@ public class FiveHundredActionRequest
 
     [JsonPropertyName("meldId")]
     public string? MeldId { get; set; }
+
+    [JsonPropertyName("wildRepresents")]
+    public Dictionary<int, CardDto>? WildRepresents { get; set; }
+
+    [JsonPropertyName("wildAs")]
+    public CardDto? WildAs { get; set; }
 }

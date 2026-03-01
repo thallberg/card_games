@@ -209,7 +209,10 @@ public class FiveHundredService
                 var cards = indices.Select(i => addMeldHand[i]).ToList();
                 foreach (var i in indices.OrderByDescending(x => x)) addMeldHand.RemoveAt(i);
                 SortHand(addMeldHand);
-                s.Melds.Add(new MeldDto { Id = Guid.NewGuid().ToString(), Cards = cards, Type = "set" });
+                var newMeld = new MeldDto { Id = Guid.NewGuid().ToString(), Cards = cards, Type = "set" };
+                if (a.WildRepresents != null && a.WildRepresents.Count > 0)
+                    newMeld.WildRepresents = new Dictionary<int, CardDto>(a.WildRepresents);
+                s.Melds.Add(newMeld);
                 return (null, null);
             case "addcardtomeld":
                 if (s.Phase != "meldOrDiscard" || string.IsNullOrEmpty(a.MeldId) || a.CardIndex == null) return ("Ogiltigt drag.", null);
@@ -220,6 +223,12 @@ public class FiveHundredService
                 var addCard = addToMeldHand[a.CardIndex.Value];
                 addToMeldHand.RemoveAt(a.CardIndex.Value);
                 meld.Cards.Add(addCard);
+                var newIdx = meld.Cards.Count - 1;
+                if (addCard.Rank == "2" && a.WildAs != null)
+                {
+                    meld.WildRepresents ??= new Dictionary<int, CardDto>();
+                    meld.WildRepresents[newIdx] = a.WildAs;
+                }
                 SortHand(addToMeldHand);
                 return (null, null);
             default:

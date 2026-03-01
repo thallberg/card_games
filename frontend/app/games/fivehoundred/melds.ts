@@ -88,6 +88,7 @@ export function getMeldType(cards: Card[]): "set" | "run" | null {
 
 /**
  * Möjliga kort som en 2:a får representera i en stege: förlängning under/över eller hål mellan.
+ * T.ex. knekt + kung + 2 → 2 kan vara dam (gapet), 10 (förlängning nedåt), eller ess (förlängning uppåt).
  */
 export function getWildOptionsForRun(cards: Card[]): Card[] {
   const rest = cards.filter((c) => !isWild(c));
@@ -98,11 +99,20 @@ export function getWildOptionsForRun(cards: Card[]): Card[] {
   const max = values[values.length - 1];
   const valueSet = new Set(values);
   const options: Card[] = [];
-  if (min > 0) options.push({ suit, rank: VALUE_TO_RANK[min - 1] as Card["rank"] });
-  for (let v = min; v <= max; v++) {
-    if (!valueSet.has(v)) options.push({ suit, rank: VALUE_TO_RANK[v] as Card["rank"] });
+  if (min > 0) {
+    const r = VALUE_TO_RANK[min - 1] as Card["rank"];
+    if (r) options.push({ suit, rank: r });
   }
-  if (max < 12) options.push({ suit, rank: VALUE_TO_RANK[max + 1] as Card["rank"] });
+  for (let v = min; v <= max; v++) {
+    if (!valueSet.has(v)) {
+      const r = VALUE_TO_RANK[v] as Card["rank"];
+      if (r) options.push({ suit, rank: r });
+    }
+  }
+  if (max < 12) {
+    const r = VALUE_TO_RANK[max + 1] as Card["rank"];
+    if (r) options.push({ suit, rank: r });
+  }
   return options;
 }
 
@@ -119,11 +129,16 @@ export function getWildOptionsForSet(cards: Card[]): Card[] {
 
 /**
  * Returnerar meldens kort så som spelet tolkar dem: 2:or ersatta med wildRepresents.
- * Används för logik (t.ex. "ligger dam redan där?") – inte bara visuellt.
+ * Används för logik (t.ex. "ligger dam redan där?", "kan jag lägga ess efter kung?").
  */
 export function getEffectiveMeldCards(meld: Meld): Card[] {
   const wr = meld.wildRepresents;
-  return meld.cards.map((c, i) => (wr && wr[i] ? wr[i] : c));
+  if (!wr || typeof wr !== "object") return [...meld.cards];
+  return meld.cards.map((c, i) => {
+    const key = i as keyof typeof wr;
+    const rep = wr[key] ?? (wr as Record<string, Card>)[String(i)];
+    return rep ? rep : c;
+  });
 }
 
 /** True om meldens kort (effektivt) bildar en stege – använd när type kan vara fel (t.ex. från backend). */
@@ -166,9 +181,10 @@ export function getMeldDisplayCards(meld: Meld): Card[] {
 
 /**
  * Kan ett kort läggas till på en befintlig meld?
- * 2:an räknas som det valda kortet – man får inte lägga "riktiga" dam om en 2 redan står som dam.
- * Set: samma valör, max 4 kort, färg får inte finnas redan (inkl. vad 2:or representerar).
- * Stege: samma färg, valör = min-1 eller max+1, kortet får inte redan finnas i melden.
+ * 2:or räknas alltid som det valda kortet (wildRepresents) – i alla stegar och tretal/fyrtal.
+ * Man kan alltid fortsätta lägga på en 2:a: spelet tolkar den som det valda kortet, så du kan
+ * lägga före eller efter (t.ex. 2=kung → du får lägga ess; 2=dam → du får lägga knekt eller kung).
+ * Set: samma valör, max 4 kort. Stege: samma färg, valör = min-1 eller max+1.
  */
 export function canAddCardToMeld(card: Card, meld: Meld): boolean {
   const effective = getEffectiveMeldCards(meld);

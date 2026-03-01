@@ -22,15 +22,34 @@ function apiStateToGameState(raw: Record<string, unknown>): GameState {
   for (const [pid, arr] of Object.entries(playerHands)) {
     normalizedHands[pid] = normalizeCards(Array.isArray(arr) ? arr : []);
   }
-  const melds = (r.melds ?? r.Melds ?? []) as Array<{ id?: string; Id?: string; cards?: unknown[]; Cards?: unknown[]; type?: string; Type?: string }>;
+  const melds = (r.melds ?? r.Melds ?? []) as Array<{
+    id?: string; Id?: string;
+    cards?: unknown[]; Cards?: unknown[];
+    type?: string; Type?: string;
+    wildRepresents?: Record<string, unknown>; WildRepresents?: Record<string, unknown>;
+  }>;
   return {
     stock: normalizeCards((r.stock ?? r.Stock ?? []) as unknown[]),
     discard: normalizeCards((r.discard ?? r.Discard ?? []) as unknown[]),
-    melds: melds.map((m) => ({
-      id: (m.id ?? m.Id ?? "") as string,
-      cards: normalizeCards((m.cards ?? m.Cards ?? []) as unknown[]),
-      type: ((m.type ?? m.Type ?? "set") as "set" | "run") ?? "set",
-    })),
+    melds: melds.map((m) => {
+      const wr = (m.wildRepresents ?? m.WildRepresents) as Record<string, Record<string, string>> | undefined;
+      let wildRepresents: Record<number, Card> | undefined;
+      if (wr && typeof wr === "object") {
+        wildRepresents = {};
+        for (const [k, v] of Object.entries(wr)) {
+          const i = parseInt(k, 10);
+          if (!Number.isNaN(i) && v && typeof v === "object")
+            wildRepresents![i] = normalizeCard(v);
+        }
+        if (Object.keys(wildRepresents).length === 0) wildRepresents = undefined;
+      }
+      return {
+        id: (m.id ?? m.Id ?? "") as string,
+        cards: normalizeCards((m.cards ?? m.Cards ?? []) as unknown[]),
+        type: ((m.type ?? m.Type ?? "set") as "set" | "run") ?? "set",
+        ...(wildRepresents && { wildRepresents }),
+      };
+    }),
     currentPlayerId: (r.currentPlayerId ?? r.CurrentPlayerId ?? null) as GameState["currentPlayerId"],
     playerHands: normalizedHands,
     playerScores: (r.playerScores ?? r.PlayerScores ?? {}) as Record<string, number>,
@@ -58,7 +77,13 @@ export async function fetchFiveHundredState(sessionId: string): Promise<FiveHund
 export async function sendFiveHundredAction(
   sessionId: string,
   action: string,
-  payload?: { cardIndex?: number; cardIndices?: number[]; meldId?: string }
+  payload?: {
+    cardIndex?: number;
+    cardIndices?: number[];
+    meldId?: string;
+    wildRepresents?: Record<number, Card>;
+    wildAs?: Card;
+  }
 ): Promise<FiveHundredActionResponse | null> {
   const res = await apiFetch(`/api/gamesessions/${sessionId}/500/action`, {
     method: "POST",

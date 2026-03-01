@@ -15,7 +15,7 @@ export type GameState = {
   winnerId: PlayerId | null;
 };
 
-const PLAYER_IDS: PlayerId[] = ["p1", "p2", "p3"];
+const PLAYER_IDS: PlayerId[] = ["p1", "p2"];
 
 function createInitialScores(): Record<PlayerId, number> {
   const o: Record<string, number> = {};
