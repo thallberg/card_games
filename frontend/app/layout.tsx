@@ -1,3 +1,4 @@
+/** Kortspel – root layout */
 import type { Metadata } from "next";
 import "./globals.css";
 import { LayoutClient } from "@/components/layout-client";
