@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { LayoutClient } from "@/components/layout-client";
 
 export const metadata: Metadata = {
   title: "Kortspel",
@@ -13,7 +14,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="sv">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        <LayoutClient>{children}</LayoutClient>
+      </body>
     </html>
   );
 }

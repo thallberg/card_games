@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Configuration.AddJsonFile("appsettings.Development.Local.json", optional: true);
 
 builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
@@ -67,20 +68,36 @@ static Guid? GetUserId(ClaimsPrincipal? user)
 }
 
 // ---- Auth (öppna)
-app.MapPost("/api/auth/register", async (RegisterRequest req, AuthService auth) =>
+app.MapPost("/api/auth/register", async (RegisterRequest req, AuthService auth, ILoggerFactory loggerFactory) =>
 {
-    var (ok, err, u) = await auth.RegisterAsync(req.Email, req.Password, req.DisplayName);
-    if (!ok) return Results.BadRequest(new { error = err });
-    var token = auth.GenerateJwt(u!);
-    return Results.Ok(new LoginResponse(token, new UserDto(u!.Id, u.Email, u.DisplayName, u.CreatedAt)));
+    try
+    {
+        var (ok, err, u) = await auth.RegisterAsync(req.Email, req.Password, req.DisplayName);
+        if (!ok) return Results.BadRequest(new { error = err });
+        var token = auth.GenerateJwt(u!);
+        return Results.Ok(new LoginResponse(token, new UserDto(u!.Id, u.Email, u.DisplayName, u.CreatedAt)));
+    }
+    catch (Exception ex)
+    {
+        loggerFactory.CreateLogger("Auth").LogError(ex, "Registrering misslyckades");
+        return Results.Json(new { error = "Serverfel. Kontrollera att databasen är konfigurerad (ConnectionStrings:DefaultConnection i appsettings) och att migreringar är körda: dotnet ef database update." }, statusCode: 503);
+    }
 });
 
-app.MapPost("/api/auth/login", async (LoginRequest req, AuthService auth) =>
+app.MapPost("/api/auth/login", async (LoginRequest req, AuthService auth, ILoggerFactory loggerFactory) =>
 {
-    var (ok, err, u) = await auth.LoginAsync(req.Email, req.Password);
-    if (!ok) return Results.BadRequest(new { error = err });
-    var token = auth.GenerateJwt(u!);
-    return Results.Ok(new LoginResponse(token, new UserDto(u!.Id, u.Email, u.DisplayName, u.CreatedAt)));
+    try
+    {
+        var (ok, err, u) = await auth.LoginAsync(req.Email, req.Password);
+        if (!ok) return Results.BadRequest(new { error = err });
+        var token = auth.GenerateJwt(u!);
+        return Results.Ok(new LoginResponse(token, new UserDto(u!.Id, u.Email, u.DisplayName, u.CreatedAt)));
+    }
+    catch (Exception ex)
+    {
+        loggerFactory.CreateLogger("Auth").LogError(ex, "Inloggning misslyckades");
+        return Results.Json(new { error = "Serverfel. Kontrollera databaskonfiguration." }, statusCode: 503);
+    }
 });
 
 // ---- Vänner (kräver inloggning)

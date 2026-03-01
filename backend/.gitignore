@@ -2,3 +2,6 @@ bin/
 obj/
 *.user
 .vs/
+
+# Lokal konfiguration med hemligheter (pushas aldrig)
+appsettings.Development.Local.json

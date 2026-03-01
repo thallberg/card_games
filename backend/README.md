@@ -10,6 +10,8 @@ Innehåller: **Auth** (registrering, inloggning med JWT), **vänförfrågningar*
 
 ## Konfiguration
 
+**Om du får 500 eller 503 vid registrering/inloggning:** sätt en giltig connection string och kör `dotnet ef database update` (se nedan).
+
 1. **Connection string** – i `appsettings.Development.json` eller User Secrets:
    ```bash
    dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=...;Database=...;Username=...;Password=...;SSL Mode=Require;Trust Server Certificate=true"
