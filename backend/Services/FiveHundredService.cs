@@ -42,6 +42,8 @@ public class FiveHundredService
             [P1] = deck.Take(HandSize).ToList(),
             [P2] = deck.Skip(HandSize).Take(HandSize).ToList(),
         };
+        SortHand(hands[P1]);
+        SortHand(hands[P2]);
         var stock = deck.Skip(HandSize * 2).ToList();
         var discard = stock.Count > 0 ? new List<CardDto> { stock[^1] } : new List<CardDto>();
         if (stock.Count > 0) stock.RemoveAt(stock.Count - 1);
@@ -87,6 +89,8 @@ public class FiveHundredService
             [P1] = deck.Take(HandSize).ToList(),
             [P2] = deck.Skip(HandSize).Take(HandSize).ToList(),
         };
+        SortHand(hands[P1]);
+        SortHand(hands[P2]);
         var stock = deck.Skip(HandSize * 2).ToList();
         var discard = stock.Count > 0 ? new List<CardDto> { stock[^1] } : new List<CardDto>();
         if (stock.Count > 0) stock.RemoveAt(stock.Count - 1);
@@ -118,6 +122,11 @@ public class FiveHundredService
         if (playerOrder == null || playerOrder.Count < 2) return (null, null);
         var myPlayerId = userId.ToString() == playerOrder[0] ? P1 : (userId.ToString() == playerOrder[1] ? P2 : null);
         if (myPlayerId == null) return (null, null);
+        foreach (var key in state.PlayerHands.Keys.ToList())
+        {
+            var list = state.PlayerHands[key];
+            SortHand(list);
+        }
         var masked = new Dictionary<string, List<CardDto>>();
         foreach (var kv in state.PlayerHands)
         {
@@ -163,6 +172,7 @@ public class FiveHundredService
                 var card = s.Stock[^1];
                 s.Stock.RemoveAt(s.Stock.Count - 1);
                 s.PlayerHands[playerId].Add(card);
+                SortHand(s.PlayerHands[playerId]);
                 s.Phase = "meldOrDiscard";
                 s.LastDraw = "stock";
                 return (null, card);
@@ -171,6 +181,7 @@ public class FiveHundredService
                 var topDiscard = s.Discard[0];
                 s.PlayerHands[playerId].AddRange(s.Discard);
                 s.Discard.Clear();
+                SortHand(s.PlayerHands[playerId]);
                 s.Phase = "meldOrDiscard";
                 s.LastDraw = "discard";
                 return (null, topDiscard);
@@ -197,6 +208,7 @@ public class FiveHundredService
                 if (indices.Count < 3) return ("Minst 3 kort krävs.", null);
                 var cards = indices.Select(i => addMeldHand[i]).ToList();
                 foreach (var i in indices.OrderByDescending(x => x)) addMeldHand.RemoveAt(i);
+                SortHand(addMeldHand);
                 s.Melds.Add(new MeldDto { Id = Guid.NewGuid().ToString(), Cards = cards, Type = "set" });
                 return (null, null);
             case "addcardtomeld":
@@ -208,6 +220,7 @@ public class FiveHundredService
                 var addCard = addToMeldHand[a.CardIndex.Value];
                 addToMeldHand.RemoveAt(a.CardIndex.Value);
                 meld.Cards.Add(addCard);
+                SortHand(addToMeldHand);
                 return (null, null);
             default:
                 return ("Okänd åtgärd.", null);
@@ -247,6 +260,22 @@ public class FiveHundredService
         s.PlayerScores[winnerId] = winnerScore;
         s.WinnerId = winnerId;
         s.Phase = winnerScore >= PointsToWin ? "gameOver" : "roundEnd";
+    }
+
+    /// <summary>Sorterar hand samma ordning som frontend: färg (hearts, clubs, diamonds, spades), sedan valör (2..ace).</summary>
+    private static void SortHand(List<CardDto> hand)
+    {
+        var suitOrder = new Dictionary<string, int> { ["hearts"] = 0, ["clubs"] = 1, ["diamonds"] = 2, ["spades"] = 3 };
+        var rankOrder = new Dictionary<string, int> {
+            ["2"] = 0, ["3"] = 1, ["4"] = 2, ["5"] = 3, ["6"] = 4, ["7"] = 5, ["8"] = 6, ["9"] = 7,
+            ["10"] = 8, ["jack"] = 9, ["queen"] = 10, ["king"] = 11, ["ace"] = 12
+        };
+        hand.Sort((a, b) =>
+        {
+            var so = suitOrder.GetValueOrDefault(a.Suit, 0).CompareTo(suitOrder.GetValueOrDefault(b.Suit, 0));
+            if (so != 0) return so;
+            return rankOrder.GetValueOrDefault(a.Rank, 0).CompareTo(rankOrder.GetValueOrDefault(b.Rank, 0));
+        });
     }
 
     private static List<CardDto> CreateAndShuffleDeck()
