@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import type { Card, Meld } from "../types";
-import { getMeldType, canAddCardToMeld, isWild, getWildOptionsForRun, getWildOptionsForSet } from "../melds";
+import { getMeldType, canAddCardToMeld, isWild, getWildOptionsForRun, getWildOptionsForSet, isEffectiveRun } from "../melds";
 import { PlayingCard } from "./PlayingCard";
 import { getMeldDisplayCards } from "../melds";
 import { cn } from "@/lib/utils";
@@ -69,10 +69,15 @@ export function MeldBuilderModal({
   const pickedCards = pickedIndices.map((i) => hand[i]);
   const newMeldType = pickedCards.length >= 3 ? getMeldType(pickedCards) : null;
   const wildIndicesInPicked = pickedCards.map((_, i) => (isWild(pickedCards[i]) ? i : -1)).filter((i) => i >= 0);
+  const nonWildInPicked = pickedCards.filter((c) => !isWild(c));
+  const isSetWithLockedWild = newMeldType === "set" && nonWildInPicked.length >= 2;
   const wildOptions = newMeldType && wildIndicesInPicked.length > 0
     ? (newMeldType === "run" ? getWildOptionsForRun(pickedCards) : getWildOptionsForSet(pickedCards))
     : [];
-  const allWildsChosen = wildIndicesInPicked.length === 0 || wildIndicesInPicked.every((i) => wildSelections[i]);
+  const autoSetWilds = isSetWithLockedWild && wildOptions.length > 0;
+  const allWildsChosen = wildIndicesInPicked.length === 0
+    || autoSetWilds
+    || wildIndicesInPicked.every((i) => wildSelections[i]);
   const canLayNew = newMeldType !== null && allWildsChosen;
 
   const togglePicked = (handIndex: number) => {
@@ -92,10 +97,16 @@ export function MeldBuilderModal({
 
   const handleLayNew = () => {
     if (!canLayNew) return;
-    const wildRepresents: Record<number, Card> = {};
-    wildIndicesInPicked.forEach((i) => {
-      if (wildSelections[i]) wildRepresents[i] = wildSelections[i];
-    });
+    let wildRepresents: Record<number, Card> = {};
+    if (autoSetWilds && wildOptions.length > 0) {
+      wildIndicesInPicked.forEach((meldIdx, i) => {
+        wildRepresents[meldIdx] = wildOptions[i % wildOptions.length];
+      });
+    } else {
+      wildIndicesInPicked.forEach((i) => {
+        if (wildSelections[i]) wildRepresents[i] = wildSelections[i];
+      });
+    }
     onConfirmNewMeld(pickedIndices, Object.keys(wildRepresents).length > 0 ? wildRepresents : undefined);
     onOpenChange(false);
   };
@@ -148,7 +159,7 @@ export function MeldBuilderModal({
               )}
             </p>
           )}
-          {newMeldType && wildIndicesInPicked.length > 0 && (
+          {newMeldType && wildIndicesInPicked.length > 0 && !autoSetWilds && (
             <div className="mt-3 rounded-md border bg-muted/30 p-3">
               <p className="mb-2 text-sm font-medium">Välj vad 2:an ska vara</p>
               <div className="space-y-2">
@@ -192,8 +203,9 @@ export function MeldBuilderModal({
                 const displayCards = getMeldDisplayCards(meld);
                 const addable = selectedIndices.filter((i) => canAddCardToMeld(hand[i], meld));
                 const pending = pendingAddWild?.meldId === meld.id ? pendingAddWild : null;
+                const meldIsRun = meld.type === "run" || isEffectiveRun(meld);
                 const addWildOptions = pending
-                  ? (meld.type === "run"
+                  ? (meldIsRun
                       ? getWildOptionsForRun([...meld.cards, hand[pending.handIndex]])
                       : getWildOptionsForSet([...meld.cards, hand[pending.handIndex]]))
                   : [];
@@ -212,6 +224,23 @@ export function MeldBuilderModal({
                         const card = hand[handIndex];
                         const isWildCard = isWild(card);
                         const showChoice = pending?.handIndex === handIndex;
+                        if (isWildCard && !meldIsRun) {
+                          const setOpts = getWildOptionsForSet([...meld.cards, card]);
+                          const autoOpt = setOpts[0];
+                          return (
+                            <Button
+                              key={handIndex}
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => {
+                                onAddToExistingMeld(meld.id, handIndex, autoOpt ?? undefined);
+                                onOpenChange(false);
+                              }}
+                            >
+                              Lägg {cardLabel(card)}
+                            </Button>
+                          );
+                        }
                         if (isWildCard && !showChoice) {
                           return (
                             <Button

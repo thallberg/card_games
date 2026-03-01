@@ -300,6 +300,16 @@ app.MapPost("/api/gamesessions/{id:guid}/500/action", async (Guid id, FiveHundre
     return Results.Ok(newState);
 }).RequireAuthorization();
 
+app.MapPost("/api/gamesessions/{id:guid}/500/start-round", async (Guid id, HttpContext ctx, FiveHundredService fiveHundredService) =>
+{
+    var userId = GetUserId(ctx.User);
+    if (userId == null) return Results.Unauthorized();
+    var (ok, err) = await fiveHundredService.StartNewRoundAsync(id);
+    if (!ok) return Results.BadRequest(new { error = err });
+    var (state, myPlayerId) = await fiveHundredService.GetStateForUserAsync(id, userId.Value);
+    return state != null ? Results.Json(new { state, myPlayerId }) : Results.NotFound();
+}).RequireAuthorization();
+
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok", app = "Kortspel API" }));
 
 app.Run();

@@ -62,3 +62,28 @@ export function checkGameOver(scores: Record<PlayerId, number>): PlayerId | null
   }
   return null;
 }
+
+/** Ny rond: behåller poäng och roundNumber, ny kortlek och giv. */
+export function createNewRoundState(current: GameState): GameState {
+  const deck = shuffle(createDeck());
+  const hands: Record<PlayerId, Card[]> = {} as Record<PlayerId, Card[]>;
+  let idx = 0;
+  for (const id of PLAYER_IDS) {
+    hands[id] = sortHand(deck.slice(idx, idx + HAND_SIZE));
+    idx += HAND_SIZE;
+  }
+  const stock = deck.slice(HAND_SIZE * PLAYER_IDS.length);
+  const discard = stock.length > 0 ? [stock.pop()!] : [];
+  return {
+    stock,
+    discard,
+    melds: [],
+    currentPlayerId: PLAYER_IDS[0],
+    playerHands: hands,
+    playerScores: { ...current.playerScores },
+    phase: "draw",
+    lastDraw: null,
+    roundNumber: current.roundNumber + 1,
+    winnerId: null,
+  };
+}

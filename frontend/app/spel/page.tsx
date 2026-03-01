@@ -24,6 +24,7 @@ export default function SpelPage() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [starting, setStarting] = useState<string | null>(null);
+  const [leaving, setLeaving] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -71,6 +72,20 @@ export default function SpelPage() {
     }
   };
 
+  const handleLeave = async (sessionId: string) => {
+    setLeaving(sessionId);
+    try {
+      const res = await apiFetch(`/api/gamesessions/${sessionId}/leave`, {
+        method: "POST",
+      });
+      if (res.ok) {
+        setSessions((prev) => prev.filter((s) => s.id !== sessionId));
+      }
+    } finally {
+      setLeaving(null);
+    }
+  };
+
   if (loading) {
     return (
       <main className="flex-1 p-4 sm:p-6">
@@ -111,7 +126,7 @@ export default function SpelPage() {
                             {" "}– ledd av {s.leaderDisplayName} · {s.currentPlayerCount}/{s.maxPlayers} spelare
                           </span>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           {isLeader && (
                             s.currentPlayerCount >= 2 ? (
                               <Button
@@ -128,6 +143,14 @@ export default function SpelPage() {
                           {!isLeader && (
                             <span className="text-muted-foreground text-sm">Väntar på att {s.leaderDisplayName} startar</span>
                           )}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleLeave(s.id)}
+                            disabled={leaving === s.id}
+                          >
+                            {leaving === s.id ? "Avslutar..." : "Avsluta"}
+                          </Button>
                         </div>
                       </li>
                     );
@@ -142,16 +165,26 @@ export default function SpelPage() {
                   {inProgress.map((s) => (
                     <li
                       key={s.id}
-                      className="flex items-center justify-between rounded-lg border bg-card p-3"
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-card p-3"
                     >
                       <span>
                         {s.gameType === "FiveHundred" ? "500" : s.gameType} – {s.leaderDisplayName}
                       </span>
-                      <Button asChild size="sm">
-                        <Link href={`/games/fivehoundred?sessionId=${s.id}`}>
-                          Fortsätt spela
-                        </Link>
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button asChild size="sm">
+                          <Link href={`/games/fivehoundred?sessionId=${s.id}`}>
+                            Fortsätt spela
+                          </Link>
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleLeave(s.id)}
+                          disabled={leaving === s.id}
+                        >
+                          {leaving === s.id ? "Avslutar..." : "Avsluta"}
+                        </Button>
+                      </div>
                     </li>
                   ))}
                 </ul>

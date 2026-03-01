@@ -87,7 +87,7 @@ export function getMeldType(cards: Card[]): "set" | "run" | null {
 }
 
 /**
- * Möjliga kort som en 2:a får representera i en stege (hålen i följden).
+ * Möjliga kort som en 2:a får representera i en stege: förlängning under/över eller hål mellan.
  */
 export function getWildOptionsForRun(cards: Card[]): Card[] {
   const rest = cards.filter((c) => !isWild(c));
@@ -96,8 +96,12 @@ export function getWildOptionsForRun(cards: Card[]): Card[] {
   const values = rest.map((c) => RANK_ORDER[c.rank]).sort((a, b) => a - b);
   const min = values[0];
   const max = values[values.length - 1];
+  const valueSet = new Set(values);
   const options: Card[] = [];
   if (min > 0) options.push({ suit, rank: VALUE_TO_RANK[min - 1] as Card["rank"] });
+  for (let v = min; v <= max; v++) {
+    if (!valueSet.has(v)) options.push({ suit, rank: VALUE_TO_RANK[v] as Card["rank"] });
+  }
   if (max < 12) options.push({ suit, rank: VALUE_TO_RANK[max + 1] as Card["rank"] });
   return options;
 }
@@ -122,6 +126,19 @@ export function getEffectiveMeldCards(meld: Meld): Card[] {
   return meld.cards.map((c, i) => (wr && wr[i] ? wr[i] : c));
 }
 
+/** True om meldens kort (effektivt) bildar en stege – använd när type kan vara fel (t.ex. från backend). */
+export function isEffectiveRun(meld: Meld): boolean {
+  const effective = getEffectiveMeldCards(meld);
+  if (effective.length < 3) return false;
+  const suit = effective[0].suit;
+  if (effective.some((c) => c.suit !== suit)) return false;
+  const values = effective.map((c) => RANK_ORDER[c.rank]).sort((a, b) => a - b);
+  for (let i = 1; i < values.length; i++) {
+    if (values[i] - values[i - 1] !== 1) return false;
+  }
+  return true;
+}
+
 function cardEquals(a: Card, b: Card): boolean {
   return a.suit === b.suit && a.rank === b.rank;
 }
@@ -131,17 +148,20 @@ function effectiveContains(effective: Card[], card: Card): boolean {
 }
 
 /**
- * För stege: returnerar alla kort i ordning (2:or visas som valt kort om wildRepresents finns).
- * För tretal/fyrtal: returnerar alla kort (2:or med wildRepresents visas som valt kort).
+ * För stege: om fler än 3 kort visas bara första och sista (t.ex. ruter 3…9).
+ * För stege med 3 kort, eller tretal/fyrtal: returnerar alla kort.
  */
 export function getMeldDisplayCards(meld: Meld): Card[] {
   const effective = getEffectiveMeldCards(meld);
-  if (meld.type === "set") return effective;
+  const asRun = meld.type === "run" || isEffectiveRun(meld);
+  if (!asRun) return effective;
   const nonWild = effective.filter((c) => !isWild(c));
   if (nonWild.length === 0) return effective;
-  return [...effective].sort(
+  const sorted = [...effective].sort(
     (a, b) => RANK_ORDER[a.rank] - RANK_ORDER[b.rank]
   );
+  if (sorted.length > 3) return [sorted[0], sorted[sorted.length - 1]];
+  return sorted;
 }
 
 /**
@@ -152,7 +172,8 @@ export function getMeldDisplayCards(meld: Meld): Card[] {
  */
 export function canAddCardToMeld(card: Card, meld: Meld): boolean {
   const effective = getEffectiveMeldCards(meld);
-  if (meld.type === "set") {
+  const asRun = meld.type === "run" || isEffectiveRun(meld);
+  if (!asRun) {
     if (meld.cards.length >= 4) return false;
     if (isWild(card)) return true;
     if (effective.length === 0) return true;
@@ -161,17 +182,15 @@ export function canAddCardToMeld(card: Card, meld: Meld): boolean {
     if (effectiveContains(effective, card)) return false;
     return true;
   }
-  if (meld.type === "run") {
-    if (effective.length === 0) return true;
-    if (isWild(card)) return true;
-    const suit = effective[0].suit;
-    if (card.suit !== suit) return false;
-    if (effectiveContains(effective, card)) return false;
-    const values = effective.map((c) => RANK_ORDER[c.rank]).sort((a, b) => a - b);
-    const min = values[0];
-    const max = values[values.length - 1];
-    const v = RANK_ORDER[card.rank];
-    return v === min - 1 || v === max + 1;
-  }
-  return false;
+  if (effective.length === 0) return true;
+  if (isWild(card)) return true;
+  const suit = effective[0].suit;
+  if (card.suit !== suit) return false;
+  if (effectiveContains(effective, card)) return false;
+  const values = effective.map((c) => RANK_ORDER[c.rank]).sort((a, b) => a - b);
+  const min = values[0];
+  const max = values[values.length - 1];
+  const v = RANK_ORDER[card.rank];
+  if (v == null || v === undefined) return false;
+  return v === min - 1 || v === max + 1;
 }

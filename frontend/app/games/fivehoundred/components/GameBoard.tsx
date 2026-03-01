@@ -27,16 +27,20 @@ export function GameBoard({ sessionId }: GameBoardProps) {
     topDiscard,
     isHumanTurn,
     canDraw,
+    stockEmpty,
     drawFromStock,
     takeDiscardPile,
+    skipDraw,
     discardCard,
     passWithoutDiscard,
     addMeld,
     addCardToExistingMeld,
     advanceToNextTurn,
     resetGame,
+    startNewRound,
     getPlayerIds,
     myPlayerId,
+    lastDrawnCard,
   } = useMulti ? multi : single;
 
   const toggleSelection = useCallback((_card: unknown, index: number) => {
@@ -96,10 +100,10 @@ export function GameBoard({ sessionId }: GameBoardProps) {
         </div>
       </div>
 
-      {state.winnerId && (
+      {state.phase === "gameOver" && state.winnerId && (
         <div className="rounded-lg border bg-muted/50 p-4 text-center">
           <p className="font-medium">
-            {state.winnerId === myPlayerId ? "Du" : "Motståndaren"} har vunnit!
+            {state.winnerId === myPlayerId ? "Du" : "Motståndaren"} har vunnit spelet!
           </p>
           <Button onClick={resetGame} className="mt-2">
             Spela igen
@@ -107,7 +111,21 @@ export function GameBoard({ sessionId }: GameBoardProps) {
         </div>
       )}
 
-      {!state.winnerId && (
+      {state.phase === "roundEnd" && state.winnerId && (
+        <div className="rounded-lg border bg-muted/50 p-4 text-center">
+          <p className="font-medium">
+            Rundan över! {state.winnerId === myPlayerId ? "Du" : "Motståndaren"} gick ut.
+          </p>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Poäng: {getPlayerIds().map((id) => `${id === myPlayerId ? "Du" : "Motståndare"} ${state.playerScores[id] ?? 0}`).join(", ")}
+          </p>
+          <Button onClick={startNewRound} className="mt-2">
+            Nästa rond
+          </Button>
+        </div>
+      )}
+
+      {state.phase !== "roundEnd" && state.phase !== "gameOver" && (
         <>
           {!isHumanTurn && state.phase === "draw" && !useMulti && (
             <div className="rounded-lg border border-muted bg-muted/30 p-3 text-center text-sm">
@@ -134,6 +152,15 @@ export function GameBoard({ sessionId }: GameBoardProps) {
               onTakePile={takeDiscardPile}
               disabled={!canDraw}
             />
+            {stockEmpty && isHumanTurn && state.phase === "draw" && (
+              <div className="flex flex-col items-center gap-2">
+                <p className="text-muted-foreground text-sm">Talongen är tom – du kan inte dra.</p>
+                <Button onClick={skipDraw} variant="outline" size="sm">
+                  Fortsätt utan att dra
+                </Button>
+                <p className="text-muted-foreground text-xs">Sedan kan du lägga ut eller kasta som vanligt.</p>
+              </div>
+            )}
           </div>
 
           <div>
@@ -167,6 +194,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
                     : undefined
                 }
                 disabled={!isHumanTurn || canDraw}
+                lastDrawnCard={lastDrawnCard ?? undefined}
               />
               {state.phase === "meldOrDiscard" && isHumanTurn && (
                 <div className="flex flex-wrap items-center gap-2 self-center">

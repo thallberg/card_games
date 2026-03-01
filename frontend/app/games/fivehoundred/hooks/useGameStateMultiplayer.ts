@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import type { GameState } from "../game-state";
 import { getPlayerIds as getPlayerIdsSingle, getNextPlayerId } from "../game-state";
-import { fetchFiveHundredState, sendFiveHundredAction } from "../api/fiveHundredApi";
+import { fetchFiveHundredState, sendFiveHundredAction, startFiveHundredNewRound } from "../api/fiveHundredApi";
 
 const POLL_INTERVAL_MS = 2000;
 
@@ -56,6 +56,7 @@ export function useGameStateMultiplayer(sessionId: string | undefined) {
 
   const drawFromStock = useCallback(() => runAction("drawFromStock"), [runAction]);
   const takeDiscardPile = useCallback(() => runAction("takeDiscard"), [runAction]);
+  const skipDraw = useCallback(() => runAction("skipDraw"), [runAction]);
   const discardCard = useCallback((handIndex: number) => runAction("discard", { cardIndex: handIndex }), [runAction]);
   const passWithoutDiscard = useCallback(() => runAction("pass"), [runAction]);
   const addMeld = useCallback((cardIndices: number[]) => runAction("addMeld", { cardIndices }), [runAction]);
@@ -65,6 +66,15 @@ export function useGameStateMultiplayer(sessionId: string | undefined) {
   );
   const advanceToNextTurn = useCallback(() => {}, []);
   const resetGame = useCallback(() => {}, []);
+
+  const startNewRound = useCallback(async () => {
+    if (!sessionId) return;
+    const data = await startFiveHundredNewRound(sessionId);
+    if (data) {
+      setState(data.state);
+      setMyPlayerId(data.myPlayerId);
+    }
+  }, [sessionId]);
 
   const getPlayerIds = useCallback(() => (state ? Object.keys(state.playerHands) as import("../types").PlayerId[] : ["p1", "p2"]), [state]);
 
@@ -76,17 +86,21 @@ export function useGameStateMultiplayer(sessionId: string | undefined) {
     isReady: state != null && !loading,
     humanHand,
     topDiscard,
-    isHumanTurn: state != null && state.phase !== "roundEnd" && state.currentPlayerId === myPlayerId,
-    canDraw: state != null && state.phase === "draw" && state.currentPlayerId === myPlayerId,
+    isHumanTurn: state != null && state.phase !== "roundEnd" && state.phase !== "gameOver" && state.currentPlayerId === myPlayerId,
+    canDraw: state != null && state.phase === "draw" && state.currentPlayerId === myPlayerId && (state.stock?.length ?? 0) > 0,
+    stockEmpty: state != null && (state.stock?.length ?? 0) === 0,
     drawFromStock,
     takeDiscardPile,
+    skipDraw,
     discardCard,
     passWithoutDiscard,
     addMeld,
     addCardToExistingMeld,
     advanceToNextTurn,
     resetGame,
+    startNewRound,
     getPlayerIds,
     myPlayerId,
+    lastDrawnCard: null,
   };
 }

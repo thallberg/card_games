@@ -1,24 +1,37 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import type { Card, PlayerId } from "../types";
 import type { GameState } from "../game-state";
 import {
   createInitialState,
+  createNewRoundState,
   getPlayerIds,
   getNextPlayerId,
   checkGameOver,
 } from "../game-state";
 import { sortHand } from "../deck";
 import { getMeldType, canAddCardToMeld } from "../melds";
+import { getHandPenalty } from "../scoring";
 
 const HUMAN_PLAYER: PlayerId = "p1";
 
 export function useGameState() {
   const [state, setState] = useState<GameState | null>(null);
+  const [lastDrawnCard, setLastDrawnCard] = useState<Card | null>(null);
+  const lastDrawnRef = useRef<Card | null>(null);
 
   useEffect(() => {
     setState(createInitialState());
+  }, []);
+
+  const flushLastDrawn = useCallback(() => {
+    if (lastDrawnRef.current) {
+      setLastDrawnCard(lastDrawnRef.current);
+      lastDrawnRef.current = null;
+    } else {
+      setLastDrawnCard(null);
+    }
   }, []);
 
   const drawFromStock = useCallback(() => {
@@ -27,6 +40,7 @@ export function useGameState() {
       if (s.phase !== "draw" || s.currentPlayerId !== HUMAN_PLAYER || s.stock.length === 0)
         return s;
       const card = s.stock[s.stock.length - 1];
+      lastDrawnRef.current = card;
       return {
         ...s,
         stock: s.stock.slice(0, -1),
@@ -38,14 +52,17 @@ export function useGameState() {
         lastDraw: "stock",
       };
     });
-  }, []);
+    queueMicrotask(flushLastDrawn);
+  }, [flushLastDrawn]);
 
   const takeDiscardPile = useCallback(() => {
     setState((s) => {
       if (s == null) return s;
       if (s.phase !== "draw" || s.currentPlayerId !== HUMAN_PLAYER || s.discard.length === 0)
         return s;
+      const topCard = s.discard[0];
       const newHand = [...s.playerHands[HUMAN_PLAYER], ...s.discard];
+      lastDrawnRef.current = topCard;
       return {
         ...s,
         discard: [],
@@ -53,6 +70,18 @@ export function useGameState() {
         phase: "meldOrDiscard",
         lastDraw: "discard",
       };
+    });
+    queueMicrotask(flushLastDrawn);
+  }, [flushLastDrawn]);
+
+  const skipDraw = useCallback(() => {
+    lastDrawnRef.current = null;
+    setLastDrawnCard(null);
+    setState((s) => {
+      if (s == null) return s;
+      if (s.phase !== "draw" || s.currentPlayerId !== HUMAN_PLAYER || s.stock.length !== 0)
+        return s;
+      return { ...s, phase: "meldOrDiscard", lastDraw: null };
     });
   }, []);
 
@@ -68,6 +97,8 @@ export function useGameState() {
   }, []);
 
   const discardCard = useCallback((handIndex: number) => {
+    lastDrawnRef.current = null;
+    setLastDrawnCard(null);
     setState((s) => {
       if (s == null) return s;
       if (s.phase !== "meldOrDiscard" || s.currentPlayerId !== HUMAN_PLAYER)
@@ -86,13 +117,32 @@ export function useGameState() {
         discard: newDiscard,
         playerHands: newPlayerHands,
       };
-      const winner = checkGameOver(s.playerScores);
+      if (newHand.length === 0) {
+        const ids = getPlayerIds();
+        let roundPoints = 0;
+        for (const id of ids) {
+          if (id === HUMAN_PLAYER) continue;
+          roundPoints += getHandPenalty(updated.playerHands[id] ?? []);
+        }
+        const newScores = { ...updated.playerScores };
+        newScores[HUMAN_PLAYER] = (newScores[HUMAN_PLAYER] ?? 0) + roundPoints;
+        const gameWinner = checkGameOver(newScores);
+        return {
+          ...updated,
+          playerScores: newScores,
+          phase: gameWinner != null ? ("gameOver" as const) : ("roundEnd" as const),
+          winnerId: gameWinner ?? HUMAN_PLAYER,
+        };
+      }
+      const gameWinner = checkGameOver(s.playerScores);
       const next = advanceTurn(updated);
-      return winner != null ? { ...next, winnerId: winner } : next;
+      return gameWinner != null ? { ...next, winnerId: gameWinner } : next;
     });
   }, [advanceTurn]);
 
   const passWithoutDiscard = useCallback(() => {
+    lastDrawnRef.current = null;
+    setLastDrawnCard(null);
     setState((s) => {
       if (s == null) return s;
       if (s.phase !== "meldOrDiscard" || s.currentPlayerId !== HUMAN_PLAYER)
@@ -102,6 +152,8 @@ export function useGameState() {
   }, [advanceTurn]);
 
   const addMeld = useCallback((cardIndices: number[], wildRepresents?: Record<number, Card>) => {
+    lastDrawnRef.current = null;
+    setLastDrawnCard(null);
     setState((s) => {
       if (s == null) return s;
       if (s.phase !== "meldOrDiscard" || s.currentPlayerId !== HUMAN_PLAYER)
@@ -128,6 +180,8 @@ export function useGameState() {
   }, []);
 
   const addCardToExistingMeld = useCallback((meldId: string, handIndex: number, wildAs?: import("../types").Card) => {
+    lastDrawnRef.current = null;
+    setLastDrawnCard(null);
     setState((s) => {
       if (s == null) return s;
       if (s.phase !== "meldOrDiscard" || s.currentPlayerId !== HUMAN_PLAYER)
@@ -180,6 +234,17 @@ export function useGameState() {
     setState(createInitialState());
   }, []);
 
+  const startNewRound = useCallback(() => {
+    lastDrawnRef.current = null;
+    setLastDrawnCard(null);
+    setState((s) => {
+      if (s == null || s.phase !== "roundEnd") return s;
+      const next = createNewRoundState(s);
+      const gameWinner = checkGameOver(next.playerScores);
+      return gameWinner != null ? { ...next, phase: "gameOver" as const, winnerId: gameWinner } : next;
+    });
+  }, []);
+
   const humanHand = state?.playerHands[HUMAN_PLAYER] ?? [];
   const topDiscard = state && state.discard.length > 0 ? state.discard[0] : null;
 
@@ -188,17 +253,21 @@ export function useGameState() {
     isReady: state != null,
     humanHand,
     topDiscard,
-    isHumanTurn: state != null && state.phase !== "roundEnd" && state.currentPlayerId === HUMAN_PLAYER,
-    canDraw: state != null && state.phase === "draw" && state.currentPlayerId === HUMAN_PLAYER,
+    isHumanTurn: state != null && state.phase !== "roundEnd" && state.phase !== "gameOver" && state.currentPlayerId === HUMAN_PLAYER,
+    canDraw: state != null && state.phase === "draw" && state.currentPlayerId === HUMAN_PLAYER && state.stock.length > 0,
+    stockEmpty: state != null && state.stock.length === 0,
     drawFromStock,
     takeDiscardPile,
+    skipDraw,
     discardCard,
     passWithoutDiscard,
     addMeld,
     addCardToExistingMeld,
     advanceToNextTurn,
     resetGame,
+    startNewRound,
     getPlayerIds,
     myPlayerId: HUMAN_PLAYER,
+    lastDrawnCard,
   };
 }

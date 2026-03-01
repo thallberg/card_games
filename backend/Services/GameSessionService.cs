@@ -134,16 +134,15 @@ public class GameSessionService
     {
         var s = await _db.GameSessions.Include(g => g.Players).FirstOrDefaultAsync(g => g.Id == sessionId);
         if (s == null) return (false, "Sessionen hittades inte.");
-        if (s.Status != GameSessionStatus.InProgress)
+        var player = s.Players.FirstOrDefault(p => p.UserId == userId);
+        if (player == null) return (false, "Du är inte i denna session.");
+
+        if (s.Status == GameSessionStatus.Waiting)
         {
-            var player = s.Players.FirstOrDefault(p => p.UserId == userId);
-            if (player == null) return (false, "Du är inte i denna session.");
             if (s.LeaderId == userId)
             {
                 if (s.Players.Count == 1)
-                {
                     _db.GameSessions.Remove(s);
-                }
                 else
                 {
                     var nextLeader = s.Players.First(p => p.UserId != userId);
@@ -152,13 +151,21 @@ public class GameSessionService
                 }
             }
             else
-            {
                 s.Players.Remove(player);
-            }
-            await _db.SaveChangesAsync();
-            return (true, null);
         }
-        return (false, "Du kan inte lämna ett pågående spel.");
+        else if (s.Status == GameSessionStatus.InProgress)
+        {
+            s.Players.Remove(player);
+            if (s.Players.Count == 0)
+                _db.GameSessions.Remove(s);
+            else if (s.LeaderId == userId)
+                s.LeaderId = s.Players.First().UserId;
+        }
+        else
+            return (false, "Sessionen kan inte lämnas.");
+
+        await _db.SaveChangesAsync();
+        return (true, null);
     }
 
     public async Task<(bool Ok, string? Error)> StartGameAsync(Guid sessionId, Guid userId)

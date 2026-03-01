@@ -35,13 +35,13 @@ export function cardToFilename(card: Card): string {
 }
 
 /**
- * Sorterar hand för visning (färg, sedan valör).
+ * Sorterar hand för visning: färg (hjärter → klöver → ruter → spader), sedan valör i stege.
  */
 export function sortHand(cards: Card[]): Card[] {
   const suitOrder: Record<Suit, number> = {
     hearts: 0,
-    diamonds: 1,
-    clubs: 2,
+    clubs: 1,
+    diamonds: 2,
     spades: 3,
   };
   const rankOrder: Record<Rank, number> = {

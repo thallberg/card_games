@@ -72,6 +72,41 @@ public class FiveHundredService
         return (true, null);
     }
 
+    /// <summary>Startar nästa rond när phase är roundEnd. Ny kortlek, ny giv, behåller poäng.</summary>
+    public async Task<(bool Ok, string? Error)> StartNewRoundAsync(Guid sessionId)
+    {
+        var row = await _db.FiveHundredStates.FirstOrDefaultAsync(f => f.GameSessionId == sessionId);
+        if (row == null) return (false, "Spelet hittades inte.");
+        var state = JsonSerializer.Deserialize<FiveHundredStateDto>(row.StateJson, JsonOptions);
+        if (state == null) return (false, "Ogiltig state.");
+        if (state.Phase != "roundEnd") return (false, "Runden är inte avslutad.");
+
+        var deck = CreateAndShuffleDeck();
+        var hands = new Dictionary<string, List<CardDto>>
+        {
+            [P1] = deck.Take(HandSize).ToList(),
+            [P2] = deck.Skip(HandSize).Take(HandSize).ToList(),
+        };
+        var stock = deck.Skip(HandSize * 2).ToList();
+        var discard = stock.Count > 0 ? new List<CardDto> { stock[^1] } : new List<CardDto>();
+        if (stock.Count > 0) stock.RemoveAt(stock.Count - 1);
+
+        state.Stock = stock;
+        state.Discard = discard;
+        state.Melds = new List<MeldDto>();
+        state.CurrentPlayerId = P1;
+        state.PlayerHands = hands;
+        state.Phase = "draw";
+        state.LastDraw = null;
+        state.WinnerId = null;
+        state.RoundNumber = state.RoundNumber + 1;
+
+        row.StateJson = JsonSerializer.Serialize(state, JsonOptions);
+        row.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        return (true, null);
+    }
+
     /// <summary>Returns state with other players' hands masked. Response includes _myPlayerId for frontend.</summary>
     public async Task<(FiveHundredStateDto? State, string? MyPlayerId)> GetStateForUserAsync(Guid sessionId, Guid userId)
     {
@@ -118,6 +153,11 @@ public class FiveHundredService
     {
         switch (a.Action?.ToLowerInvariant())
         {
+            case "skipdraw":
+                if (s.Phase != "draw" || s.Stock.Count != 0) return "Ogiltigt drag.";
+                s.Phase = "meldOrDiscard";
+                s.LastDraw = null;
+                return null;
             case "drawfromstock":
                 if (s.Phase != "draw" || s.Stock.Count == 0) return "Ogiltigt drag.";
                 var card = s.Stock[^1];
@@ -135,12 +175,15 @@ public class FiveHundredService
                 return null;
             case "discard":
                 if (s.Phase != "meldOrDiscard" || a.CardIndex == null) return "Ogiltigt drag.";
-                var hand = s.PlayerHands[playerId];
-                if (a.CardIndex.Value < 0 || a.CardIndex.Value >= hand.Count) return "Ogiltigt kortindex.";
-                var toDiscard = hand[a.CardIndex.Value];
-                hand.RemoveAt(a.CardIndex.Value);
+                var discardHand = s.PlayerHands[playerId];
+                if (a.CardIndex.Value < 0 || a.CardIndex.Value >= discardHand.Count) return "Ogiltigt kortindex.";
+                var toDiscard = discardHand[a.CardIndex.Value];
+                discardHand.RemoveAt(a.CardIndex.Value);
                 s.Discard.Insert(0, toDiscard);
-                AdvanceTurn(s);
+                if (discardHand.Count == 0)
+                    EndRound(s, playerId);
+                else
+                    AdvanceTurn(s);
                 return null;
             case "pass":
                 if (s.Phase != "meldOrDiscard") return "Ogiltigt drag.";
@@ -175,6 +218,34 @@ public class FiveHundredService
         s.CurrentPlayerId = s.CurrentPlayerId == P1 ? P2 : P1;
         s.Phase = "draw";
         s.LastDraw = null;
+    }
+
+    private static int GetCardPoints(string rank)
+    {
+        return rank switch
+        {
+            "ace" => 15,
+            "2" => 25,
+            "3" or "4" or "5" or "6" or "7" or "8" or "9" => 5,
+            "10" or "jack" or "queen" or "king" => 10,
+            _ => 0
+        };
+    }
+
+    private const int PointsToWin = 500;
+
+    private static void EndRound(FiveHundredStateDto s, string winnerId)
+    {
+        var winnerScore = s.PlayerScores.TryGetValue(winnerId, out var ws) ? ws : 0;
+        foreach (var pid in PlayerIds)
+        {
+            if (pid == winnerId) continue;
+            var oppHand = s.PlayerHands.TryGetValue(pid, out var oh) ? oh : new List<CardDto>();
+            winnerScore += oppHand.Sum(c => GetCardPoints(c.Rank));
+        }
+        s.PlayerScores[winnerId] = winnerScore;
+        s.WinnerId = winnerId;
+        s.Phase = winnerScore >= PointsToWin ? "gameOver" : "roundEnd";
     }
 
     private static List<CardDto> CreateAndShuffleDeck()
