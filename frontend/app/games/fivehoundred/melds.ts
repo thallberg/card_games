@@ -1,12 +1,12 @@
 import type { Card, Meld } from "./types";
-import { RANKS } from "./types";
+import { RANKS, SUITS } from "./types";
 
 /** 2:or räknas som joker (valfri). */
 export function isWild(card: Card): boolean {
   return card.rank === "2";
 }
 
-const RANK_ORDER: Record<string, number> = {
+export const RANK_ORDER: Record<string, number> = {
   "2": 0,
   "3": 1,
   "4": 2,
@@ -21,6 +21,10 @@ const RANK_ORDER: Record<string, number> = {
   king: 11,
   ace: 12,
 };
+
+const VALUE_TO_RANK: Record<number, string> = Object.fromEntries(
+  RANKS.map((r, i) => [i, r])
+) as Record<number, string>;
 
 /**
  * Kontrollerar om kort kan bilda ett giltigt tretal/fyrtal (samma valör, 2 = joker).
@@ -83,41 +87,87 @@ export function getMeldType(cards: Card[]): "set" | "run" | null {
 }
 
 /**
- * För stege: returnerar [lägsta kort, högsta kort] så man ser vad man kan bygga på.
- * För tretal/fyrtal: returnerar alla kort.
+ * Möjliga kort som en 2:a får representera i en stege (hålen i följden).
+ */
+export function getWildOptionsForRun(cards: Card[]): Card[] {
+  const rest = cards.filter((c) => !isWild(c));
+  if (rest.length === 0) return [];
+  const suit = rest[0].suit;
+  const values = rest.map((c) => RANK_ORDER[c.rank]).sort((a, b) => a - b);
+  const min = values[0];
+  const max = values[values.length - 1];
+  const options: Card[] = [];
+  if (min > 0) options.push({ suit, rank: VALUE_TO_RANK[min - 1] as Card["rank"] });
+  if (max < 12) options.push({ suit, rank: VALUE_TO_RANK[max + 1] as Card["rank"] });
+  return options;
+}
+
+/**
+ * Möjliga kort som en 2:a får representera i ett tretal/fyrtal (samma valör, saknad färg).
+ */
+export function getWildOptionsForSet(cards: Card[]): Card[] {
+  const rest = cards.filter((c) => !isWild(c));
+  if (rest.length === 0) return [];
+  const rank = rest[0].rank as Card["rank"];
+  const usedSuits = new Set(rest.map((c) => c.suit));
+  return SUITS.filter((s) => !usedSuits.has(s)).map((suit) => ({ suit, rank }));
+}
+
+/**
+ * Returnerar meldens kort så som spelet tolkar dem: 2:or ersatta med wildRepresents.
+ * Används för logik (t.ex. "ligger dam redan där?") – inte bara visuellt.
+ */
+export function getEffectiveMeldCards(meld: Meld): Card[] {
+  const wr = meld.wildRepresents;
+  return meld.cards.map((c, i) => (wr && wr[i] ? wr[i] : c));
+}
+
+function cardEquals(a: Card, b: Card): boolean {
+  return a.suit === b.suit && a.rank === b.rank;
+}
+
+function effectiveContains(effective: Card[], card: Card): boolean {
+  return effective.some((c) => cardEquals(c, card));
+}
+
+/**
+ * För stege: returnerar alla kort i ordning (2:or visas som valt kort om wildRepresents finns).
+ * För tretal/fyrtal: returnerar alla kort (2:or med wildRepresents visas som valt kort).
  */
 export function getMeldDisplayCards(meld: Meld): Card[] {
-  if (meld.type === "set") return meld.cards;
-  const nonWild = meld.cards.filter((c) => !isWild(c));
-  if (nonWild.length === 0) return meld.cards;
-  const sorted = [...nonWild].sort(
+  const effective = getEffectiveMeldCards(meld);
+  if (meld.type === "set") return effective;
+  const nonWild = effective.filter((c) => !isWild(c));
+  if (nonWild.length === 0) return effective;
+  return [...effective].sort(
     (a, b) => RANK_ORDER[a.rank] - RANK_ORDER[b.rank]
   );
-  const low = sorted[0];
-  const high = sorted[sorted.length - 1];
-  return low === high ? [low] : [low, high];
 }
 
 /**
  * Kan ett kort läggas till på en befintlig meld?
- * Set: samma valör (eller joker), max 4 kort.
- * Stege: samma färg, valör = min-1 eller max+1 (ess lågt/högt).
+ * 2:an räknas som det valda kortet – man får inte lägga "riktiga" dam om en 2 redan står som dam.
+ * Set: samma valör, max 4 kort, färg får inte finnas redan (inkl. vad 2:or representerar).
+ * Stege: samma färg, valör = min-1 eller max+1, kortet får inte redan finnas i melden.
  */
 export function canAddCardToMeld(card: Card, meld: Meld): boolean {
+  const effective = getEffectiveMeldCards(meld);
   if (meld.type === "set") {
     if (meld.cards.length >= 4) return false;
     if (isWild(card)) return true;
-    const nonWild = meld.cards.filter((c) => !isWild(c));
-    if (nonWild.length === 0) return true;
-    return nonWild[0].rank === card.rank;
+    if (effective.length === 0) return true;
+    const rank = effective[0].rank;
+    if (card.rank !== rank) return false;
+    if (effectiveContains(effective, card)) return false;
+    return true;
   }
   if (meld.type === "run") {
-    const nonWild = meld.cards.filter((c) => !isWild(c));
-    if (nonWild.length === 0) return true;
+    if (effective.length === 0) return true;
     if (isWild(card)) return true;
-    const suit = nonWild[0].suit;
+    const suit = effective[0].suit;
     if (card.suit !== suit) return false;
-    const values = nonWild.map((c) => RANK_ORDER[c.rank]).sort((a, b) => a - b);
+    if (effectiveContains(effective, card)) return false;
+    const values = effective.map((c) => RANK_ORDER[c.rank]).sort((a, b) => a - b);
     const min = values[0];
     const max = values[values.length - 1];
     const v = RANK_ORDER[card.rank];

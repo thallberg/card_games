@@ -204,12 +204,12 @@ export function GameBoard({ sessionId }: GameBoardProps) {
             melds={state.melds}
             open={meldBuilderOpen}
             onOpenChange={handleLayMeldClose}
-            onConfirmNewMeld={(indices) => {
-              addMeld(indices);
+            onConfirmNewMeld={(indices, wildRepresents) => {
+              addMeld(indices, wildRepresents);
               handleLayMeldClose(false);
             }}
-            onAddToExistingMeld={(meldId, handIndex) => {
-              addCardToExistingMeld(meldId, handIndex);
+            onAddToExistingMeld={(meldId, handIndex, wildAs) => {
+              addCardToExistingMeld(meldId, handIndex, wildAs);
               handleLayMeldClose(false);
             }}
           />

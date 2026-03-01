@@ -29,21 +29,24 @@ export function AllMeldsModal({ melds, open, onOpenChange }: AllMeldsModalProps)
               Inga kombinationer utlagda än.
             </p>
           ) : (
-            melds.map((meld) => (
-              <div
-                key={meld.id}
-                className="flex items-center gap-0.5 rounded-md border border-border bg-card p-2"
-              >
-                {meld.cards.map((card, i) => (
-                  <PlayingCard
-                    key={`${meld.id}-${i}`}
-                    card={card}
-                    faceUp
-                    className="h-[80px] w-[56px]"
-                  />
-                ))}
-              </div>
-            ))
+            melds.map((meld) => {
+              const displayCards = getMeldDisplayCards(meld);
+              return (
+                <div
+                  key={meld.id}
+                  className="flex items-center gap-0.5 rounded-md border border-border bg-card p-2"
+                >
+                  {displayCards.map((card, i) => (
+                    <PlayingCard
+                      key={`${meld.id}-${i}`}
+                      card={card}
+                      faceUp
+                      className="h-[80px] w-[56px]"
+                    />
+                  ))}
+                </div>
+              );
+            })
           )}
         </div>
       </DialogContent>

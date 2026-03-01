@@ -13,4 +13,6 @@ export {
   isValidMeld,
   getMeldType,
   getMeldDisplayCards,
+  getWildOptionsForRun,
+  getWildOptionsForSet,
 } from "./melds";

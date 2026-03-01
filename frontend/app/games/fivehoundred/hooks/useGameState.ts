@@ -101,7 +101,7 @@ export function useGameState() {
     });
   }, [advanceTurn]);
 
-  const addMeld = useCallback((cardIndices: number[]) => {
+  const addMeld = useCallback((cardIndices: number[], wildRepresents?: Record<number, Card>) => {
     setState((s) => {
       if (s == null) return s;
       if (s.phase !== "meldOrDiscard" || s.currentPlayerId !== HUMAN_PLAYER)
@@ -117,6 +117,7 @@ export function useGameState() {
         id: crypto.randomUUID(),
         cards,
         type,
+        ...(wildRepresents && Object.keys(wildRepresents).length > 0 ? { wildRepresents } : undefined),
       };
       return {
         ...s,
@@ -126,7 +127,7 @@ export function useGameState() {
     });
   }, []);
 
-  const addCardToExistingMeld = useCallback((meldId: string, handIndex: number) => {
+  const addCardToExistingMeld = useCallback((meldId: string, handIndex: number, wildAs?: import("../types").Card) => {
     setState((s) => {
       if (s == null) return s;
       if (s.phase !== "meldOrDiscard" || s.currentPlayerId !== HUMAN_PLAYER)
@@ -151,8 +152,12 @@ export function useGameState() {
           return va - vb;
         });
       }
+      const newIndex = newCards.length - 1;
+      const newWildRepresents = wildAs && card.rank === "2"
+        ? { ...meld.wildRepresents, [newIndex]: wildAs }
+        : meld.wildRepresents;
       const newMelds = s.melds.map((m) =>
-        m.id === meldId ? { ...m, cards: newCards } : m
+        m.id === meldId ? { ...m, cards: newCards, wildRepresents: newWildRepresents } : m
       );
       return {
         ...s,
