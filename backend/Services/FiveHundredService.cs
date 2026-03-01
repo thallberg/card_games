@@ -191,21 +191,21 @@ public class FiveHundredService
                 return null;
             case "addmeld":
                 if (s.Phase != "meldOrDiscard" || a.CardIndices == null || a.CardIndices.Count < 3) return "Ogiltigt drag.";
-                hand = s.PlayerHands[playerId];
-                var indices = a.CardIndices.OrderBy(x => x).Where(i => i >= 0 && i < hand.Count).Distinct().Take(7).ToList();
+                var addMeldHand = s.PlayerHands[playerId];
+                var indices = a.CardIndices.OrderBy(x => x).Where(i => i >= 0 && i < addMeldHand.Count).Distinct().Take(7).ToList();
                 if (indices.Count < 3) return "Minst 3 kort krävs.";
-                var cards = indices.Select(i => hand[i]).ToList();
-                foreach (var i in indices.OrderByDescending(x => x)) hand.RemoveAt(i);
+                var cards = indices.Select(i => addMeldHand[i]).ToList();
+                foreach (var i in indices.OrderByDescending(x => x)) addMeldHand.RemoveAt(i);
                 s.Melds.Add(new MeldDto { Id = Guid.NewGuid().ToString(), Cards = cards, Type = "set" });
                 return null;
             case "addcardtomeld":
                 if (s.Phase != "meldOrDiscard" || string.IsNullOrEmpty(a.MeldId) || a.CardIndex == null) return "Ogiltigt drag.";
-                hand = s.PlayerHands[playerId];
-                if (a.CardIndex.Value < 0 || a.CardIndex.Value >= hand.Count) return "Ogiltigt kortindex.";
+                var addToMeldHand = s.PlayerHands[playerId];
+                if (a.CardIndex.Value < 0 || a.CardIndex.Value >= addToMeldHand.Count) return "Ogiltigt kortindex.";
                 var meld = s.Melds.FirstOrDefault(m => m.Id == a.MeldId);
                 if (meld == null) return "Meld hittades inte.";
-                var addCard = hand[a.CardIndex.Value];
-                hand.RemoveAt(a.CardIndex.Value);
+                var addCard = addToMeldHand[a.CardIndex.Value];
+                addToMeldHand.RemoveAt(a.CardIndex.Value);
                 meld.Cards.Add(addCard);
                 return null;
             default:
