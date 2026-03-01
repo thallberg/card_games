@@ -15,6 +15,15 @@ import { Label } from "@/components/ui/label";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5236";
 
+function getConnectionErrorMessage(): string {
+  if (typeof window === "undefined") return "Kunde inte ansluta till servern.";
+  const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+  if (isLocal) {
+    return "Kunde inte ansluta till servern. Starta backend med ’dotnet run’ i mappen backend (krävs för registrering och inloggning).";
+  }
+  return "Kunde inte ansluta till backend. I produktion måste API:n vara deployad (t.ex. Azure App Service) och du måste sätta miljövariabeln NEXT_PUBLIC_API_URL i Vercel till din API-URL.";
+}
+
 export type AuthModalMode = "login" | "register";
 
 export type AuthModalProps = {
@@ -95,9 +104,7 @@ export function AuthModal({
         }
       }
     } catch {
-      setError(
-        "Kunde inte ansluta till servern. Starta backend med ’dotnet run’ i mappen backend (krävs för registrering och inloggning)."
-      );
+      setError(getConnectionErrorMessage());
     } finally {
       setLoading(false);
     }
