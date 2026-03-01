@@ -80,8 +80,10 @@ export function AuthModal({
           return;
         }
         if (loginData.token) {
-          typeof window !== "undefined" &&
+          if (typeof window !== "undefined") {
             localStorage.setItem("token", loginData.token);
+            if (loginData.user) localStorage.setItem("user", JSON.stringify(loginData.user));
+          }
           onOpenChange(false);
           onSuccess?.();
         }
@@ -97,8 +99,10 @@ export function AuthModal({
           return;
         }
         if (data.token) {
-          typeof window !== "undefined" &&
+          if (typeof window !== "undefined") {
             localStorage.setItem("token", data.token);
+            if (data.user) localStorage.setItem("user", JSON.stringify(data.user));
+          }
           onOpenChange(false);
           onSuccess?.();
         }

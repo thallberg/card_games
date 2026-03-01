@@ -4,12 +4,16 @@ import Link from "next/link";
 import { Spade } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+export type NavbarUser = { displayName: string };
+
 type NavbarProps = {
+  user?: NavbarUser | null;
   onRegisterClick?: () => void;
   onLoginClick?: () => void;
+  onLogout?: () => void;
 };
 
-export function Navbar({ onRegisterClick, onLoginClick }: NavbarProps) {
+export function Navbar({ user, onRegisterClick, onLoginClick, onLogout }: NavbarProps) {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
       <div className="mx-auto flex h-14 max-w-7xl items-center px-4 sm:px-6">
@@ -28,23 +32,36 @@ export function Navbar({ onRegisterClick, onLoginClick }: NavbarProps) {
         </div>
 
         <nav className="flex items-center gap-2">
-          {onRegisterClick ? (
-            <Button variant="ghost" type="button" onClick={onRegisterClick}>
-              Registrera
-            </Button>
+          {user ? (
+            <>
+              <span className="text-muted-foreground text-sm">
+                Hej, {user.displayName}
+              </span>
+              <Button variant="ghost" type="button" onClick={onLogout}>
+                Logga ut
+              </Button>
+            </>
           ) : (
-            <Button variant="ghost" asChild>
-              <Link href="/registrera">Registrera</Link>
-            </Button>
-          )}
-          {onLoginClick ? (
-            <Button type="button" onClick={onLoginClick}>
-              Logga in
-            </Button>
-          ) : (
-            <Button asChild>
-              <Link href="/logga-in">Logga in</Link>
-            </Button>
+            <>
+              {onRegisterClick ? (
+                <Button variant="ghost" type="button" onClick={onRegisterClick}>
+                  Registrera
+                </Button>
+              ) : (
+                <Button variant="ghost" asChild>
+                  <Link href="/registrera">Registrera</Link>
+                </Button>
+              )}
+              {onLoginClick ? (
+                <Button type="button" onClick={onLoginClick}>
+                  Logga in
+                </Button>
+              ) : (
+                <Button asChild>
+                  <Link href="/logga-in">Logga in</Link>
+                </Button>
+              )}
+            </>
           )}
         </nav>
       </div>
