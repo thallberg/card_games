@@ -23,6 +23,9 @@ Innehåller: **Auth** (registrering, inloggning med JWT), **vänförfrågningar*
 3. **Azure (miljövariabler)** – I Azure används `__` som avgränsare (blir `:` i .NET):  
    `ConnectionStrings__DefaultConnection`, `Jwt__Key`, `Jwt__Issuer`, `Jwt__Audience`, `Cors__AllowedOrigins` (kommaseparerade, t.ex. `https://din-app.vercel.app,http://localhost:3000`).
 
+4. **Azure CORS (viktigt för Vercel)** – Lägg även till frontend-URL i Azure Portalen:  
+   App Service → **CORS** (vänstermenyn under API) → under "Allowed Origins" lägg till `https://card-games-rose.vercel.app` (eller din Vercel-URL) → **Save**. Annars kan Azure blockera anrop innan de når appen.
+
 ## Köra
 
 ```bash
