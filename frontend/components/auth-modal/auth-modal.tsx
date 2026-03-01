@@ -13,15 +13,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5236";
+const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5236")
+  .trim()
+  .replace(/\/$/, "");
 
-function getConnectionErrorMessage(): string {
+function getConnectionErrorMessage(apiUrl: string): string {
   if (typeof window === "undefined") return "Kunde inte ansluta till servern.";
   const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
   if (isLocal) {
     return "Kunde inte ansluta till servern. Starta backend med ’dotnet run’ i mappen backend (krävs för registrering och inloggning).";
   }
-  return "Kunde inte ansluta till backend. I produktion måste API:n vara deployad (t.ex. Azure App Service) och du måste sätta miljövariabeln NEXT_PUBLIC_API_URL i Vercel till din API-URL.";
+  const isLocalhostUrl = /^https?:\/\/localhost(\b|:)/i.test(apiUrl) || /^https?:\/\/127\.0\.0\.1\b/i.test(apiUrl);
+  if (isLocalhostUrl) {
+    return "NEXT_PUBLIC_API_URL saknas i produktion. Sätt den i Vercel (Settings → Environment Variables), spara, och gör en ny deploy (Redeploy) så att bygget får värdet.";
+  }
+  return `Kunde inte ansluta till ${apiUrl}. Kontrollera att backend körs och att CORS tillåter denna webbplats.`;
 }
 
 export type AuthModalMode = "login" | "register";
@@ -53,6 +59,12 @@ export function AuthModal({
     setLoading(true);
 
     try {
+      const isProd = typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1";
+      const isLocalhostUrl = /^https?:\/\/localhost(\b|:)/i.test(API_URL) || /^https?:\/\/127\.0\.0\.1\b/i.test(API_URL);
+      if (isProd && isLocalhostUrl) {
+        setError("NEXT_PUBLIC_API_URL saknas i bygget. Gå till Vercel → Projekt → Settings → Environment Variables. Lägg till NEXT_PUBLIC_API_URL = din Azure-URL (t.ex. https://xxx.azurewebsites.net) för Production. Spara och gör sedan Redeploy på senaste deployment.");
+        return;
+      }
       if (isRegister) {
         const res = await fetch(`${API_URL}/api/auth/register`, {
           method: "POST",
@@ -108,7 +120,7 @@ export function AuthModal({
         }
       }
     } catch {
-      setError(getConnectionErrorMessage());
+      setError(getConnectionErrorMessage(API_URL));
     } finally {
       setLoading(false);
     }
