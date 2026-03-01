@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
+import type { Card } from "../types";
 import type { GameState } from "../game-state";
-import { getPlayerIds as getPlayerIdsSingle, getNextPlayerId } from "../game-state";
+import { sortHand } from "../deck";
 import { fetchFiveHundredState, sendFiveHundredAction, startFiveHundredNewRound } from "../api/fiveHundredApi";
 
 const POLL_INTERVAL_MS = 2000;
@@ -10,6 +11,7 @@ const POLL_INTERVAL_MS = 2000;
 export function useGameStateMultiplayer(sessionId: string | undefined) {
   const [state, setState] = useState<GameState | null>(null);
   const [myPlayerId, setMyPlayerId] = useState<string>("p1");
+  const [lastDrawnCard, setLastDrawnCard] = useState<Card | null>(null);
   const [loading, setLoading] = useState(!!sessionId);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -19,6 +21,7 @@ export function useGameStateMultiplayer(sessionId: string | undefined) {
     if (data) {
       setState(data.state);
       setMyPlayerId(data.myPlayerId);
+      setLastDrawnCard(null);
     }
     setLoading(false);
   }, [sessionId]);
@@ -48,8 +51,11 @@ export function useGameStateMultiplayer(sessionId: string | undefined) {
   const runAction = useCallback(
     async (action: string, payload?: { cardIndex?: number; cardIndices?: number[]; meldId?: string }) => {
       if (!sessionId) return;
-      const newState = await sendFiveHundredAction(sessionId, action, payload);
-      if (newState) setState(newState);
+      const result = await sendFiveHundredAction(sessionId, action, payload);
+      if (result) {
+        setState(result.state);
+        setLastDrawnCard(result.lastDrawnCard ?? null);
+      }
     },
     [sessionId]
   );
@@ -73,12 +79,16 @@ export function useGameStateMultiplayer(sessionId: string | undefined) {
     if (data) {
       setState(data.state);
       setMyPlayerId(data.myPlayerId);
+      setLastDrawnCard(null);
     }
   }, [sessionId]);
 
   const getPlayerIds = useCallback(() => (state ? Object.keys(state.playerHands) as import("../types").PlayerId[] : ["p1", "p2"]), [state]);
 
-  const humanHand = state?.playerHands[myPlayerId] ?? [];
+  const humanHand = useMemo(
+    () => sortHand(state?.playerHands[myPlayerId] ?? []),
+    [state, myPlayerId]
+  );
   const topDiscard = state && state.discard.length > 0 ? state.discard[0] : null;
 
   return {
@@ -101,6 +111,6 @@ export function useGameStateMultiplayer(sessionId: string | undefined) {
     startNewRound,
     getPlayerIds,
     myPlayerId,
-    lastDrawnCard: null,
+    lastDrawnCard,
   };
 }

@@ -127,56 +127,57 @@ public class FiveHundredService
         return (state, myPlayerId);
     }
 
-    public async Task<(bool Ok, string? Error, FiveHundredStateDto? NewState)> ApplyActionAsync(Guid sessionId, Guid userId, FiveHundredActionRequest action)
+    public async Task<(bool Ok, string? Error, FiveHundredStateDto? NewState, CardDto? LastDrawnCard)> ApplyActionAsync(Guid sessionId, Guid userId, FiveHundredActionRequest action)
     {
         var row = await _db.FiveHundredStates.FirstOrDefaultAsync(f => f.GameSessionId == sessionId);
-        if (row == null) return (false, "Spelet hittades inte.", null);
+        if (row == null) return (false, "Spelet hittades inte.", null, null);
         var state = JsonSerializer.Deserialize<FiveHundredStateDto>(row.StateJson, JsonOptions);
-        if (state == null) return (false, "Ogiltig state.", null);
+        if (state == null) return (false, "Ogiltig state.", null, null);
         var playerOrder = JsonSerializer.Deserialize<List<string>>(row.PlayerOrderJson);
-        if (playerOrder == null || playerOrder.Count < 2) return (false, "Ogiltig spelarordning.", null);
+        if (playerOrder == null || playerOrder.Count < 2) return (false, "Ogiltig spelarordning.", null, null);
         var myPlayerId = userId.ToString() == playerOrder[0] ? P1 : (userId.ToString() == playerOrder[1] ? P2 : null);
-        if (myPlayerId == null) return (false, "Du är inte med i detta spel.", null);
-        if (state.CurrentPlayerId != myPlayerId) return (false, "Det är inte din tur.", null);
+        if (myPlayerId == null) return (false, "Du är inte med i detta spel.", null, null);
+        if (state.CurrentPlayerId != myPlayerId) return (false, "Det är inte din tur.", null, null);
 
-        var err = ApplyAction(state, myPlayerId, action);
-        if (err != null) return (false, err, null);
+        var (err, lastDrawn) = ApplyAction(state, myPlayerId, action);
+        if (err != null) return (false, err, null, null);
 
         row.StateJson = JsonSerializer.Serialize(state, JsonOptions);
         row.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
         var (masked, _) = await GetStateForUserAsync(sessionId, userId);
-        return (true, null, masked);
+        return (true, null, masked, lastDrawn);
     }
 
-    private static string? ApplyAction(FiveHundredStateDto s, string playerId, FiveHundredActionRequest a)
+    private static (string? Err, CardDto? LastDrawn) ApplyAction(FiveHundredStateDto s, string playerId, FiveHundredActionRequest a)
     {
         switch (a.Action?.ToLowerInvariant())
         {
             case "skipdraw":
-                if (s.Phase != "draw" || s.Stock.Count != 0) return "Ogiltigt drag.";
+                if (s.Phase != "draw" || s.Stock.Count != 0) return ("Ogiltigt drag.", null);
                 s.Phase = "meldOrDiscard";
                 s.LastDraw = null;
-                return null;
+                return (null, null);
             case "drawfromstock":
-                if (s.Phase != "draw" || s.Stock.Count == 0) return "Ogiltigt drag.";
+                if (s.Phase != "draw" || s.Stock.Count == 0) return ("Ogiltigt drag.", null);
                 var card = s.Stock[^1];
                 s.Stock.RemoveAt(s.Stock.Count - 1);
                 s.PlayerHands[playerId].Add(card);
                 s.Phase = "meldOrDiscard";
                 s.LastDraw = "stock";
-                return null;
+                return (null, card);
             case "takediscard":
-                if (s.Phase != "draw" || s.Discard.Count == 0) return "Ogiltigt drag.";
+                if (s.Phase != "draw" || s.Discard.Count == 0) return ("Ogiltigt drag.", null);
+                var topDiscard = s.Discard[0];
                 s.PlayerHands[playerId].AddRange(s.Discard);
                 s.Discard.Clear();
                 s.Phase = "meldOrDiscard";
                 s.LastDraw = "discard";
-                return null;
+                return (null, topDiscard);
             case "discard":
-                if (s.Phase != "meldOrDiscard" || a.CardIndex == null) return "Ogiltigt drag.";
+                if (s.Phase != "meldOrDiscard" || a.CardIndex == null) return ("Ogiltigt drag.", null);
                 var discardHand = s.PlayerHands[playerId];
-                if (a.CardIndex.Value < 0 || a.CardIndex.Value >= discardHand.Count) return "Ogiltigt kortindex.";
+                if (a.CardIndex.Value < 0 || a.CardIndex.Value >= discardHand.Count) return ("Ogiltigt kortindex.", null);
                 var toDiscard = discardHand[a.CardIndex.Value];
                 discardHand.RemoveAt(a.CardIndex.Value);
                 s.Discard.Insert(0, toDiscard);
@@ -184,32 +185,32 @@ public class FiveHundredService
                     EndRound(s, playerId);
                 else
                     AdvanceTurn(s);
-                return null;
+                return (null, null);
             case "pass":
-                if (s.Phase != "meldOrDiscard") return "Ogiltigt drag.";
+                if (s.Phase != "meldOrDiscard") return ("Ogiltigt drag.", null);
                 AdvanceTurn(s);
-                return null;
+                return (null, null);
             case "addmeld":
-                if (s.Phase != "meldOrDiscard" || a.CardIndices == null || a.CardIndices.Count < 3) return "Ogiltigt drag.";
+                if (s.Phase != "meldOrDiscard" || a.CardIndices == null || a.CardIndices.Count < 3) return ("Ogiltigt drag.", null);
                 var addMeldHand = s.PlayerHands[playerId];
                 var indices = a.CardIndices.OrderBy(x => x).Where(i => i >= 0 && i < addMeldHand.Count).Distinct().Take(7).ToList();
-                if (indices.Count < 3) return "Minst 3 kort krävs.";
+                if (indices.Count < 3) return ("Minst 3 kort krävs.", null);
                 var cards = indices.Select(i => addMeldHand[i]).ToList();
                 foreach (var i in indices.OrderByDescending(x => x)) addMeldHand.RemoveAt(i);
                 s.Melds.Add(new MeldDto { Id = Guid.NewGuid().ToString(), Cards = cards, Type = "set" });
-                return null;
+                return (null, null);
             case "addcardtomeld":
-                if (s.Phase != "meldOrDiscard" || string.IsNullOrEmpty(a.MeldId) || a.CardIndex == null) return "Ogiltigt drag.";
+                if (s.Phase != "meldOrDiscard" || string.IsNullOrEmpty(a.MeldId) || a.CardIndex == null) return ("Ogiltigt drag.", null);
                 var addToMeldHand = s.PlayerHands[playerId];
-                if (a.CardIndex.Value < 0 || a.CardIndex.Value >= addToMeldHand.Count) return "Ogiltigt kortindex.";
+                if (a.CardIndex.Value < 0 || a.CardIndex.Value >= addToMeldHand.Count) return ("Ogiltigt kortindex.", null);
                 var meld = s.Melds.FirstOrDefault(m => m.Id == a.MeldId);
-                if (meld == null) return "Meld hittades inte.";
+                if (meld == null) return ("Meld hittades inte.", null);
                 var addCard = addToMeldHand[a.CardIndex.Value];
                 addToMeldHand.RemoveAt(a.CardIndex.Value);
                 meld.Cards.Add(addCard);
-                return null;
+                return (null, null);
             default:
-                return "Okänd åtgärd.";
+                return ("Okänd åtgärd.", null);
         }
     }
 

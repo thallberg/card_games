@@ -295,9 +295,9 @@ app.MapPost("/api/gamesessions/{id:guid}/500/action", async (Guid id, FiveHundre
 {
     var userId = GetUserId(ctx.User);
     if (userId == null) return Results.Unauthorized();
-    var (ok, err, newState) = await fiveHundredService.ApplyActionAsync(id, userId.Value, req);
+    var (ok, err, newState, lastDrawnCard) = await fiveHundredService.ApplyActionAsync(id, userId.Value, req);
     if (!ok) return Results.BadRequest(new { error = err });
-    return Results.Ok(newState);
+    return Results.Json(new { state = newState, lastDrawnCard });
 }).RequireAuthorization();
 
 app.MapPost("/api/gamesessions/{id:guid}/500/start-round", async (Guid id, HttpContext ctx, FiveHundredService fiveHundredService) =>
