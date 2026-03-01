@@ -12,9 +12,11 @@ type NavbarProps = {
   onLoginClick?: () => void;
   onLogout?: () => void;
   onInviteFriendClick?: () => void;
+  /** Antal mottagna vänförfrågningar (visas som badge på Vänner-länken) */
+  pendingFriendRequestsCount?: number;
 };
 
-export function Navbar({ user, onRegisterClick, onLoginClick, onLogout, onInviteFriendClick }: NavbarProps) {
+export function Navbar({ user, onRegisterClick, onLoginClick, onLogout, onInviteFriendClick, pendingFriendRequestsCount = 0 }: NavbarProps) {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
       <div className="mx-auto flex h-14 max-w-7xl items-center px-4 sm:px-6">
@@ -43,8 +45,15 @@ export function Navbar({ user, onRegisterClick, onLoginClick, onLogout, onInvite
                   Väninbjudan
                 </Button>
               )}
-              <Button variant="ghost" asChild>
-                <Link href="/vanner">Vänner</Link>
+              <Button variant="ghost" asChild className="relative">
+                <Link href="/vanner">
+                  Vänner
+                  {pendingFriendRequestsCount > 0 && (
+                    <span className="ml-1 inline-flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-medium">
+                      {pendingFriendRequestsCount > 9 ? "9+" : pendingFriendRequestsCount}
+                    </span>
+                  )}
+                </Link>
               </Button>
               <Button variant="ghost" asChild>
                 <Link href="/spel">Mina spel</Link>

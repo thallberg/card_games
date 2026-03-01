@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,34 +13,56 @@ import {
 import { apiFetch } from "@/lib/api";
 
 type Friend = { id: string; displayName: string; email: string; friendsSince: string };
+type ReceivedRequest = { id: string; fromUserDisplayName: string; createdAt: string };
 
 export default function VannerPage() {
   const router = useRouter();
   const [friends, setFriends] = useState<Friend[]>([]);
+  const [receivedRequests, setReceivedRequests] = useState<ReceivedRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [createGameFor, setCreateGameFor] = useState<Friend | null>(null);
   const [creating, setCreating] = useState(false);
 
+  const loadData = useCallback(async () => {
+    try {
+      const [friendsRes, requestsRes] = await Promise.all([
+        apiFetch("/api/friends"),
+        apiFetch("/api/friends/requests/received"),
+      ]);
+      if (friendsRes.status === 401 || requestsRes.status === 401) {
+        router.push("/");
+        return;
+      }
+      const friendsData = await friendsRes.json().catch(() => []);
+      const requestsData = await requestsRes.json().catch(() => []);
+      setFriends(Array.isArray(friendsData) ? friendsData : []);
+      setReceivedRequests(Array.isArray(requestsData) ? requestsData : []);
+    } catch {
+      setError("Kunde inte hämta data.");
+    }
+  }, [router]);
+
   useEffect(() => {
     let cancelled = false;
-    (async () => {
-      try {
-        const res = await apiFetch("/api/friends");
-        if (res.status === 401) {
-          router.push("/");
-          return;
-        }
-        const data = await res.json().catch(() => []);
-        if (!cancelled) setFriends(Array.isArray(data) ? data : []);
-      } catch {
-        if (!cancelled) setError("Kunde inte hämta vänner.");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
+    loadData().finally(() => {
+      if (!cancelled) setLoading(false);
+    });
     return () => { cancelled = true; };
-  }, [router]);
+  }, [loadData]);
+
+  const respondToRequest = async (requestId: string, accept: boolean) => {
+    const res = await apiFetch(
+      `/api/friends/requests/${requestId}/${accept ? "accept" : "decline"}`,
+      { method: "POST" }
+    );
+    if (res.ok) {
+      await loadData();
+      if (typeof window !== "undefined") window.dispatchEvent(new Event("friend-requests-changed"));
+    } else {
+      setError(accept ? "Kunde inte acceptera." : "Kunde inte avvisa.");
+    }
+  };
 
   const handleCreateGame = async () => {
     if (!createGameFor) return;
@@ -91,6 +113,40 @@ export default function VannerPage() {
         {error && (
           <p className="mb-4 text-destructive text-sm">{error}</p>
         )}
+
+        {receivedRequests.length > 0 && (
+          <div className="mb-6 rounded-lg border bg-muted/30 p-4">
+            <h2 className="mb-3 text-sm font-medium text-muted-foreground">
+              Vänförfrågningar ({receivedRequests.length})
+            </h2>
+            <ul className="space-y-2">
+              {receivedRequests.map((req) => (
+                <li
+                  key={req.id}
+                  className="flex items-center justify-between rounded border bg-background p-3"
+                >
+                  <span>{req.fromUserDisplayName} vill bli din vän</span>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => respondToRequest(req.id, true)}
+                    >
+                      Acceptera
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => respondToRequest(req.id, false)}
+                    >
+                      Avvisa
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {friends.length === 0 ? (
           <p className="text-muted-foreground">
             Du har inga vänner än. Använd &quot;Väninbjudan&quot; i menyn för att bjuda in någon via e-post.
