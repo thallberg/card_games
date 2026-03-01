@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Backend.DTOs;
 
 /// <summary>
@@ -32,8 +34,15 @@ public class MeldDto
 
 public class FiveHundredActionRequest
 {
+    [JsonPropertyName("action")]
     public string Action { get; set; } = "";
+
+    [JsonPropertyName("cardIndex")]
     public int? CardIndex { get; set; }
+
+    [JsonPropertyName("cardIndices")]
     public List<int>? CardIndices { get; set; }
+
+    [JsonPropertyName("meldId")]
     public string? MeldId { get; set; }
 }

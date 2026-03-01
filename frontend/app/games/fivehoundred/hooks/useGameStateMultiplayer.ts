@@ -6,7 +6,7 @@ import type { GameState } from "../game-state";
 import { sortHand } from "../deck";
 import { fetchFiveHundredState, sendFiveHundredAction, startFiveHundredNewRound } from "../api/fiveHundredApi";
 
-const POLL_INTERVAL_MS = 2000;
+const POLL_INTERVAL_MS = 1000;
 
 export function useGameStateMultiplayer(sessionId: string | undefined) {
   const [state, setState] = useState<GameState | null>(null);
@@ -34,6 +34,13 @@ export function useGameStateMultiplayer(sessionId: string | undefined) {
 
   useEffect(() => {
     if (!sessionId || !state) return;
+    if (state.phase === "roundEnd" || state.phase === "gameOver") {
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
+      return;
+    }
     const isMyTurn = state.currentPlayerId === myPlayerId;
     if (isMyTurn) {
       if (pollRef.current) {
@@ -42,11 +49,12 @@ export function useGameStateMultiplayer(sessionId: string | undefined) {
       }
       return;
     }
+    loadState();
     pollRef.current = setInterval(loadState, POLL_INTERVAL_MS);
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
-  }, [sessionId, state?.currentPlayerId, myPlayerId, loadState, state]);
+  }, [sessionId, state?.currentPlayerId, state?.phase, myPlayerId, loadState, state]);
 
   const runAction = useCallback(
     async (action: string, payload?: { cardIndex?: number; cardIndices?: number[]; meldId?: string }) => {
