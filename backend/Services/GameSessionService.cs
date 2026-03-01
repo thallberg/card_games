@@ -15,6 +15,7 @@ public class GameSessionService
     {
         GameTypeDto.Poker => GameType.Poker,
         GameTypeDto.Blackjack => GameType.Blackjack,
+        GameTypeDto.FiveHundred => GameType.FiveHundred,
         _ => GameType.Poker,
     };
 

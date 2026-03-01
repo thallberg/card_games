@@ -194,5 +194,6 @@ export function useGameState() {
     advanceToNextTurn,
     resetGame,
     getPlayerIds,
+    myPlayerId: HUMAN_PLAYER,
   };
 }

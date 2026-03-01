@@ -11,6 +11,17 @@ public class FriendService
 
     public FriendService(ApplicationDbContext db) => _db = db;
 
+    public async Task<(bool Ok, string? Error)> SendRequestByEmailAsync(Guid fromUserId, string email)
+    {
+        var normalized = (email ?? "").Trim().ToLowerInvariant();
+        if (string.IsNullOrEmpty(normalized))
+            return (false, "Ange e-postadress.");
+        var toUser = await _db.Users.FirstOrDefaultAsync(u => u.Email == normalized);
+        if (toUser == null)
+            return (false, "Ingen användare hittades med den e-postadressen.");
+        return await SendRequestAsync(fromUserId, toUser.Id);
+    }
+
     public async Task<(bool Ok, string? Error)> SendRequestAsync(Guid fromUserId, Guid toUserId)
     {
         if (fromUserId == toUserId)

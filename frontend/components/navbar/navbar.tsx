@@ -11,9 +11,10 @@ type NavbarProps = {
   onRegisterClick?: () => void;
   onLoginClick?: () => void;
   onLogout?: () => void;
+  onInviteFriendClick?: () => void;
 };
 
-export function Navbar({ user, onRegisterClick, onLoginClick, onLogout }: NavbarProps) {
+export function Navbar({ user, onRegisterClick, onLoginClick, onLogout, onInviteFriendClick }: NavbarProps) {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
       <div className="mx-auto flex h-14 max-w-7xl items-center px-4 sm:px-6">
@@ -37,6 +38,17 @@ export function Navbar({ user, onRegisterClick, onLoginClick, onLogout }: Navbar
               <span className="text-muted-foreground text-sm">
                 Hej, {user.displayName}
               </span>
+              {onInviteFriendClick && (
+                <Button variant="ghost" type="button" onClick={onInviteFriendClick}>
+                  Väninbjudan
+                </Button>
+              )}
+              <Button variant="ghost" asChild>
+                <Link href="/vanner">Vänner</Link>
+              </Button>
+              <Button variant="ghost" asChild>
+                <Link href="/spel">Mina spel</Link>
+              </Button>
               <Button variant="ghost" type="button" onClick={onLogout}>
                 Logga ut
               </Button>

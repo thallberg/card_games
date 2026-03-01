@@ -2,6 +2,8 @@ namespace Backend.DTOs;
 
 public record SendFriendRequestRequest(Guid ToUserId);
 
+public record SendFriendRequestByEmailRequest(string Email);
+
 public record FriendRequestDto(
     Guid Id,
     Guid FromUserId,

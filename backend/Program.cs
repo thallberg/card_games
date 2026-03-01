@@ -19,6 +19,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<FriendService>();
 builder.Services.AddScoped<GameSessionService>();
+builder.Services.AddScoped<FiveHundredService>();
 
 builder.Services.AddCors(options =>
 {
@@ -129,6 +130,15 @@ app.MapPost("/api/friends/request", async (SendFriendRequestRequest req, HttpCon
     var userId = GetUserId(ctx.User);
     if (userId == null) return Results.Unauthorized();
     var (ok, err) = await friendService.SendRequestAsync(userId.Value, req.ToUserId);
+    if (!ok) return Results.BadRequest(new { error = err });
+    return Results.Ok();
+}).RequireAuthorization();
+
+app.MapPost("/api/friends/request-by-email", async (SendFriendRequestByEmailRequest req, HttpContext ctx, FriendService friendService) =>
+{
+    var userId = GetUserId(ctx.User);
+    if (userId == null) return Results.Unauthorized();
+    var (ok, err) = await friendService.SendRequestByEmailAsync(userId.Value, req.Email);
     if (!ok) return Results.BadRequest(new { error = err });
     return Results.Ok();
 }).RequireAuthorization();
@@ -255,14 +265,39 @@ app.MapPost("/api/gamesessions/{id:guid}/leave", async (Guid id, HttpContext ctx
     return Results.Ok();
 }).RequireAuthorization();
 
-app.MapPost("/api/gamesessions/{id:guid}/start", async (Guid id, HttpContext ctx, GameSessionService gameService) =>
+app.MapPost("/api/gamesessions/{id:guid}/start", async (Guid id, HttpContext ctx, GameSessionService gameService, FiveHundredService fiveHundredService) =>
 {
     var userId = GetUserId(ctx.User);
     if (userId == null) return Results.Unauthorized();
+    var session = await gameService.GetByIdAsync(id, userId);
+    if (session == null) return Results.NotFound();
     var (ok, err) = await gameService.StartGameAsync(id, userId.Value);
     if (!ok) return Results.BadRequest(new { error = err });
-    var session = await gameService.GetByIdAsync(id, userId);
-    return Results.Ok(session);
+    if (session.GameType == "FiveHundred")
+    {
+        var (initOk, initErr) = await fiveHundredService.CreateInitialStateAsync(id);
+        if (!initOk) return Results.BadRequest(new { error = initErr ?? "Kunde inte initiera 500." });
+    }
+    var updated = await gameService.GetByIdAsync(id, userId);
+    return Results.Ok(updated);
+}).RequireAuthorization();
+
+app.MapGet("/api/gamesessions/{id:guid}/500/state", async (Guid id, HttpContext ctx, FiveHundredService fiveHundredService) =>
+{
+    var userId = GetUserId(ctx.User);
+    if (userId == null) return Results.Unauthorized();
+    var (state, myPlayerId) = await fiveHundredService.GetStateForUserAsync(id, userId.Value);
+    if (state == null) return Results.NotFound();
+    return Results.Json(new { state, myPlayerId });
+}).RequireAuthorization();
+
+app.MapPost("/api/gamesessions/{id:guid}/500/action", async (Guid id, FiveHundredActionRequest req, HttpContext ctx, FiveHundredService fiveHundredService) =>
+{
+    var userId = GetUserId(ctx.User);
+    if (userId == null) return Results.Unauthorized();
+    var (ok, err, newState) = await fiveHundredService.ApplyActionAsync(id, userId.Value, req);
+    if (!ok) return Results.BadRequest(new { error = err });
+    return Results.Ok(newState);
 }).RequireAuthorization();
 
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok", app = "Kortspel API" }));

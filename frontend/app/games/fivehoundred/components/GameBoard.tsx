@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { useGameState } from "../hooks/useGameState";
+import { useGameStateMultiplayer } from "../hooks/useGameStateMultiplayer";
 import {
   StockPile,
   DiscardPile,
@@ -11,10 +12,15 @@ import {
 } from "./index";
 import { Button } from "@/components/ui/button";
 
-export function GameBoard() {
+type GameBoardProps = { sessionId?: string };
+
+export function GameBoard({ sessionId }: GameBoardProps) {
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
   const [meldBuilderOpen, setMeldBuilderOpen] = useState(false);
 
+  const single = useGameState();
+  const multi = useGameStateMultiplayer(sessionId);
+  const useMulti = !!sessionId;
   const {
     state,
     humanHand,
@@ -30,7 +36,8 @@ export function GameBoard() {
     advanceToNextTurn,
     resetGame,
     getPlayerIds,
-  } = useGameState();
+    myPlayerId,
+  } = useMulti ? multi : single;
 
   const toggleSelection = useCallback((_card: unknown, index: number) => {
     setSelectedIndices((prev) => {
@@ -70,14 +77,20 @@ export function GameBoard() {
     );
   }
 
+
   return (
     <div className="mx-auto max-w-4xl space-y-6">
+      {useMulti && (
+        <p className="text-muted-foreground text-sm">
+          {isHumanTurn ? "Din tur" : "Motståndarens tur – vänta på att de spelar."}
+        </p>
+      )}
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">500</h1>
         <div className="flex gap-4 text-sm">
           {getPlayerIds().map((id) => (
             <span key={id}>
-              {id === "p1" ? "Du" : id}: {state.playerScores[id]} poäng
+              {id === myPlayerId ? "Du" : "Motståndare"}: {state.playerScores[id] ?? 0} poäng
             </span>
           ))}
         </div>
@@ -86,7 +99,7 @@ export function GameBoard() {
       {state.winnerId && (
         <div className="rounded-lg border bg-muted/50 p-4 text-center">
           <p className="font-medium">
-            {state.winnerId === "p1" ? "Du" : state.winnerId} har vunnit!
+            {state.winnerId === myPlayerId ? "Du" : "Motståndaren"} har vunnit!
           </p>
           <Button onClick={resetGame} className="mt-2">
             Spela igen
@@ -96,14 +109,9 @@ export function GameBoard() {
 
       {!state.winnerId && (
         <>
-          {!isHumanTurn && state.phase === "draw" && (
+          {!isHumanTurn && state.phase === "draw" && !useMulti && (
             <div className="rounded-lg border border-muted bg-muted/30 p-3 text-center text-sm">
-              <p className="text-muted-foreground">
-                {state.currentPlayerId === "p2"
-                  ? "Spelare 2"
-                  : "Spelare 3"}
-                s tur.
-              </p>
+              <p className="text-muted-foreground">Andra spelarens tur.</p>
               <Button
                 type="button"
                 variant="secondary"

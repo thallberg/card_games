@@ -15,6 +15,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<UserFriend> UserFriends => Set<UserFriend>();
     public DbSet<GameSession> GameSessions => Set<GameSession>();
     public DbSet<GameSessionPlayer> GameSessionPlayers => Set<GameSessionPlayer>();
+    public DbSet<FiveHundredState> FiveHundredStates => Set<FiveHundredState>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -51,6 +52,12 @@ public class ApplicationDbContext : DbContext
             e.HasKey(gp => new { gp.GameSessionId, gp.UserId });
             e.HasOne(gp => gp.GameSession).WithMany(g => g.Players).HasForeignKey(gp => gp.GameSessionId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(gp => gp.User).WithMany(u => u.GameSessionPlayers).HasForeignKey(gp => gp.UserId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<FiveHundredState>(e =>
+        {
+            e.HasKey(f => f.GameSessionId);
+            e.HasOne(f => f.GameSession).WithMany().HasForeignKey(f => f.GameSessionId).OnDelete(DeleteBehavior.Cascade);
         });
     }
 }
