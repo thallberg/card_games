@@ -151,7 +151,7 @@ export function useGameState() {
             currentPlayerId: nextId,
             phase: "draw" as const,
             lastDraw: null,
-            lastLaidMeldIds: [],
+            lastLaidMeldIds: updated.lastLaidMeldIds ?? [],
           };
           return gameWinner != null ? { ...next, winnerId: gameWinner } : next;
         });
@@ -226,7 +226,7 @@ export function useGameState() {
       phase: "draw",
       lastDraw: null,
       cardsLaidThisTurn: 0,
-      lastLaidMeldIds: [],
+      lastLaidMeldIds: s.currentPlayerId === HUMAN_PLAYER ? [] : (s.lastLaidMeldIds ?? []),
     };
   }, []);
 
