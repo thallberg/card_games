@@ -27,7 +27,6 @@ export function GameBoard({ sessionId }: GameBoardProps) {
     humanHand,
     topDiscard,
     isHumanTurn,
-    canDraw,
     stockEmpty,
     drawFromStock,
     takeDiscardPile,
@@ -43,6 +42,8 @@ export function GameBoard({ sessionId }: GameBoardProps) {
     myPlayerId,
     lastDrawnCard,
   } = useMulti ? multi : single;
+
+  const canDraw = state != null && state.phase === "draw" && state.currentPlayerId === myPlayerId;
 
   const toggleSelection = useCallback((_card: unknown, index: number) => {
     setSelectedIndices((prev) => {
