@@ -104,19 +104,27 @@ export function GameBoard({ sessionId }: GameBoardProps) {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-xl font-semibold">500</h1>
         <div className="flex flex-wrap gap-6 text-sm">
-          {getPlayerIds().map((id) => (
-            <div key={id} className="flex flex-col gap-0.5">
-              <span className="font-medium">{id === myPlayerId ? "Du" : "Motståndare"}</span>
-              {state.phase !== "roundEnd" && state.phase !== "gameOver" && (
+          {getPlayerIds().map((id) => {
+            const handSize = state.playerHands[id]?.length ?? 0;
+            return (
+              <div key={id} className="flex flex-col gap-0.5">
+                <span className="font-medium">{id === myPlayerId ? "Du" : "Motståndare"}</span>
+                {id !== myPlayerId && state.phase !== "roundEnd" && state.phase !== "gameOver" && (
+                  <span className="text-muted-foreground">
+                    {handSize} kort på handen
+                  </span>
+                )}
+                {state.phase !== "roundEnd" && state.phase !== "gameOver" && (
+                  <span className="text-muted-foreground">
+                    Rundans poäng (utlagda): {roundMeldPoints[id] ?? 0}
+                  </span>
+                )}
                 <span className="text-muted-foreground">
-                  Rundans poäng (utlagda): {roundMeldPoints[id] ?? 0}
+                  Sammanlagda poäng: {state.playerScores[id] ?? 0}
                 </span>
-              )}
-              <span className="text-muted-foreground">
-                Sammanlagda poäng: {state.playerScores[id] ?? 0}
-              </span>
-            </div>
-          ))}
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -176,6 +184,11 @@ export function GameBoard({ sessionId }: GameBoardProps) {
             <TableMelds melds={state.melds} />
           </div>
 
+          {state.lastDraw === "discard" && isHumanTurn && (
+            <p className="rounded-md border border-amber-500/50 bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">
+              Du plockade kast högen – lägg ut minst 3 kort denna tur, annars −50 poäng.
+            </p>
+          )}
           <div>
             <h2 className="mb-2 text-sm font-medium text-muted-foreground">
               Din hand
@@ -214,21 +227,25 @@ export function GameBoard({ sessionId }: GameBoardProps) {
                       Lägg ut
                     </Button>
                   )}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      passWithoutDiscard();
-                      clearSelection();
-                    }}
-                  >
-                    Nöjd
-                  </Button>
+                  {!stockEmpty && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        passWithoutDiscard();
+                        clearSelection();
+                      }}
+                    >
+                      Nöjd
+                    </Button>
+                  )}
                 </div>
               )}
             </div>
             <p className="text-muted-foreground mt-1 text-xs">
-              Ett valt kort: Kasta eller Lägg ut. Flera valda: bara Lägg ut. Nöjd = växla tur utan att kasta.
+              {stockEmpty
+                ? "Talongen är tom – du måste kasta ett kort (välj kort och klicka Kasta)."
+                : "Ett valt kort: Kasta eller Lägg ut. Flera valda: bara Lägg ut. Nöjd = växla tur utan att kasta."}
             </p>
           </div>
 

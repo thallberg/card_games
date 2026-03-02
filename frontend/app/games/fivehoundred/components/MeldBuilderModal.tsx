@@ -64,9 +64,8 @@ export function MeldBuilderModal({
     }
   }, [open, selectedIndices]);
 
-  const selectedCards = selectedIndices.map((i) => hand[i]).filter(Boolean);
-  const pickedIndices = [...pickedForNew].filter((i) => selectedIndices.includes(i)).sort((a, b) => a - b);
-  const pickedCards = pickedIndices.map((i) => hand[i]);
+  const pickedIndices = [...pickedForNew].filter((i) => i >= 0 && i < hand.length).sort((a, b) => a - b);
+  const pickedCards = pickedIndices.map((i) => hand[i]).filter(Boolean);
   const newMeldType = pickedCards.length >= 3 ? getMeldType(pickedCards) : null;
   const wildIndicesInPicked = pickedCards.map((_, i) => (isWild(pickedCards[i]) ? i : -1)).filter((i) => i >= 0);
   const nonWildInPicked = pickedCards.filter((c) => !isWild(c));
@@ -78,7 +77,15 @@ export function MeldBuilderModal({
   const allWildsChosen = wildIndicesInPicked.length === 0
     || autoSetWilds
     || wildIndicesInPicked.every((i) => wildSelections[i]);
-  const effectiveCards = pickedCards.map((c, i) => wildSelections[i] ?? c);
+  const effectiveCards = autoSetWilds && wildOptions.length > 0
+    ? pickedCards.map((c, i) => {
+        if (isWild(c)) {
+          const wildIdx = wildIndicesInPicked.indexOf(i);
+          return wildOptions[wildIdx % wildOptions.length] ?? c;
+        }
+        return c;
+      })
+    : pickedCards.map((c, i) => wildSelections[i] ?? c);
   const effectiveMeldValid = newMeldType === "run"
     ? isValidEffectiveRun(effectiveCards)
     : newMeldType === "set"
@@ -87,7 +94,7 @@ export function MeldBuilderModal({
   const canLayNew = newMeldType !== null && allWildsChosen && effectiveMeldValid;
 
   const togglePicked = (handIndex: number) => {
-    if (!selectedIndices.includes(handIndex)) return;
+    if (handIndex < 0 || handIndex >= hand.length) return;
     setPickedForNew((prev) => {
       const next = new Set(prev);
       if (next.has(handIndex)) next.delete(handIndex);
@@ -130,11 +137,10 @@ export function MeldBuilderModal({
         <section>
           <h3 className="mb-2 font-medium text-sm">Lägg ny kombination</h3>
           <p className="text-muted-foreground mb-2 text-xs">
-            Välj minst 3 kort. 2:or är valfritt kort (25 poäng) – välj vad 2:an ska vara när du lägger ut.
+            Välj minst 3 kort (klicka på korten) – du kan lägga ut en hel stege, t.ex. 5–6–7–8–9. 2:or = 25 p, välj vad 2:an ska vara.
           </p>
           <div className="flex flex-wrap gap-1">
-            {selectedIndices.map((i) => {
-              const card = hand[i];
+            {hand.map((card, i) => {
               if (!card) return null;
               const picked = pickedForNew.has(i);
               return (
@@ -210,7 +216,7 @@ export function MeldBuilderModal({
             <div className="space-y-3">
               {melds.map((meld) => {
                 const displayCards = getMeldDisplayCards(meld);
-                const addable = selectedIndices.filter((i) => canAddCardToMeld(hand[i], meld));
+                const addable = hand.map((_, i) => i).filter((i) => canAddCardToMeld(hand[i], meld));
                 const pending = pendingAddWild?.meldId === meld.id ? pendingAddWild : null;
                 const meldIsRun = meld.type === "run" || isEffectiveRun(meld);
                 const addWildOptions = pending

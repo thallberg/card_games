@@ -13,6 +13,7 @@ import {
 import { sortHand } from "../deck";
 import { getMeldType, canAddCardToMeld } from "../melds";
 import { getHandPenalty, getMeldPoints } from "../scoring";
+import { PICKUP_PENALTY } from "../constants";
 
 const HUMAN_PLAYER: PlayerId = "p1";
 const AI_PLAYER: PlayerId = "p2";
@@ -81,11 +82,20 @@ export function useGameState() {
           const cardToDiscard = hand[handIndex];
           const newHand = hand.filter((_, i) => i !== handIndex);
           const newDiscard = [cardToDiscard, ...s.discard];
-          const updated = {
+          let updated: GameState = {
             ...s,
             discard: newDiscard,
             playerHands: { ...s.playerHands, [AI_PLAYER]: newHand },
           };
+          if (s.lastDraw === "discard" && (s.cardsLaidThisTurn ?? 0) < 3) {
+            updated = {
+              ...updated,
+              playerScores: {
+                ...updated.playerScores,
+                [AI_PLAYER]: (updated.playerScores[AI_PLAYER] ?? 0) - PICKUP_PENALTY,
+              },
+            };
+          }
           if (newHand.length === 0) {
             const newScores = { ...updated.playerScores };
             for (const m of updated.melds) {
@@ -185,6 +195,7 @@ export function useGameState() {
       currentPlayerId: nextId,
       phase: "draw",
       lastDraw: null,
+      cardsLaidThisTurn: 0,
     };
   }, []);
 
@@ -204,11 +215,20 @@ export function useGameState() {
         ...s.playerHands,
         [HUMAN_PLAYER]: newHand,
       };
-      const updated = {
+      let updated: GameState = {
         ...s,
         discard: newDiscard,
         playerHands: newPlayerHands,
       };
+      if (s.lastDraw === "discard" && (s.cardsLaidThisTurn ?? 0) < 3) {
+        updated = {
+          ...updated,
+          playerScores: {
+            ...updated.playerScores,
+            [HUMAN_PLAYER]: (updated.playerScores[HUMAN_PLAYER] ?? 0) - PICKUP_PENALTY,
+          },
+        };
+      }
       if (newHand.length === 0) {
         let myMeldPoints = 0;
         for (const m of updated.melds) {
@@ -243,7 +263,18 @@ export function useGameState() {
       if (s == null) return s;
       if (s.phase !== "meldOrDiscard" || s.currentPlayerId !== HUMAN_PLAYER)
         return s;
-      return advanceTurn(s);
+      if (s.stock.length === 0) return s;
+      let next = s;
+      if (s.lastDraw === "discard" && (s.cardsLaidThisTurn ?? 0) < 3) {
+        next = {
+          ...s,
+          playerScores: {
+            ...s.playerScores,
+            [HUMAN_PLAYER]: (s.playerScores[HUMAN_PLAYER] ?? 0) - PICKUP_PENALTY,
+          },
+        };
+      }
+      return advanceTurn(next);
     });
   }, [advanceTurn]);
 
@@ -272,6 +303,7 @@ export function useGameState() {
         ...s,
         playerHands: { ...s.playerHands, [HUMAN_PLAYER]: newHand },
         melds: [...s.melds, newMeld],
+        cardsLaidThisTurn: (s.cardsLaidThisTurn ?? 0) + cards.length,
       };
     });
   }, []);
@@ -303,6 +335,7 @@ export function useGameState() {
         ...s,
         playerHands: { ...s.playerHands, [HUMAN_PLAYER]: newHand },
         melds: newMelds,
+        cardsLaidThisTurn: (s.cardsLaidThisTurn ?? 0) + 1,
       };
     });
   }, []);

@@ -58,6 +58,7 @@ function apiStateToGameState(raw: Record<string, unknown>): GameState {
     playerScores: (r.playerScores ?? r.PlayerScores ?? {}) as Record<string, number>,
     phase: (r.phase ?? r.Phase ?? "draw") as GameState["phase"],
     lastDraw: (r.lastDraw ?? r.LastDraw ?? null) as GameState["lastDraw"],
+    cardsLaidThisTurn: (r.cardsLaidThisTurn ?? r.CardsLaidThisTurn ?? 0) as number,
     roundNumber: (r.roundNumber ?? r.RoundNumber ?? 1) as number,
     winnerId: (r.winnerId ?? r.WinnerId ?? null) as GameState["winnerId"],
   };

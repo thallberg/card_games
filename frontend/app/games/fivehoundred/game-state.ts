@@ -11,6 +11,8 @@ export type GameState = {
   playerScores: Record<PlayerId, number>;
   phase: "draw" | "meldOrDiscard" | "roundEnd" | "gameOver";
   lastDraw: "stock" | "discard" | null;
+  /** Antal kort nuvarande spelare lagt ut denna tur (för regel: tog kast högen → måste lägga minst 3). */
+  cardsLaidThisTurn: number;
   roundNumber: number;
   winnerId: PlayerId | null;
 };
@@ -42,6 +44,7 @@ export function createInitialState(): GameState {
     playerScores: createInitialScores(),
     phase: "draw",
     lastDraw: null,
+    cardsLaidThisTurn: 0,
     roundNumber: 1,
     winnerId: null,
   };
@@ -83,6 +86,7 @@ export function createNewRoundState(current: GameState): GameState {
     playerScores: { ...current.playerScores },
     phase: "draw",
     lastDraw: null,
+    cardsLaidThisTurn: 0,
     roundNumber: current.roundNumber + 1,
     winnerId: null,
   };

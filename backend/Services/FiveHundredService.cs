@@ -192,6 +192,8 @@ public class FiveHundredService
                 var toDiscard = discardHand[a.CardIndex.Value];
                 discardHand.RemoveAt(a.CardIndex.Value);
                 s.Discard.Insert(0, toDiscard);
+                if (s.LastDraw == "discard" && s.CardsLaidThisTurn < 3)
+                    s.PlayerScores[playerId] = (s.PlayerScores.TryGetValue(playerId, out var ds) ? ds : 0) - PickupPenalty;
                 if (discardHand.Count == 0)
                     EndRound(s, playerId);
                 else
@@ -199,6 +201,10 @@ public class FiveHundredService
                 return (null, null);
             case "pass":
                 if (s.Phase != "meldOrDiscard") return ("Ogiltigt drag.", null);
+                if (s.Stock != null && s.Stock.Count == 0)
+                    return ("När talongen är tom måste du kasta ett kort.", null);
+                if (s.LastDraw == "discard" && s.CardsLaidThisTurn < 3)
+                    s.PlayerScores[playerId] = (s.PlayerScores.TryGetValue(playerId, out var ps) ? ps : 0) - PickupPenalty;
                 AdvanceTurn(s);
                 return (null, null);
             case "addmeld":
@@ -215,6 +221,7 @@ public class FiveHundredService
                 var effective = GetEffectiveMeldCards(newMeld);
                 newMeld.Type = IsEffectiveRun(effective) ? "run" : "set";
                 s.Melds.Add(newMeld);
+                s.CardsLaidThisTurn += cards.Count;
                 return (null, null);
             case "addcardtomeld":
                 if (s.Phase != "meldOrDiscard" || string.IsNullOrEmpty(a.MeldId) || a.CardIndex == null) return ("Ogiltigt drag.", null);
@@ -232,17 +239,21 @@ public class FiveHundredService
                     meld.WildRepresents[newIdx] = a.WildAs;
                 }
                 SortHand(addToMeldHand);
+                s.CardsLaidThisTurn += 1;
                 return (null, null);
             default:
                 return ("Okänd åtgärd.", null);
         }
     }
 
+    private const int PickupPenalty = 50;
+
     private static void AdvanceTurn(FiveHundredStateDto s)
     {
         s.CurrentPlayerId = s.CurrentPlayerId == P1 ? P2 : P1;
         s.Phase = "draw";
         s.LastDraw = null;
+        s.CardsLaidThisTurn = 0;
     }
 
     /// <summary>2:or = 25 poäng (wild/valfritt kort men räknas alltid som 25).</summary>
