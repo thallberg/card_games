@@ -58,7 +58,7 @@ export function MeldBuilderModal({
 
   useEffect(() => {
     if (open) {
-      setPickedForNew(new Set(selectedIndices.slice(0, 3)));
+      setPickedForNew(new Set(selectedIndices));
       setWildSelections({});
       setPendingAddWild(null);
     }

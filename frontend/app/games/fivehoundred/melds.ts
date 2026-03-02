@@ -10,7 +10,7 @@ export function isWild(card: Card): boolean {
   return card.rank === "2";
 }
 
-/** Valörordning i stegar: 2 låg, ess hög. */
+/** Valörordning i stegar: 2 låg, ess hög (t.ex. … knekt–dam–kung–ess). */
 export const RANK_ORDER: Record<string, number> = {
   "2": 0,
   "3": 1,
@@ -27,9 +27,43 @@ export const RANK_ORDER: Record<string, number> = {
   ace: 12,
 };
 
+/** Ess som 1 (låg stege): ess–2–3. 2:an ger fortfarande 25 poäng. */
+const RANK_ORDER_LOW: Record<string, number> = {
+  ace: 0,
+  "2": 1,
+  "3": 2,
+  "4": 3,
+  "5": 4,
+  "6": 5,
+  "7": 6,
+  "8": 7,
+  "9": 8,
+  "10": 9,
+  jack: 10,
+  queen: 11,
+  king: 12,
+};
+
 const VALUE_TO_RANK: Record<number, string> = Object.fromEntries(
   RANKS.map((r, i) => [i, r])
 ) as Record<number, string>;
+
+const VALUE_TO_RANK_LOW: Record<number, string> = {
+  0: "ace", 1: "2", 2: "3", 3: "4", 4: "5", 5: "6", 6: "7", 7: "8", 8: "9",
+  9: "10", 10: "jack", 11: "queen", 12: "king",
+};
+
+function getRunOrdering(cards: Card[]): "low" | "high" {
+  const hasAce = cards.some((c) => c.rank === "ace");
+  const has2 = cards.some((c) => c.rank === "2");
+  if (hasAce && has2) return "low";
+  return "high";
+}
+
+function runValues(cards: Card[], ordering: "low" | "high"): number[] {
+  const order = ordering === "low" ? RANK_ORDER_LOW : RANK_ORDER;
+  return cards.map((c) => order[c.rank]).filter((v): v is number => v !== undefined);
+}
 
 /**
  * Giltigt tretal/fyrtal: samma valör, 2 = wild (välj valör vid utläggning).
@@ -45,8 +79,8 @@ export function isValidSet(cards: Card[]): boolean {
 }
 
 /**
- * Giltig stege: samma färg, följd (2–3–4… eller …10–knekt–dam–kung–ess).
- * 2:or är wild: man väljer vid utläggning vilket kort 2:an ska vara (t.ex. ruter 3,4,5,6 och 2 som ruter 7).
+ * Giltig stege: samma färg, följd. Ess kan vara låg (ess–2–3) eller hög (…kung–ess).
+ * 2:or är wild; 2:an ger fortfarande 25 poäng.
  */
 export function isValidRun(cards: Card[]): boolean {
   if (cards.length < 3) return false;
@@ -56,10 +90,6 @@ export function isValidRun(cards: Card[]): boolean {
   const suit = rest[0].suit;
   if (rest.some((c) => c.suit !== suit)) return false;
 
-  const values = rest.map((c) => RANK_ORDER[c.rank]).sort((a, b) => a - b);
-  const n = values.length;
-  const w = wilds.length;
-
   const isConsecutive = (arr: number[]) => {
     for (let i = 1; i < arr.length; i++) {
       if (arr[i] - arr[i - 1] !== 1) return false;
@@ -67,19 +97,24 @@ export function isValidRun(cards: Card[]): boolean {
     return true;
   };
 
-  if (w === 0) {
-    if (values[0] === 0 && values[n - 1] === 12) {
-      return false;
-    }
-    return isConsecutive(values);
-  }
+  const tryOrdering = (ordering: "low" | "high") => {
+    const values = runValues(rest, ordering).sort((a, b) => a - b);
+    const n = values.length;
+    const w = wilds.length;
+    if (w === 0) return isConsecutive(values);
+    const min = values[0];
+    const max = values[n - 1];
+    const span = max - min + 1;
+    if (span > n + w) return false;
+    const gaps = span - n;
+    return gaps <= w;
+  };
 
-  const min = values[0];
-  const max = values[n - 1];
-  const span = max - min + 1;
-  if (span > n + w) return false;
-  const gaps = span - n;
-  return gaps <= w;
+  const hasAce = rest.some((c) => c.rank === "ace");
+  const has2 = rest.some((c) => c.rank === "2");
+  if (hasAce && has2) return tryOrdering("low");
+  if (hasAce) return tryOrdering("high");
+  return tryOrdering("high");
 }
 
 export function isValidMeld(cards: Card[]): boolean {
@@ -93,13 +128,15 @@ export function getMeldType(cards: Card[]): "set" | "run" | null {
 }
 
 /**
- * Validerar att redan "effektiva" kort (2:or ersatta med val) bildar en giltig stege (samma färg, följd, inga dubbletter).
+ * Validerar att redan "effektiva" kort bildar en giltig stege (samma färg, följd, inga dubbletter).
+ * Stödjer både ess–2–3 (låg) och …kung–ess (hög).
  */
 export function isValidEffectiveRun(cards: Card[]): boolean {
   if (cards.length < 3) return false;
   const suit = cards[0].suit;
   if (cards.some((c) => c.suit !== suit)) return false;
-  const values = cards.map((c) => RANK_ORDER[c.rank]).sort((a, b) => a - b);
+  const ordering = getRunOrdering(cards);
+  const values = runValues(cards, ordering).sort((a, b) => a - b);
   const seen = new Set<number>();
   for (const v of values) {
     if (seen.has(v)) return false;
@@ -122,31 +159,33 @@ export function isValidEffectiveSet(cards: Card[]): boolean {
 }
 
 /**
- * Möjliga kort som en 2:a får representera i en stege: hål i följden eller förlängning under/över.
- * T.ex. ruter 3,4,5,6 + 2 → 2 kan vara ruter 2 eller ruter 7.
- * Ruter 4,5,6,7,8,9 + 2 → 2 kan vara ruter 3 eller ruter 10 (sedan kan man bygga med knekt på 2:an som 10).
+ * Möjliga kort som en 2:a får representera i en stege (hål eller förlängning).
+ * Stödjer låg stege (ess–2–3) och hög (…kung–ess).
  */
 export function getWildOptionsForRun(cards: Card[]): Card[] {
   const rest = cards.filter((c) => !isWild(c));
   if (rest.length === 0) return [];
   const suit = rest[0].suit;
-  const values = rest.map((c) => RANK_ORDER[c.rank]).sort((a, b) => a - b);
+  const ordering = getRunOrdering(rest);
+  const rankOrder = ordering === "low" ? RANK_ORDER_LOW : RANK_ORDER;
+  const valueToRank = ordering === "low" ? VALUE_TO_RANK_LOW : VALUE_TO_RANK;
+  const values = rest.map((c) => rankOrder[c.rank]).sort((a, b) => a - b);
   const min = values[0];
   const max = values[values.length - 1];
   const valueSet = new Set(values);
   const options: Card[] = [];
   if (min > 0) {
-    const r = VALUE_TO_RANK[min - 1] as Card["rank"];
+    const r = valueToRank[min - 1] as Card["rank"];
     if (r) options.push({ suit, rank: r });
   }
   for (let v = min; v <= max; v++) {
     if (!valueSet.has(v)) {
-      const r = VALUE_TO_RANK[v] as Card["rank"];
+      const r = valueToRank[v] as Card["rank"];
       if (r) options.push({ suit, rank: r });
     }
   }
   if (max < 12) {
-    const r = VALUE_TO_RANK[max + 1] as Card["rank"];
+    const r = valueToRank[max + 1] as Card["rank"];
     if (r) options.push({ suit, rank: r });
   }
   return options;
@@ -178,17 +217,10 @@ export function getEffectiveMeldCards(meld: Meld): Card[] {
   });
 }
 
-/** True om meldens effektiva kort bildar en stege. */
+/** True om meldens effektiva kort bildar en stege (låg ess–2–3 eller hög …kung–ess). */
 export function isEffectiveRun(meld: Meld): boolean {
   const effective = getEffectiveMeldCards(meld);
-  if (effective.length < 3) return false;
-  const suit = effective[0].suit;
-  if (effective.some((c) => c.suit !== suit)) return false;
-  const values = effective.map((c) => RANK_ORDER[c.rank]).sort((a, b) => a - b);
-  for (let i = 1; i < values.length; i++) {
-    if (values[i] - values[i - 1] !== 1) return false;
-  }
-  return true;
+  return isValidEffectiveRun(effective);
 }
 
 function cardEquals(a: Card, b: Card): boolean {
@@ -200,24 +232,23 @@ function effectiveContains(effective: Card[], card: Card): boolean {
 }
 
 /**
- * Kort att visa för en meld. Stege med >3 kort: första och sista (t.ex. ruter 3…9).
- * 2:or visas som det valda kortet (effektivt) så att det syns hur man kan bygga vidare.
+ * Kort att visa för en meld. Stege med >3 kort: första och sista.
+ * Sortering: låg stege (ess–2–3) eller hög (2…ess).
  */
 export function getMeldDisplayCards(meld: Meld): Card[] {
   const effective = getEffectiveMeldCards(meld);
   const asRun = meld.type === "run" || isEffectiveRun(meld);
   if (!asRun) return effective;
-  const sorted = [...effective].sort(
-    (a, b) => RANK_ORDER[a.rank] - RANK_ORDER[b.rank]
-  );
+  const ordering = getRunOrdering(effective);
+  const order = ordering === "low" ? RANK_ORDER_LOW : RANK_ORDER;
+  const sorted = [...effective].sort((a, b) => order[a.rank] - order[b.rank]);
   if (sorted.length > 3) return [sorted[0], sorted[sorted.length - 1]];
   return sorted;
 }
 
 /**
  * Kan kort läggas till på melden?
- * 2:or räknas som det valda kortet (wildRepresents): man kan bygga på 2:an som om den vore det kortet
- * (t.ex. 2 som ruter 5 → man får lägga ruter 6 på den). 2:an ger fortfarande 25 poäng.
+ * Stege: låg (ess–2–3→4) eller hög (…kung–ess). 2:an ger fortfarande 25 poäng.
  */
 export function canAddCardToMeld(card: Card, meld: Meld): boolean {
   const effective = getEffectiveMeldCards(meld);
@@ -236,10 +267,12 @@ export function canAddCardToMeld(card: Card, meld: Meld): boolean {
   const suit = effective[0].suit;
   if (card.suit !== suit) return false;
   if (effectiveContains(effective, card)) return false;
-  const values = effective.map((c) => RANK_ORDER[c.rank]).sort((a, b) => a - b);
+  const ordering = getRunOrdering(effective);
+  const order = ordering === "low" ? RANK_ORDER_LOW : RANK_ORDER;
+  const values = runValues(effective, ordering).sort((a, b) => a - b);
   const min = values[0];
   const max = values[values.length - 1];
-  const v = RANK_ORDER[card.rank];
+  const v = order[card.rank];
   if (v == null || v === undefined) return false;
   return v === min - 1 || v === max + 1;
 }

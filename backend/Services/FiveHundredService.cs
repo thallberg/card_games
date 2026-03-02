@@ -264,6 +264,13 @@ public class FiveHundredService
         ["10"] = 8, ["jack"] = 9, ["queen"] = 10, ["king"] = 11, ["ace"] = 12
     };
 
+    /// <summary>Ess som 1 (låg stege: ess–2–3).</summary>
+    private static readonly Dictionary<string, int> RankOrderLow = new()
+    {
+        ["ace"] = 0, ["2"] = 1, ["3"] = 2, ["4"] = 3, ["5"] = 4, ["6"] = 5, ["7"] = 6, ["8"] = 7,
+        ["9"] = 8, ["10"] = 9, ["jack"] = 10, ["queen"] = 11, ["king"] = 12
+    };
+
     /// <summary>2:or ersatta med WildRepresents – används för att avgöra run/set och bygga vidare.</summary>
     private static List<CardDto> GetEffectiveMeldCards(MeldDto meld)
     {
@@ -279,8 +286,11 @@ public class FiveHundredService
         if (effective.Count < 3) return false;
         var suit = effective[0].Suit;
         if (effective.Any(c => c.Suit != suit)) return false;
-        var values = effective.Select(c => RankOrder.GetValueOrDefault(c.Rank, -1)).OrderBy(x => x).ToList();
-        if (values.Any(v => v < 0)) return false;
+        var hasAce = effective.Any(c => c.Rank == "ace");
+        var has2 = effective.Any(c => c.Rank == "2");
+        var order = (hasAce && has2) ? RankOrderLow : RankOrder;
+        var values = effective.Select(c => order.GetValueOrDefault(c.Rank, -1)).Where(v => v >= 0).OrderBy(x => x).ToList();
+        if (values.Count != effective.Count) return false;
         var seen = new HashSet<int>();
         foreach (var v in values) { if (!seen.Add(v)) return false; }
         for (int i = 1; i < values.Count; i++)
