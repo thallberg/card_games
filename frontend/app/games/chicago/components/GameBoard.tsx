@@ -1,6 +1,8 @@
 "use client";
 
 import { useChicagoGame } from "../hooks/useChicagoGame";
+import { useChicagoGameMultiplayer } from "../hooks/useChicagoGameMultiplayer";
+import { getNextPlayerId } from "../game-state";
 import { getHandHighlightIndices } from "../hand-score";
 import { PlayingCard } from "./PlayingCard";
 import { Button } from "@/components/ui/button";
@@ -13,7 +15,13 @@ const SUIT_LABELS: Record<string, string> = {
   hearts: "hjärter", diamonds: "ruter", clubs: "klöver", spades: "spader",
 };
 
-export function GameBoard() {
+type GameBoardProps = { sessionId?: string };
+
+export function GameBoard({ sessionId }: GameBoardProps) {
+  const single = useChicagoGame();
+  const multi = useChicagoGameMultiplayer(sessionId);
+  const useMulti = !!sessionId;
+  const myPlayerId = useMulti ? multi.myPlayerId : "p1";
   const {
     state,
     humanHand,
@@ -31,12 +39,12 @@ export function GameBoard() {
     getHandDescription,
     canConfirmDiscard,
     canFreeSwapAllFive,
-  } = useChicagoGame();
+  } = useMulti ? multi : single;
 
   if (!state) {
     return (
       <div className="flex min-h-[200px] items-center justify-center">
-        <p className="text-muted-foreground">Laddar Chicago...</p>
+        <p className="text-muted-foreground">{useMulti && !multi.isReady ? "Laddar Chicago..." : "Laddar Chicago..."}</p>
       </div>
     );
   }
@@ -44,8 +52,8 @@ export function GameBoard() {
   const isMyTurnPlay =
     state.phase === "play" &&
     (state.trickCards === null
-      ? state.trickLeader === "p1"
-      : state.trickLeader === "p2");
+      ? state.trickLeader === myPlayerId
+      : getNextPlayerId(state.trickLeader) === myPlayerId);
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -54,11 +62,11 @@ export function GameBoard() {
         <div className="flex gap-6 text-sm">
           {getPlayerIds().map((id) => (
             <div key={id} className="flex flex-col gap-0.5">
-              <span className="font-medium">{id === "p1" ? "Du" : "Motståndare"}</span>
+              <span className="font-medium">{id === myPlayerId ? "Du" : "Motståndare"}</span>
               <span className="text-muted-foreground">
                 Poäng: {state.playerScores[id] ?? 0}
               </span>
-              {id === "p2" && state.phase !== "roundEnd" && state.phase !== "gameOver" && (
+              {id !== myPlayerId && state.phase !== "roundEnd" && state.phase !== "gameOver" && (
                 <span className="text-muted-foreground text-xs">
                   {state.playerHands[id]?.length ?? 0} kort
                 </span>
@@ -70,7 +78,11 @@ export function GameBoard() {
 
       {state.phase === "draw" && (
         <section className="rounded-lg border bg-muted/30 p-4">
-          {state.drawPick ? (
+          {state.currentPlayerId === (useMulti ? (myPlayerId === "p1" ? "p2" : "p1") : "p2") ? (
+            <p className="text-muted-foreground">
+              Omgång {state.drawRound + 1} av 3 – motståndaren kastar kort…
+            </p>
+          ) : state.drawPick ? (
             <div className="space-y-4">
               <h2 className="text-sm font-medium">
                 Välj ett kort (plock {state.drawPick.tempHand.length + 1} av {state.drawPick.tempHand.length + 1 + state.drawPick.picksLeft})
@@ -95,10 +107,6 @@ export function GameBoard() {
                 </div>
               </div>
             </div>
-          ) : state.currentPlayerId === "p2" ? (
-            <p className="text-muted-foreground">
-              Omgång {state.drawRound + 1} av 3 – motståndaren kastar kort…
-            </p>
           ) : (
             <>
               <h2 className="mb-2 text-sm font-medium">
@@ -153,15 +161,15 @@ export function GameBoard() {
                   <div key={i} className="flex flex-wrap items-center gap-2 text-sm">
                     <span className="text-muted-foreground whitespace-nowrap">Stick {i + 1}:</span>
                     <span className="text-muted-foreground text-xs">
-                      {t.trickLeader === "p1" ? "Du" : "Motståndaren"} lade
+                      {t.trickLeader === myPlayerId ? "Du" : "Motståndaren"} lade
                     </span>
                     <PlayingCard card={t.leaderCard} faceUp />
                     <span className="text-muted-foreground text-xs">
-                      {t.trickLeader === "p2" ? "Du" : "Motståndaren"} lade
+                      {getNextPlayerId(t.trickLeader) === myPlayerId ? "Du" : "Motståndaren"} lade
                     </span>
                     <PlayingCard card={t.followerCard} faceUp />
                     <span className="text-muted-foreground text-xs">
-                      → {t.winner === "p1" ? "Du" : "Motståndaren"} vann
+                      → {t.winner === myPlayerId ? "Du" : "Motståndaren"} vann
                     </span>
                   </div>
                 ))}
@@ -172,7 +180,7 @@ export function GameBoard() {
               <div className="flex flex-wrap items-center gap-4">
                 <div>
                   <span className="text-muted-foreground text-xs">
-                    {state.trickLeader === "p1" ? "Du" : "Motståndaren"} lade:
+                    {state.trickLeader === myPlayerId ? "Du" : "Motståndaren"} lade:
                   </span>
                   <div className="mt-1 flex gap-1">
                     <PlayingCard card={state.trickCards[0]} faceUp />
@@ -219,14 +227,17 @@ export function GameBoard() {
       )}
 
       {state.phase === "roundEnd" && (() => {
-        const p1Hand = state.roundHandPoints?.p1 ?? 0;
-        const p2Hand = state.roundHandPoints?.p2 ?? 0;
-        const humanWonHand = p1Hand > p2Hand;
-        const opponentWonHand = p2Hand > p1Hand;
+        const otherId = myPlayerId === "p1" ? "p2" : "p1";
+        const myHandPoints = state.roundHandPoints?.[myPlayerId] ?? 0;
+        const oppHandPoints = state.roundHandPoints?.[otherId] ?? 0;
+        const humanWonHand = myHandPoints > oppHandPoints;
+        const opponentWonHand = oppHandPoints > myHandPoints;
+        const myHand = state.playPhaseHands?.[myPlayerId] ?? [];
+        const oppHand = state.playPhaseHands?.[otherId] ?? [];
         return (
         <div className="rounded-lg border bg-muted/50 p-6">
           <p className="text-center font-medium">
-            {state.roundUtspeletWinner === "p1" ? "Du" : "Motståndaren"} vann utspelet (sista sticket)! +1 poäng
+            {state.roundUtspeletWinner === myPlayerId ? "Du" : "Motståndaren"} vann utspelet (sista sticket)! +1 poäng
           </p>
           <p className="text-center text-muted-foreground text-sm mt-1">
             Endast den med högst hand får handpoäng.
@@ -235,16 +246,16 @@ export function GameBoard() {
             <div className="rounded-md border-2 border-green-600/50 bg-green-500/5 p-4">
               <h3 className="mb-1 text-sm font-medium text-muted-foreground">Din hand</h3>
               <p className="mb-2 text-xs text-muted-foreground">
-                {getHandDescription(state.playPhaseHands?.p1 ?? [])}
-                {humanWonHand ? ` — vann handen (+${p1Hand} p)` : opponentWonHand ? " — lägre hand (0 p)" : " — lika (0 p)"}
+                {getHandDescription(myHand)}
+                {humanWonHand ? ` — vann handen (+${myHandPoints} p)` : opponentWonHand ? " — lägre hand (0 p)" : " — lika (0 p)"}
               </p>
               <div className="flex flex-wrap gap-1">
-                {(state.playPhaseHands?.p1 ?? []).map((card, i) => (
+                {myHand.map((card, i) => (
                   <PlayingCard
-                    key={`p1-${card.suit}-${card.rank}-${i}`}
+                    key={`me-${card.suit}-${card.rank}-${i}`}
                     card={card}
                     faceUp
-                    highlight={getHandHighlightIndices(state.playPhaseHands?.p1 ?? []).has(i)}
+                    highlight={getHandHighlightIndices(myHand).has(i)}
                   />
                 ))}
               </div>
@@ -252,16 +263,16 @@ export function GameBoard() {
             <div className="rounded-md border-2 border-amber-600/40 bg-amber-500/5 p-4">
               <h3 className="mb-1 text-sm font-medium text-muted-foreground">Motståndarens hand</h3>
               <p className="mb-2 text-xs text-muted-foreground">
-                {getHandDescription(state.playPhaseHands?.p2 ?? [])}
-                {opponentWonHand ? ` — vann handen (+${p2Hand} p)` : humanWonHand ? " — lägre hand (0 p)" : " — lika (0 p)"}
+                {getHandDescription(oppHand)}
+                {opponentWonHand ? ` — vann handen (+${oppHandPoints} p)` : humanWonHand ? " — lägre hand (0 p)" : " — lika (0 p)"}
               </p>
               <div className="flex flex-wrap gap-1">
-                {(state.playPhaseHands?.p2 ?? []).map((card, i) => (
+                {oppHand.map((card, i) => (
                   <PlayingCard
-                    key={`p2-${card.suit}-${card.rank}-${i}`}
+                    key={`opp-${card.suit}-${card.rank}-${i}`}
                     card={card}
                     faceUp
-                    highlight={getHandHighlightIndices(state.playPhaseHands?.p2 ?? []).has(i)}
+                    highlight={getHandHighlightIndices(oppHand).has(i)}
                   />
                 ))}
               </div>
@@ -269,9 +280,11 @@ export function GameBoard() {
           </div>
           <div className="mt-6 flex justify-center gap-2">
             <Button onClick={startNewRound}>Nästa rond</Button>
-            <Button variant="outline" onClick={resetGame}>
-              Börja om
-            </Button>
+            {!useMulti && (
+              <Button variant="outline" onClick={resetGame}>
+                Börja om
+              </Button>
+            )}
           </div>
         </div>
         );
@@ -280,7 +293,9 @@ export function GameBoard() {
       {state.phase === "gameOver" && (
         <div className="rounded-lg border bg-muted/50 p-6 text-center">
           <p className="font-medium">Spelet är slut.</p>
-          <Button onClick={resetGame} className="mt-2">Spela igen</Button>
+          {!useMulti && (
+            <Button onClick={resetGame} className="mt-2">Spela igen</Button>
+          )}
         </div>
       )}
     </div>

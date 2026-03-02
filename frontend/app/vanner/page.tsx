@@ -22,6 +22,7 @@ export default function VannerPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [createGameFor, setCreateGameFor] = useState<Friend | null>(null);
+  const [createGameType, setCreateGameType] = useState<2 | 3>(2);
   const [creating, setCreating] = useState(false);
 
   const loadData = useCallback(async () => {
@@ -71,7 +72,7 @@ export default function VannerPage() {
       const createRes = await apiFetch("/api/gamesessions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ gameType: 2, maxPlayers: 4 }),
+        body: JSON.stringify({ gameType: createGameType, maxPlayers: createGameType === 3 ? 2 : 4 }),
       });
       if (!createRes.ok) {
         const err = await createRes.json().catch(() => ({}));
@@ -180,16 +181,34 @@ export default function VannerPage() {
           <DialogHeader>
             <DialogTitle>Skapa spel med {createGameFor?.displayName}</DialogTitle>
             <DialogDescription>
-              Skapa en spelomgång 500 och skicka en inbjudan till {createGameFor?.displayName}. De får den i &quot;Mina spel&quot;.
+              Välj spel och skicka inbjudan till {createGameFor?.displayName}. De får den i &quot;Mina spel&quot;.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setCreateGameFor(null)}>
-              Avbryt
-            </Button>
-            <Button onClick={handleCreateGame} disabled={creating}>
-              {creating ? "Skapar..." : "Skapa 500 och skicka inbjudan"}
-            </Button>
+          <div className="flex flex-col gap-4">
+            <div className="flex gap-2">
+              <Button
+                variant={createGameType === 2 ? "default" : "outline"}
+                size="sm"
+                onClick={() => setCreateGameType(2)}
+              >
+                500
+              </Button>
+              <Button
+                variant={createGameType === 3 ? "default" : "outline"}
+                size="sm"
+                onClick={() => setCreateGameType(3)}
+              >
+                Chicago
+              </Button>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setCreateGameFor(null)}>
+                Avbryt
+              </Button>
+              <Button onClick={handleCreateGame} disabled={creating}>
+                {creating ? "Skapar..." : `Skapa ${createGameType === 3 ? "Chicago" : "500"} och skicka inbjudan`}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
