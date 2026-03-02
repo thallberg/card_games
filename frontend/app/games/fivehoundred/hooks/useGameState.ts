@@ -12,6 +12,7 @@ import {
 } from "../game-state";
 import { sortHand } from "../deck";
 import { getMeldType, canAddCardToMeld } from "../melds";
+import { findFirstPossibleMeld } from "../ai-melds";
 import { getHandPenalty, getMeldPoints } from "../scoring";
 import { PICKUP_PENALTY } from "../constants";
 
@@ -76,7 +77,34 @@ export function useGameState() {
       const t = setTimeout(() => {
         setState((s) => {
           if (s == null || s.phase !== "meldOrDiscard" || s.currentPlayerId !== AI_PLAYER) return s;
-          const hand = s.playerHands[AI_PLAYER];
+          let hand = s.playerHands[AI_PLAYER];
+          let melds = s.melds;
+          let cardsLaidThisTurn = s.cardsLaidThisTurn ?? 0;
+
+          // AI lägger ut en meld om det finns en giltig (set eller stege)
+          const choice = findFirstPossibleMeld(hand);
+          if (choice && choice.indices.length >= 3) {
+            const indices = [...choice.indices].sort((a, b) => a - b);
+            const cards = indices.map((i) => hand[i]);
+            const type = getMeldType(cards);
+            if (type) {
+              hand = hand.filter((_, i) => !indices.includes(i));
+              melds = [
+                ...melds,
+                {
+                  id: crypto.randomUUID(),
+                  cards,
+                  type,
+                  ownerId: AI_PLAYER,
+                  ...(Object.keys(choice.wildRepresents).length > 0
+                    ? { wildRepresents: choice.wildRepresents }
+                    : undefined),
+                },
+              ];
+              cardsLaidThisTurn += cards.length;
+            }
+          }
+
           if (hand.length === 0) return s;
           const handIndex = Math.floor(Math.random() * hand.length);
           const cardToDiscard = hand[handIndex];
@@ -84,10 +112,12 @@ export function useGameState() {
           const newDiscard = [cardToDiscard, ...s.discard];
           let updated: GameState = {
             ...s,
+            melds,
+            cardsLaidThisTurn,
             discard: newDiscard,
             playerHands: { ...s.playerHands, [AI_PLAYER]: newHand },
           };
-          if (s.lastDraw === "discard" && (s.cardsLaidThisTurn ?? 0) < 3) {
+          if (s.lastDraw === "discard" && cardsLaidThisTurn < 3) {
             updated = {
               ...updated,
               playerScores: {
