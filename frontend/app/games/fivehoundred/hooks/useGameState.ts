@@ -329,10 +329,19 @@ export function useGameState() {
         ownerId: HUMAN_PLAYER,
         ...(wildRepresents && Object.keys(wildRepresents).length > 0 ? { wildRepresents } : undefined),
       };
+      let newMelds = [...s.melds, newMeld];
+      if (type === "run") {
+        const otherRun = s.melds.find((m) => canMergeRuns(newMeld, m));
+        if (otherRun) {
+          const merged = mergeRunMelds(newMeld, otherRun);
+          newMelds = s.melds.filter((m) => m.id !== otherRun.id);
+          newMelds = [...newMelds, merged];
+        }
+      }
       return {
         ...s,
         playerHands: { ...s.playerHands, [HUMAN_PLAYER]: newHand },
-        melds: [...s.melds, newMeld],
+        melds: newMelds,
         cardsLaidThisTurn: (s.cardsLaidThisTurn ?? 0) + cards.length,
       };
     });
