@@ -84,11 +84,9 @@ export function GameBoard({ sessionId }: GameBoardProps) {
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
-      {useMulti && (
-        <p className="text-muted-foreground text-sm">
-          {isHumanTurn ? "Din tur" : "Motståndarens tur – vänta på att de spelar."}
-        </p>
-      )}
+      <p className="text-muted-foreground text-sm">
+        {isHumanTurn ? "Din tur" : "Motståndarens tur – vänta på att de spelar."}
+      </p>
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">500</h1>
         <div className="flex gap-4 text-sm">
@@ -127,20 +125,6 @@ export function GameBoard({ sessionId }: GameBoardProps) {
 
       {state.phase !== "roundEnd" && state.phase !== "gameOver" && (
         <>
-          {!isHumanTurn && state.phase === "draw" && !useMulti && (
-            <div className="rounded-lg border border-muted bg-muted/30 p-3 text-center text-sm">
-              <p className="text-muted-foreground">Andra spelarens tur.</p>
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={advanceToNextTurn}
-                className="mt-2"
-              >
-                Nästa tur
-              </Button>
-            </div>
-          )}
           <div className="flex flex-wrap items-end justify-center gap-8">
             <StockPile
               count={state.stock.length}

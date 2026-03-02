@@ -15,15 +15,101 @@ import { getMeldType, canAddCardToMeld } from "../melds";
 import { getHandPenalty, getMeldPoints } from "../scoring";
 
 const HUMAN_PLAYER: PlayerId = "p1";
+const AI_PLAYER: PlayerId = "p2";
+const AI_DRAW_DELAY_MS = 1000;
+const AI_DISCARD_DELAY_MS = 600;
 
 export function useGameState() {
   const [state, setState] = useState<GameState | null>(null);
   const [lastDrawnCard, setLastDrawnCard] = useState<Card | null>(null);
   const lastDrawnRef = useRef<Card | null>(null);
+  const aiTurnRef = useRef(false);
 
   useEffect(() => {
     setState(createInitialState());
   }, []);
+
+  // Auto-play AI turn i single player – samma flöde som att vänta på motståndare i multiplayer
+  useEffect(() => {
+    if (!state || state.phase === "roundEnd" || state.phase === "gameOver") return;
+    if (state.currentPlayerId !== AI_PLAYER) return;
+    if (aiTurnRef.current) return;
+
+    if (state.phase === "draw") {
+      aiTurnRef.current = true;
+      const t = setTimeout(() => {
+        setState((s) => {
+          if (s == null || s.phase !== "draw" || s.currentPlayerId !== AI_PLAYER) return s;
+          if (s.stock.length > 0) {
+            const card = s.stock[s.stock.length - 1];
+            return {
+              ...s,
+              stock: s.stock.slice(0, -1),
+              playerHands: {
+                ...s.playerHands,
+                [AI_PLAYER]: sortHand([...s.playerHands[AI_PLAYER], card]),
+              },
+              phase: "meldOrDiscard",
+              lastDraw: "stock",
+            };
+          }
+          if (s.discard.length > 0) {
+            const newHand = sortHand([...s.playerHands[AI_PLAYER], ...s.discard]);
+            return {
+              ...s,
+              discard: [],
+              playerHands: { ...s.playerHands, [AI_PLAYER]: newHand },
+              phase: "meldOrDiscard",
+              lastDraw: "discard",
+            };
+          }
+          return { ...s, phase: "meldOrDiscard", lastDraw: null };
+        });
+        aiTurnRef.current = false;
+      }, AI_DRAW_DELAY_MS);
+      return () => clearTimeout(t);
+    }
+
+    if (state.phase === "meldOrDiscard") {
+      aiTurnRef.current = true;
+      const t = setTimeout(() => {
+        setState((s) => {
+          if (s == null || s.phase !== "meldOrDiscard" || s.currentPlayerId !== AI_PLAYER) return s;
+          const hand = s.playerHands[AI_PLAYER];
+          if (hand.length === 0) return s;
+          const handIndex = Math.floor(Math.random() * hand.length);
+          const cardToDiscard = hand[handIndex];
+          const newHand = hand.filter((_, i) => i !== handIndex);
+          const newDiscard = [cardToDiscard, ...s.discard];
+          const updated = {
+            ...s,
+            discard: newDiscard,
+            playerHands: { ...s.playerHands, [AI_PLAYER]: newHand },
+          };
+          if (newHand.length === 0) {
+            const newScores = { ...updated.playerScores };
+            for (const m of updated.melds) {
+              if (m.ownerId === AI_PLAYER)
+                newScores[AI_PLAYER] = (newScores[AI_PLAYER] ?? 0) + getMeldPoints(m.cards);
+            }
+            newScores[HUMAN_PLAYER] = (newScores[HUMAN_PLAYER] ?? 0) - getHandPenalty(updated.playerHands[HUMAN_PLAYER] ?? []);
+            const gameWinner = checkGameOver(newScores);
+            return {
+              ...updated,
+              playerScores: newScores,
+              phase: gameWinner != null ? ("gameOver" as const) : ("roundEnd" as const),
+              winnerId: gameWinner ?? AI_PLAYER,
+            };
+          }
+          const gameWinner = checkGameOver(s.playerScores);
+          const next = advanceTurn(updated);
+          return gameWinner != null ? { ...next, winnerId: gameWinner } : next;
+        });
+        aiTurnRef.current = false;
+      }, AI_DISCARD_DELAY_MS);
+      return () => clearTimeout(t);
+    }
+  }, [state?.phase, state?.currentPlayerId, advanceTurn]);
 
   const flushLastDrawn = useCallback(() => {
     if (lastDrawnRef.current) {
@@ -259,6 +345,7 @@ export function useGameState() {
     humanHand,
     topDiscard,
     isHumanTurn: state != null && state.phase !== "roundEnd" && state.phase !== "gameOver" && state.currentPlayerId === HUMAN_PLAYER,
+    canDraw: state != null && state.phase === "draw" && state.currentPlayerId === HUMAN_PLAYER,
     canDrawFromStock: state != null && state.phase === "draw" && state.currentPlayerId === HUMAN_PLAYER && state.stock.length > 0,
     canTakeDiscard: state != null && state.phase === "draw" && state.currentPlayerId === HUMAN_PLAYER && state.discard.length > 0,
     stockEmpty: state != null && state.stock.length === 0,

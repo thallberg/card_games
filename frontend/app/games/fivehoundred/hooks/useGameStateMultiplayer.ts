@@ -119,6 +119,7 @@ export function useGameStateMultiplayer(sessionId: string | undefined) {
     humanHand,
     topDiscard,
     isHumanTurn: state != null && state.phase !== "roundEnd" && state.phase !== "gameOver" && state.currentPlayerId === myPlayerId,
+    canDraw: state != null && state.phase === "draw" && state.currentPlayerId === myPlayerId,
     canDrawFromStock: state != null && state.phase === "draw" && state.currentPlayerId === myPlayerId && (state.stock?.length ?? 0) > 0,
     canTakeDiscard: state != null && state.phase === "draw" && state.currentPlayerId === myPlayerId && (state.discard?.length ?? 0) > 0,
     stockEmpty: state != null && (state.stock?.length ?? 0) === 0,
