@@ -11,7 +11,7 @@ import {
   checkGameOver,
 } from "../game-state";
 import { sortHand } from "../deck";
-import { getMeldType, canAddCardToMeld } from "../melds";
+import { getMeldType, canAddCardToMeld, canMergeRuns, mergeRunMelds } from "../melds";
 import { findFirstPossibleMeld } from "../ai-melds";
 import { getHandPenalty, getMeldPoints } from "../scoring";
 import { PICKUP_PENALTY } from "../constants";
@@ -353,14 +353,20 @@ export function useGameState() {
       if (!canAddCardToMeld(card, meld)) return s;
       const newHand = hand.filter((_, i) => i !== handIndex);
       const newCards = [...meld.cards, card];
-      // Kort läggs i ordning; 2:ans position bestäms av wildRepresents (visas i getMeldDisplayCards).
       const newIndex = newCards.length - 1;
       const newWildRepresents = wildAs && card.rank === "2"
         ? { ...meld.wildRepresents, [newIndex]: wildAs }
         : meld.wildRepresents;
-      const newMelds = s.melds.map((m) =>
-        m.id === meldId ? { ...m, cards: newCards, wildRepresents: newWildRepresents } : m
+      const updatedMeld = { ...meld, cards: newCards, wildRepresents: newWildRepresents };
+      let newMelds = s.melds.map((m) =>
+        m.id === meldId ? updatedMeld : m
       );
+      const otherRun = newMelds.find((m) => m.id !== meldId && canMergeRuns(updatedMeld, m));
+      if (otherRun) {
+        const merged = mergeRunMelds(updatedMeld, otherRun);
+        newMelds = newMelds.filter((m) => m.id !== meldId && m.id !== otherRun.id);
+        newMelds = [...newMelds, merged];
+      }
       return {
         ...s,
         playerHands: { ...s.playerHands, [HUMAN_PLAYER]: newHand },

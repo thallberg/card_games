@@ -215,7 +215,6 @@ export function MeldBuilderModal({
             </p>
             <div className="space-y-3">
               {melds.map((meld) => {
-                const displayCards = getMeldDisplayCards(meld);
                 const addable = hand.map((_, i) => i).filter((i) => canAddCardToMeld(hand[i], meld));
                 const pending = pendingAddWild?.meldId === meld.id ? pendingAddWild : null;
                 const meldIsRun = meld.type === "run" || isEffectiveRun(meld);
@@ -229,9 +228,16 @@ export function MeldBuilderModal({
                     key={meld.id}
                     className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/30 p-2"
                   >
-                    <div className="flex gap-0.5">
-                      {displayCards.map((c, j) => (
-                        <PlayingCard key={j} card={c} faceUp className="h-[56px] w-[40px]" />
+                    <div className="flex gap-0.5 items-end">
+                      {getMeldDisplayCards(meld).map((item, j) => (
+                        <div key={j} className="flex flex-col items-center">
+                          <PlayingCard card={item.card} faceUp className="h-[56px] w-[40px]" />
+                          {item.represents != null && (
+                            <span className="text-[10px] text-muted-foreground mt-0.5">
+                              ({cardLabel(item.represents)})
+                            </span>
+                          )}
+                        </div>
                       ))}
                     </div>
                     <div className="flex flex-wrap gap-1">

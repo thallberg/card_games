@@ -15,4 +15,5 @@ export {
   getMeldDisplayCards,
   getWildOptionsForRun,
   getWildOptionsForSet,
+  type MeldDisplayItem,
 } from "./melds";

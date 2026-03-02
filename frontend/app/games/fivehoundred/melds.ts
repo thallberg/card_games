@@ -231,23 +231,88 @@ function effectiveContains(effective: Card[], card: Card): boolean {
   return effective.some((c) => cardEquals(c, card));
 }
 
+/** Ett kort att visa i en meld; represents sätts när kortet är en 2:a som står för ett annat kort. */
+export type MeldDisplayItem = { card: Card; represents?: Card };
+
+function getWildRepresentsAt(meld: Meld, index: number): Card | undefined {
+  const wr = meld.wildRepresents;
+  if (!wr || typeof wr !== "object") return undefined;
+  const rep = (wr as Record<number, Card>)[index] ?? (wr as Record<string, Card>)[String(index)];
+  return rep && typeof rep === "object" && "suit" in rep && "rank" in rep ? rep : undefined;
+}
+
 /**
- * Kort att visa för en meld.
- * Stege med >3 kort: lägsta och högsta (t.ex. 3–9 visar 3 och 9).
- * Fyrtal (4 kort, inkl. 3+2:a): färdig – visa bara ett kort som hög.
+ * Kort att visa för en meld. 2:an visas alltid som 2:a; represents visas i parentes (t.ex. "Hjärter 6").
+ * Stege med >3 kort: lägsta och högsta. Fyrtal: ett kort som hög.
  */
-export function getMeldDisplayCards(meld: Meld): Card[] {
+export function getMeldDisplayCards(meld: Meld): MeldDisplayItem[] {
   const effective = getEffectiveMeldCards(meld);
   const asRun = meld.type === "run" || isEffectiveRun(meld);
   if (asRun) {
     const ordering = getRunOrdering(effective);
     const order = ordering === "low" ? RANK_ORDER_LOW : RANK_ORDER;
-    const sorted = [...effective].sort((a, b) => order[a.rank] - order[b.rank]);
-    if (sorted.length > 3) return [sorted[0], sorted[sorted.length - 1]];
-    return sorted;
+    const pairs: { physical: Card; effective: Card }[] = meld.cards.map((c, i) => ({
+      physical: c,
+      effective: effective[i],
+    }));
+    pairs.sort((a, b) => (order[a.effective.rank] ?? 0) - (order[b.effective.rank] ?? 0));
+    const take = pairs.length > 3 ? [pairs[0], pairs[pairs.length - 1]] : pairs;
+    return take.map(({ physical, effective: eff }) => ({
+      card: physical,
+      represents: isWild(physical) ? eff : undefined,
+    }));
   }
-  if (meld.cards.length >= 4) return [effective[0]];
-  return effective;
+  if (meld.cards.length >= 4) {
+    const c = meld.cards[0];
+    return [{ card: c, represents: isWild(c) ? getWildRepresentsAt(meld, 0) : undefined }];
+  }
+  return meld.cards.map((card, i) => ({
+    card,
+    represents: isWild(card) ? getWildRepresentsAt(meld, i) : undefined,
+  }));
+}
+
+/** Returnerar min/max valör (siffra) för en stege-meld, eller null om inte stege. */
+export function getRunMinMax(meld: Meld): { suit: Card["suit"]; minVal: number; maxVal: number } | null {
+  const effective = getEffectiveMeldCards(meld);
+  if (effective.length < 3) return null;
+  const asRun = meld.type === "run" || isEffectiveRun(meld);
+  if (!asRun) return null;
+  const ordering = getRunOrdering(effective);
+  const order = ordering === "low" ? RANK_ORDER_LOW : RANK_ORDER;
+  const values = runValues(effective, ordering).sort((a, b) => a - b);
+  return { suit: effective[0].suit, minVal: values[0], maxVal: values[values.length - 1] };
+}
+
+/** True om två stegar är samma färg och angränsande (kan slås ihop). */
+export function canMergeRuns(a: Meld, b: Meld): boolean {
+  const ra = getRunMinMax(a);
+  const rb = getRunMinMax(b);
+  if (!ra || !rb || ra.suit !== rb.suit) return false;
+  return ra.maxVal + 1 === rb.minVal || rb.maxVal + 1 === ra.minVal;
+}
+
+/** Slår ihop två angränsande stegar till en meld (kort sorterade efter valör). */
+export function mergeRunMelds(meldA: Meld, meldB: Meld): Meld {
+  const effectiveA = getEffectiveMeldCards(meldA);
+  const effectiveB = getEffectiveMeldCards(meldB);
+  const ordering = getRunOrdering([...effectiveA, ...effectiveB]);
+  const order = ordering === "low" ? RANK_ORDER_LOW : RANK_ORDER;
+  const pairsA: [Card, Card][] = meldA.cards.map((c, i) => [c, effectiveA[i]]);
+  const pairsB: [Card, Card][] = meldB.cards.map((c, i) => [c, effectiveB[i]]);
+  const pairs = [...pairsA, ...pairsB].sort((pa, pb) => (order[pa[1].rank] ?? 0) - (order[pb[1].rank] ?? 0));
+  const cards = pairs.map((p) => p[0]);
+  const wildRepresents: Record<number, Card> = {};
+  pairs.forEach(([phys, eff], i) => {
+    if (isWild(phys)) wildRepresents[i] = eff;
+  });
+  return {
+    id: meldA.id,
+    cards,
+    type: "run",
+    ownerId: meldA.ownerId,
+    ...(Object.keys(wildRepresents).length > 0 ? { wildRepresents } : undefined),
+  };
 }
 
 /**
@@ -263,7 +328,7 @@ export function canAddCardToMeld(card: Card, meld: Meld): boolean {
     if (effective.length === 0) return true;
     const rankForSet = effective.find((c) => !isWild(c))?.rank ?? meld.cards.find((c) => !isWild(c))?.rank;
     if (!rankForSet || card.rank !== rankForSet) return false;
-    if (effectiveContains(effective, card)) return false;
+    if (meld.cards.some((c) => c.suit === card.suit && c.rank === card.rank)) return false;
     return true;
   }
   if (effective.length === 0) return true;
