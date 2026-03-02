@@ -161,6 +161,8 @@ export function isValidEffectiveSet(cards: Card[]): boolean {
 /**
  * Möjliga kort som en 2:a får representera i en stege (hål eller förlängning).
  * Stödjer låg stege (ess–2–3) och hög (…kung–ess).
+ * Om det finns hål mellan de riktiga korten (t.ex. 3 och 5) får 2:an bara vara det som fyller hålet (4).
+ * Förlängning (t.ex. 2 eller 6) erbjuds bara när korten redan är i följd (t.ex. 3,4 eller 4,5).
  */
 export function getWildOptionsForRun(cards: Card[]): Card[] {
   const rest = cards.filter((c) => !isWild(c));
@@ -173,18 +175,23 @@ export function getWildOptionsForRun(cards: Card[]): Card[] {
   const min = values[0];
   const max = values[values.length - 1];
   const valueSet = new Set(values);
+  const n = values.length;
+  const span = max - min + 1;
+  const gaps = span - n;
+  const wildCount = cards.length - n;
   const options: Card[] = [];
-  if (min > 0) {
-    const r = valueToRank[min - 1] as Card["rank"];
-    if (r) options.push({ suit, rank: r });
-  }
   for (let v = min; v <= max; v++) {
     if (!valueSet.has(v)) {
       const r = valueToRank[v] as Card["rank"];
       if (r) options.push({ suit, rank: r });
     }
   }
-  if (max < 12) {
+  const canExtend = gaps === 0 && wildCount >= 1;
+  if (canExtend && min > 0) {
+    const r = valueToRank[min - 1] as Card["rank"];
+    if (r) options.push({ suit, rank: r });
+  }
+  if (canExtend && max < 12) {
     const r = valueToRank[max + 1] as Card["rank"];
     if (r) options.push({ suit, rank: r });
   }
@@ -266,8 +273,9 @@ export function getMeldDisplayCards(meld: Meld): MeldDisplayItem[] {
     }));
   }
   if (meld.cards.length >= 4) {
-    const c = meld.cards[0];
-    return [{ card: c, represents: isWild(c) ? getWildRepresentsAt(meld, 0) : undefined }];
+    const idx = meld.cards.findIndex((c) => !isWild(c));
+    const c = idx >= 0 ? meld.cards[idx] : meld.cards[0];
+    return [{ card: c, represents: isWild(c) ? getWildRepresentsAt(meld, idx >= 0 ? idx : 0) : undefined }];
   }
   return meld.cards.map((card, i) => ({
     card,
