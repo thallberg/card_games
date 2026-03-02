@@ -9,12 +9,25 @@ type PlayerHandProps = {
   selectedIndices?: Set<number>;
   onCardClick?: (card: Card, index: number) => void;
   disabled?: boolean;
-  /** Kort som nyss plockats – visas med grön ram. */
-  lastDrawnCard?: Card | null;
+  /** Kort som nyss plockats – visas med grön ram (ett eller flera vid kast-hög). */
+  lastDrawnCards?: Card[];
 };
 
 function cardEquals(a: Card, b: Card): boolean {
   return a.suit === b.suit && a.rank === b.rank;
+}
+
+function indicesOfDrawnCards(hand: Card[], drawn: Card[]): Set<number> {
+  const toMatch = [...drawn];
+  const highlighted = new Set<number>();
+  hand.forEach((card, i) => {
+    const idx = toMatch.findIndex((c) => cardEquals(c, card));
+    if (idx >= 0) {
+      highlighted.add(i);
+      toMatch.splice(idx, 1);
+    }
+  });
+  return highlighted;
 }
 
 export function PlayerHand({
@@ -22,9 +35,9 @@ export function PlayerHand({
   selectedIndices = new Set(),
   onCardClick,
   disabled,
-  lastDrawnCard,
+  lastDrawnCards = [],
 }: PlayerHandProps) {
-  const lastDrawnIndex = lastDrawnCard != null ? cards.findIndex((c) => cardEquals(c, lastDrawnCard)) : -1;
+  const lastDrawnIndices = lastDrawnCards.length > 0 ? indicesOfDrawnCards(cards, lastDrawnCards) : new Set<number>();
   return (
     <div className="flex flex-wrap justify-center gap-3">
       {cards.map((card, i) => (
@@ -34,7 +47,7 @@ export function PlayerHand({
             "rounded-md ring-2 transition-all ring-offset-2",
             selectedIndices.has(i)
               ? "ring-primary"
-              : lastDrawnIndex === i
+              : lastDrawnIndices.has(i)
                 ? "ring-green-500"
                 : "ring-transparent"
           )}

@@ -40,9 +40,11 @@ export function GameBoard({ sessionId }: GameBoardProps) {
     startNewRound,
     getPlayerIds,
     myPlayerId,
+    lastDrawnCards,
     lastDrawnCard,
     hasLaidFirstMeld,
   } = useMulti ? multi : single;
+  const lastDrawnCardsToShow = lastDrawnCards ?? (lastDrawnCard != null ? [lastDrawnCard] : []);
 
   const canDraw = state != null && state.phase === "draw" && state.currentPlayerId === myPlayerId;
 
@@ -182,7 +184,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
             <h2 className="mb-2 text-sm font-medium text-muted-foreground">
               Utlagda kombinationer
             </h2>
-            <TableMelds melds={state.melds} />
+            <TableMelds melds={state.melds} lastLaidMeldIds={state.lastLaidMeldIds} />
           </div>
 
           {state.lastDraw === "discard" && isHumanTurn && (
@@ -214,7 +216,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
                     : undefined
                 }
                 disabled={!isHumanTurn || canDraw}
-                lastDrawnCard={lastDrawnCard ?? undefined}
+                lastDrawnCards={lastDrawnCardsToShow}
               />
               {state.phase === "meldOrDiscard" && isHumanTurn && (
                 <div className="flex flex-wrap items-center gap-2 self-center">

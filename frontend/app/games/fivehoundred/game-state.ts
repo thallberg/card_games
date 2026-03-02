@@ -13,6 +13,8 @@ export type GameState = {
   lastDraw: "stock" | "discard" | null;
   /** Antal kort nuvarande spelare lagt ut denna tur (för regel: tog kast högen → måste lägga minst 3). */
   cardsLaidThisTurn: number;
+  /** Meld-ids som nyligen lades ut – visas med grön ram tills nästa tur. */
+  lastLaidMeldIds?: string[];
   roundNumber: number;
   winnerId: PlayerId | null;
 };

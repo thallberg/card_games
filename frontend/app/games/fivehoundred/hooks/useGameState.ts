@@ -23,8 +23,8 @@ const AI_DISCARD_DELAY_MS = 600;
 
 export function useGameState() {
   const [state, setState] = useState<GameState | null>(null);
-  const [lastDrawnCard, setLastDrawnCard] = useState<Card | null>(null);
-  const lastDrawnRef = useRef<Card | null>(null);
+  const [lastDrawnCards, setLastDrawnCards] = useState<Card[]>([]);
+  const lastDrawnRef = useRef<Card | Card[] | null>(null);
   const aiTurnRef = useRef(false);
 
   useEffect(() => {
@@ -81,18 +81,19 @@ export function useGameState() {
           let melds = s.melds;
           let cardsLaidThisTurn = s.cardsLaidThisTurn ?? 0;
 
-          // AI lägger ut en meld om det finns en giltig (set eller stege)
+          let aiLaidMeldId: string | null = null;
           const choice = findFirstPossibleMeld(hand);
           if (choice && choice.indices.length >= 3) {
             const indices = [...choice.indices].sort((a, b) => a - b);
             const cards = indices.map((i) => hand[i]);
             const type = getMeldType(cards);
             if (type) {
+              aiLaidMeldId = crypto.randomUUID();
               hand = hand.filter((_, i) => !indices.includes(i));
               melds = [
                 ...melds,
                 {
-                  id: crypto.randomUUID(),
+                  id: aiLaidMeldId,
                   cards,
                   type,
                   ownerId: AI_PLAYER,
@@ -116,6 +117,7 @@ export function useGameState() {
             cardsLaidThisTurn,
             discard: newDiscard,
             playerHands: { ...s.playerHands, [AI_PLAYER]: newHand },
+            lastLaidMeldIds: aiLaidMeldId ? [aiLaidMeldId] : [],
           };
           if (s.lastDraw === "discard" && cardsLaidThisTurn < 3) {
             updated = {
@@ -139,6 +141,7 @@ export function useGameState() {
               playerScores: newScores,
               phase: gameWinner != null ? ("gameOver" as const) : ("roundEnd" as const),
               winnerId: gameWinner ?? AI_PLAYER,
+              lastLaidMeldIds: [],
             };
           }
           const gameWinner = checkGameOver(s.playerScores);
@@ -148,6 +151,7 @@ export function useGameState() {
             currentPlayerId: nextId,
             phase: "draw" as const,
             lastDraw: null,
+            lastLaidMeldIds: [],
           };
           return gameWinner != null ? { ...next, winnerId: gameWinner } : next;
         });
@@ -158,12 +162,9 @@ export function useGameState() {
   }, [state?.phase, state?.currentPlayerId]);
 
   const flushLastDrawn = useCallback(() => {
-    if (lastDrawnRef.current) {
-      setLastDrawnCard(lastDrawnRef.current);
-      lastDrawnRef.current = null;
-    } else {
-      setLastDrawnCard(null);
-    }
+    const v = lastDrawnRef.current;
+    lastDrawnRef.current = null;
+    setLastDrawnCards(Array.isArray(v) ? v : v ? [v] : []);
   }, []);
 
   const drawFromStock = useCallback(() => {
@@ -172,7 +173,7 @@ export function useGameState() {
       if (s.phase !== "draw" || s.currentPlayerId !== HUMAN_PLAYER || s.stock.length === 0)
         return s;
       const card = s.stock[s.stock.length - 1];
-      lastDrawnRef.current = card;
+      lastDrawnRef.current = card as Card;
       return {
         ...s,
         stock: s.stock.slice(0, -1),
@@ -192,9 +193,8 @@ export function useGameState() {
       if (s == null) return s;
       if (s.phase !== "draw" || s.currentPlayerId !== HUMAN_PLAYER || s.discard.length === 0)
         return s;
-      const topCard = s.discard[0];
       const newHand = [...s.playerHands[HUMAN_PLAYER], ...s.discard];
-      lastDrawnRef.current = topCard;
+      lastDrawnRef.current = [...s.discard];
       return {
         ...s,
         discard: [],
@@ -208,7 +208,7 @@ export function useGameState() {
 
   const skipDraw = useCallback(() => {
     lastDrawnRef.current = null;
-    setLastDrawnCard(null);
+    setLastDrawnCards([]);
     setState((s) => {
       if (s == null) return s;
       if (s.phase !== "draw" || s.currentPlayerId !== HUMAN_PLAYER || s.stock.length !== 0)
@@ -226,12 +226,13 @@ export function useGameState() {
       phase: "draw",
       lastDraw: null,
       cardsLaidThisTurn: 0,
+      lastLaidMeldIds: [],
     };
   }, []);
 
   const discardCard = useCallback((handIndex: number) => {
     lastDrawnRef.current = null;
-    setLastDrawnCard(null);
+    setLastDrawnCards([]);
     setState((s) => {
       if (s == null) return s;
       if (s.phase !== "meldOrDiscard" || s.currentPlayerId !== HUMAN_PLAYER)
@@ -278,6 +279,7 @@ export function useGameState() {
           playerScores: newScores,
           phase: gameWinner != null ? ("gameOver" as const) : ("roundEnd" as const),
           winnerId: gameWinner ?? HUMAN_PLAYER,
+          lastLaidMeldIds: [],
         };
       }
       const gameWinner = checkGameOver(s.playerScores);
@@ -288,7 +290,7 @@ export function useGameState() {
 
   const passWithoutDiscard = useCallback(() => {
     lastDrawnRef.current = null;
-    setLastDrawnCard(null);
+    setLastDrawnCards([]);
     setState((s) => {
       if (s == null) return s;
       if (s.phase !== "meldOrDiscard" || s.currentPlayerId !== HUMAN_PLAYER)
@@ -310,7 +312,7 @@ export function useGameState() {
 
   const addMeld = useCallback((cardIndices: number[], wildRepresents?: Record<number, Card>) => {
     lastDrawnRef.current = null;
-    setLastDrawnCard(null);
+    setLastDrawnCards([]);
     setState((s) => {
       if (s == null) return s;
       if (s.phase !== "meldOrDiscard" || s.currentPlayerId !== HUMAN_PLAYER)
@@ -330,10 +332,12 @@ export function useGameState() {
         ...(wildRepresents && Object.keys(wildRepresents).length > 0 ? { wildRepresents } : undefined),
       };
       let newMelds = [...s.melds, newMeld];
+      let laidId = newMeld.id;
       if (type === "run") {
         const otherRun = s.melds.find((m) => canMergeRuns(newMeld, m));
         if (otherRun) {
           const merged = mergeRunMelds(newMeld, otherRun);
+          laidId = merged.id;
           newMelds = s.melds.filter((m) => m.id !== otherRun.id);
           newMelds = [...newMelds, merged];
         }
@@ -343,13 +347,14 @@ export function useGameState() {
         playerHands: { ...s.playerHands, [HUMAN_PLAYER]: newHand },
         melds: newMelds,
         cardsLaidThisTurn: (s.cardsLaidThisTurn ?? 0) + cards.length,
+        lastLaidMeldIds: [laidId],
       };
     });
   }, []);
 
   const addCardToExistingMeld = useCallback((meldId: string, handIndex: number, wildAs?: import("../types").Card) => {
     lastDrawnRef.current = null;
-    setLastDrawnCard(null);
+    setLastDrawnCards([]);
     setState((s) => {
       if (s == null) return s;
       if (s.phase !== "meldOrDiscard" || s.currentPlayerId !== HUMAN_PLAYER)
@@ -374,8 +379,10 @@ export function useGameState() {
         m.id === meldId ? updatedMeld : m
       );
       const otherRun = newMelds.find((m) => m.id !== meldId && canMergeRuns(updatedMeld, m));
+      let laidId = meldId;
       if (otherRun) {
         const merged = mergeRunMelds(updatedMeld, otherRun);
+        laidId = merged.id;
         newMelds = newMelds.filter((m) => m.id !== meldId && m.id !== otherRun.id);
         newMelds = [...newMelds, merged];
       }
@@ -384,6 +391,7 @@ export function useGameState() {
         playerHands: { ...s.playerHands, [HUMAN_PLAYER]: newHand },
         melds: newMelds,
         cardsLaidThisTurn: (s.cardsLaidThisTurn ?? 0) + 1,
+        lastLaidMeldIds: [laidId],
       };
     });
   }, []);
@@ -403,7 +411,7 @@ export function useGameState() {
 
   const startNewRound = useCallback(() => {
     lastDrawnRef.current = null;
-    setLastDrawnCard(null);
+    setLastDrawnCards([]);
     setState((s) => {
       if (s == null || s.phase !== "roundEnd") return s;
       const next = createNewRoundState(s);
@@ -437,7 +445,7 @@ export function useGameState() {
     startNewRound,
     getPlayerIds,
     myPlayerId: HUMAN_PLAYER,
-    lastDrawnCard,
+    lastDrawnCards,
     hasLaidFirstMeld: state != null && state.melds.some((m) => m.ownerId === HUMAN_PLAYER),
   };
 }

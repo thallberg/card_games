@@ -3,6 +3,7 @@
 import type { Card, Meld } from "../types";
 import { getMeldDisplayCards } from "../melds";
 import { PlayingCard } from "./PlayingCard";
+import { cn } from "@/lib/utils";
 
 const RANK_LABELS: Record<string, string> = {
   "2": "2", "3": "3", "4": "4", "5": "5", "6": "6", "7": "7", "8": "8",
@@ -17,9 +18,12 @@ function cardLabel(c: Card): string {
 
 type TableMeldsProps = {
   melds: Meld[];
+  /** Ids för nyligen utlagda melds – visas med grön ram. */
+  lastLaidMeldIds?: string[];
 };
 
-export function TableMelds({ melds }: TableMeldsProps) {
+export function TableMelds({ melds, lastLaidMeldIds = [] }: TableMeldsProps) {
+  const recentSet = new Set(lastLaidMeldIds);
   return (
     <div className="w-full max-h-[320px] overflow-y-auto overflow-x-hidden rounded-lg border border-dashed border-muted-foreground/20 bg-muted/10">
       <div className="grid grid-cols-3 gap-3 p-4">
@@ -31,7 +35,12 @@ export function TableMelds({ melds }: TableMeldsProps) {
           melds.map((meld) => (
             <div
               key={meld.id}
-              className="flex flex-wrap items-center justify-center gap-0.5 rounded-md border border-border bg-card p-2"
+              className={cn(
+                "flex flex-wrap items-center justify-center gap-0.5 rounded-md border-2 p-2 transition-colors",
+                recentSet.has(meld.id)
+                  ? "border-green-500 bg-green-500/10"
+                  : "border-border bg-card"
+              )}
             >
               {getMeldDisplayCards(meld).map((item, i) => (
                 <div key={`${meld.id}-${i}`} className="flex flex-col items-center">
