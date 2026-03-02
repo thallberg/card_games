@@ -232,18 +232,22 @@ function effectiveContains(effective: Card[], card: Card): boolean {
 }
 
 /**
- * Kort att visa för en meld. Stege med >3 kort: första och sista.
- * Sortering: låg stege (ess–2–3) eller hög (2…ess).
+ * Kort att visa för en meld.
+ * Stege med >3 kort: lägsta och högsta (t.ex. 3–9 visar 3 och 9).
+ * Fyrtal (4 kort, inkl. 3+2:a): färdig – visa bara ett kort som hög.
  */
 export function getMeldDisplayCards(meld: Meld): Card[] {
   const effective = getEffectiveMeldCards(meld);
   const asRun = meld.type === "run" || isEffectiveRun(meld);
-  if (!asRun) return effective;
-  const ordering = getRunOrdering(effective);
-  const order = ordering === "low" ? RANK_ORDER_LOW : RANK_ORDER;
-  const sorted = [...effective].sort((a, b) => order[a.rank] - order[b.rank]);
-  if (sorted.length > 3) return [sorted[0], sorted[sorted.length - 1]];
-  return sorted;
+  if (asRun) {
+    const ordering = getRunOrdering(effective);
+    const order = ordering === "low" ? RANK_ORDER_LOW : RANK_ORDER;
+    const sorted = [...effective].sort((a, b) => order[a.rank] - order[b.rank]);
+    if (sorted.length > 3) return [sorted[0], sorted[sorted.length - 1]];
+    return sorted;
+  }
+  if (meld.cards.length >= 4) return [effective[0]];
+  return effective;
 }
 
 /**
