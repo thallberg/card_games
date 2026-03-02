@@ -32,6 +32,8 @@ public class MeldDto
     public string Type { get; set; } = "set";
     /// <summary>Index i Cards -> vilket kort en 2:a (wild) ska räknas som.</summary>
     public Dictionary<int, CardDto>? WildRepresents { get; set; }
+    /// <summary>Spelare som lade ut denna meld (för poängberäkning vid rundavslut).</summary>
+    public string? OwnerId { get; set; }
 }
 
 public class FiveHundredActionRequest

@@ -209,7 +209,7 @@ public class FiveHundredService
                 var cards = indices.Select(i => addMeldHand[i]).ToList();
                 foreach (var i in indices.OrderByDescending(x => x)) addMeldHand.RemoveAt(i);
                 SortHand(addMeldHand);
-                var newMeld = new MeldDto { Id = Guid.NewGuid().ToString(), Cards = cards, Type = "set" };
+                var newMeld = new MeldDto { Id = Guid.NewGuid().ToString(), Cards = cards, Type = "set", OwnerId = playerId };
                 if (a.WildRepresents != null && a.WildRepresents.Count > 0)
                     newMeld.WildRepresents = new Dictionary<int, CardDto>(a.WildRepresents);
                 s.Melds.Add(newMeld);
@@ -260,13 +260,20 @@ public class FiveHundredService
     private static void EndRound(FiveHundredStateDto s, string winnerId)
     {
         var winnerScore = s.PlayerScores.TryGetValue(winnerId, out var ws) ? ws : 0;
+        foreach (var m in s.Melds)
+        {
+            if (m.OwnerId != winnerId) continue;
+            winnerScore += m.Cards.Sum(c => GetCardPoints(c.Rank));
+        }
+        s.PlayerScores[winnerId] = winnerScore;
         foreach (var pid in PlayerIds)
         {
             if (pid == winnerId) continue;
             var oppHand = s.PlayerHands.TryGetValue(pid, out var oh) ? oh : new List<CardDto>();
-            winnerScore += oppHand.Sum(c => GetCardPoints(c.Rank));
+            var penalty = oppHand.Sum(c => GetCardPoints(c.Rank));
+            var oppScore = s.PlayerScores.TryGetValue(pid, out var os) ? os : 0;
+            s.PlayerScores[pid] = oppScore - penalty;
         }
-        s.PlayerScores[winnerId] = winnerScore;
         s.WinnerId = winnerId;
         s.Phase = winnerScore >= PointsToWin ? "gameOver" : "roundEnd";
     }

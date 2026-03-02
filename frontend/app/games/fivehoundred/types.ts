@@ -34,6 +34,8 @@ export type Meld = {
   type: "set" | "run";
   /** För varje 2:a i cards: index i cards -> vilket kort den ska räknas som (visuellt). */
   wildRepresents?: Record<number, Card>;
+  /** Spelare som lade ut melden (för poäng vid rundavslut). */
+  ownerId?: string;
 };
 
 export type PlayerId = string;

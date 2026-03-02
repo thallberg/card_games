@@ -12,7 +12,7 @@ import {
 } from "../game-state";
 import { sortHand } from "../deck";
 import { getMeldType, canAddCardToMeld } from "../melds";
-import { getHandPenalty } from "../scoring";
+import { getHandPenalty, getMeldPoints } from "../scoring";
 
 const HUMAN_PLAYER: PlayerId = "p1";
 
@@ -118,14 +118,18 @@ export function useGameState() {
         playerHands: newPlayerHands,
       };
       if (newHand.length === 0) {
-        const ids = getPlayerIds();
-        let roundPoints = 0;
-        for (const id of ids) {
-          if (id === HUMAN_PLAYER) continue;
-          roundPoints += getHandPenalty(updated.playerHands[id] ?? []);
+        let myMeldPoints = 0;
+        for (const m of updated.melds) {
+          if (m.ownerId === HUMAN_PLAYER) myMeldPoints += getMeldPoints(m.cards);
         }
         const newScores = { ...updated.playerScores };
-        newScores[HUMAN_PLAYER] = (newScores[HUMAN_PLAYER] ?? 0) + roundPoints;
+        newScores[HUMAN_PLAYER] = (newScores[HUMAN_PLAYER] ?? 0) + myMeldPoints;
+        const ids = getPlayerIds();
+        for (const id of ids) {
+          if (id === HUMAN_PLAYER) continue;
+          const penalty = getHandPenalty(updated.playerHands[id] ?? []);
+          newScores[id] = (newScores[id] ?? 0) - penalty;
+        }
         const gameWinner = checkGameOver(newScores);
         return {
           ...updated,
@@ -169,6 +173,7 @@ export function useGameState() {
         id: crypto.randomUUID(),
         cards,
         type,
+        ownerId: HUMAN_PLAYER,
         ...(wildRepresents && Object.keys(wildRepresents).length > 0 ? { wildRepresents } : undefined),
       };
       return {
@@ -254,7 +259,8 @@ export function useGameState() {
     humanHand,
     topDiscard,
     isHumanTurn: state != null && state.phase !== "roundEnd" && state.phase !== "gameOver" && state.currentPlayerId === HUMAN_PLAYER,
-    canDraw: state != null && state.phase === "draw" && state.currentPlayerId === HUMAN_PLAYER && state.stock.length > 0,
+    canDrawFromStock: state != null && state.phase === "draw" && state.currentPlayerId === HUMAN_PLAYER && state.stock.length > 0,
+    canTakeDiscard: state != null && state.phase === "draw" && state.currentPlayerId === HUMAN_PLAYER && state.discard.length > 0,
     stockEmpty: state != null && state.stock.length === 0,
     drawFromStock,
     takeDiscardPile,
