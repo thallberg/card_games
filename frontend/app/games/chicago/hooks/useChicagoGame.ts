@@ -10,7 +10,7 @@ import {
   getNextPlayerId,
 } from "../game-state";
 import { createDeck, shuffle, sortHand } from "../deck";
-import { getHandPoints, getHandDescription } from "../hand-score";
+import { getHandPoints, getHandDescription, compareHands } from "../hand-score";
 import { HAND_SIZE, MAX_DRAW_ROUNDS } from "../constants";
 
 const HUMAN: PlayerId = "p1";
@@ -190,14 +190,14 @@ export function useChicagoGame() {
       if (isLastTrick) {
         newScores[trickWinner] = (newScores[trickWinner] ?? 0) + 1;
         const handsForScoring = s.playPhaseHands?.p1?.length === 5 ? s.playPhaseHands : s.playerHands;
-        const humanPoints = getHandPoints(handsForScoring[HUMAN] ?? []);
-        const aiPoints = getHandPoints(handsForScoring[AI] ?? []);
+        const humanHand = handsForScoring[HUMAN] ?? [];
+        const aiHand = handsForScoring[AI] ?? [];
+        const humanPoints = getHandPoints(humanHand);
+        const aiPoints = getHandPoints(aiHand);
         roundHandPoints = { p1: humanPoints, p2: aiPoints };
-        if (humanPoints > aiPoints) {
-          newScores[HUMAN] = (newScores[HUMAN] ?? 0) + humanPoints;
-        } else if (aiPoints > humanPoints) {
-          newScores[AI] = (newScores[AI] ?? 0) + aiPoints;
-        }
+        const handWinner = compareHands(humanHand, aiHand);
+        if (handWinner === -1) newScores[HUMAN] = (newScores[HUMAN] ?? 0) + humanPoints;
+        else if (handWinner === 1) newScores[AI] = (newScores[AI] ?? 0) + aiPoints;
       }
 
       const completed = [
@@ -364,14 +364,14 @@ export function useChicagoGame() {
         if (isLastTrick) {
           newScores[trickWinner] = (newScores[trickWinner] ?? 0) + 1;
           const handsForScoring = s.playPhaseHands?.p1?.length === 5 ? s.playPhaseHands : s.playerHands;
-          const humanPoints = getHandPoints(handsForScoring[HUMAN] ?? []);
-          const aiPoints = getHandPoints(handsForScoring[AI] ?? []);
+          const humanHand = handsForScoring[HUMAN] ?? [];
+          const aiHand = handsForScoring[AI] ?? [];
+          const humanPoints = getHandPoints(humanHand);
+          const aiPoints = getHandPoints(aiHand);
           roundHandPoints = { p1: humanPoints, p2: aiPoints };
-          if (humanPoints > aiPoints) {
-            newScores[HUMAN] = (newScores[HUMAN] ?? 0) + humanPoints;
-          } else if (aiPoints > humanPoints) {
-            newScores[AI] = (newScores[AI] ?? 0) + aiPoints;
-          }
+          const handWinner = compareHands(humanHand, aiHand);
+          if (handWinner === -1) newScores[HUMAN] = (newScores[HUMAN] ?? 0) + humanPoints;
+          else if (handWinner === 1) newScores[AI] = (newScores[AI] ?? 0) + aiPoints;
         }
 
         const completed = [

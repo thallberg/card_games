@@ -222,6 +222,7 @@ public class FiveHundredService
                 newMeld.Type = IsEffectiveRun(effective) ? "run" : "set";
                 s.Melds.Add(newMeld);
                 s.CardsLaidThisTurn += cards.Count;
+                s.LastLaidMeldIds = new List<string> { newMeld.Id };
                 return (null, null);
             case "addcardtomeld":
                 if (s.Phase != "meldOrDiscard" || string.IsNullOrEmpty(a.MeldId) || a.CardIndex == null) return ("Ogiltigt drag.", null);
@@ -240,6 +241,7 @@ public class FiveHundredService
                 }
                 SortHand(addToMeldHand);
                 s.CardsLaidThisTurn += 1;
+                s.LastLaidMeldIds = new List<string> { a.MeldId };
                 return (null, null);
             default:
                 return ("Okänd åtgärd.", null);
@@ -250,7 +252,14 @@ public class FiveHundredService
 
     private static void AdvanceTurn(FiveHundredStateDto s)
     {
-        s.CurrentPlayerId = s.CurrentPlayerId == P1 ? P2 : P1;
+        var whoJustPlayed = s.CurrentPlayerId;
+        if (s.LastLaidMeldIds != null && s.LastLaidMeldIds.Count > 0)
+        {
+            var ownerOfLaid = s.Melds.FirstOrDefault(m => s.LastLaidMeldIds.Contains(m.Id))?.OwnerId;
+            if (ownerOfLaid == whoJustPlayed)
+                s.LastLaidMeldIds = new List<string>();
+        }
+        s.CurrentPlayerId = whoJustPlayed == P1 ? P2 : P1;
         s.Phase = "draw";
         s.LastDraw = null;
         s.CardsLaidThisTurn = 0;

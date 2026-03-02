@@ -6,7 +6,7 @@ import type { GameState } from "../game-state";
 import { RANK_VALUE } from "../types";
 import { getNextPlayerId } from "../game-state";
 import { sortHand } from "../deck";
-import { getHandPoints, getHandDescription } from "../hand-score";
+import { getHandPoints, getHandDescription, compareHands } from "../hand-score";
 import { fetchChicagoState, sendChicagoAction, startChicagoNewRound } from "../api/chicagoApi";
 import { getPlayerIds } from "../game-state";
 
@@ -233,11 +233,14 @@ export function useChicagoGameMultiplayer(sessionId: string | undefined) {
       if (isLastTrick) {
         newScores[trickWinner] = (newScores[trickWinner] ?? 0) + 1;
         const handsForScoring = state.playPhaseHands?.p1?.length === 5 ? state.playPhaseHands : state.playerHands;
-        const p1Points = getHandPoints(handsForScoring.p1 ?? []);
-        const p2Points = getHandPoints(handsForScoring.p2 ?? []);
+        const p1Hand = handsForScoring.p1 ?? [];
+        const p2Hand = handsForScoring.p2 ?? [];
+        const p1Points = getHandPoints(p1Hand);
+        const p2Points = getHandPoints(p2Hand);
         roundHandPoints = { p1: p1Points, p2: p2Points };
-        if (p1Points > p2Points) newScores.p1 = (newScores.p1 ?? 0) + p1Points;
-        else if (p2Points > p1Points) newScores.p2 = (newScores.p2 ?? 0) + p2Points;
+        const handWinner = compareHands(p1Hand, p2Hand);
+        if (handWinner === -1) newScores.p1 = (newScores.p1 ?? 0) + p1Points;
+        else if (handWinner === 1) newScores.p2 = (newScores.p2 ?? 0) + p2Points;
       }
 
       const completed = [

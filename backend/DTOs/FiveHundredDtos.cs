@@ -17,6 +17,8 @@ public class FiveHundredStateDto
     public string? LastDraw { get; set; }
     /// <summary>Antal kort nuvarande spelare lagt ut denna tur (tog kast högen → minst 3, annars -50).</summary>
     public int CardsLaidThisTurn { get; set; }
+    /// <summary>Ids för nyligen utlagda melds – visas med grön ram tills spelaren som lade avslutar tur.</summary>
+    public List<string>? LastLaidMeldIds { get; set; }
     public int RoundNumber { get; set; } = 1;
     public string? WinnerId { get; set; }
 }
