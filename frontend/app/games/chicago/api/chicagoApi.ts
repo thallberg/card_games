@@ -1,26 +1,30 @@
 import type { GameState } from "../game-state";
+import type { Card, Suit, Rank } from "../types";
+import { SUITS, RANKS } from "../types";
 import { apiFetch } from "@/lib/api";
 
-function normalizeCard(raw: { suit?: string; rank?: string }): { suit: string; rank: string } {
-  return {
-    suit: (raw.suit ?? "hearts") as string,
-    rank: (raw.rank ?? "2") as string,
-  };
+const SUIT_SET = new Set<string>(SUITS);
+const RANK_SET = new Set<string>(RANKS);
+
+function normalizeCard(raw: { suit?: string; rank?: string }): Card {
+  const suit = (SUIT_SET.has(raw.suit ?? "") ? raw.suit : "hearts") as Suit;
+  const rank = (RANK_SET.has(raw.rank ?? "") ? raw.rank : "2") as Rank;
+  return { suit, rank };
 }
 
-function normalizeCards(arr: unknown[]): { suit: string; rank: string }[] {
+function normalizeCards(arr: unknown[]): Card[] {
   return Array.isArray(arr) ? arr.map((c) => normalizeCard((c as Record<string, string>) ?? {})) : [];
 }
 
 function normalizeState(raw: Record<string, unknown>): GameState {
   const r = raw as Record<string, unknown>;
   const playerHands = (r.playerHands ?? {}) as Record<string, unknown[]>;
-  const hands: Record<string, { suit: string; rank: string }[]> = {};
+  const hands: Record<string, Card[]> = {};
   for (const [pid, arr] of Object.entries(playerHands))
     hands[pid as "p1" | "p2"] = normalizeCards(Array.isArray(arr) ? arr : []);
 
   const playPhaseHands = (r.playPhaseHands ?? {}) as Record<string, unknown[]>;
-  const phaseHands: Record<string, { suit: string; rank: string }[]> = {};
+  const phaseHands: Record<string, Card[]> = {};
   for (const [pid, arr] of Object.entries(playPhaseHands))
     phaseHands[pid as "p1" | "p2"] = normalizeCards(Array.isArray(arr) ? arr : []);
 
@@ -51,7 +55,7 @@ function normalizeState(raw: Record<string, unknown>): GameState {
   }));
 
   const trickCardsRaw = r.trickCards;
-  let trickCards: [typeof normalizeCard extends (x: infer A) => infer R ? R : never, ReturnType<typeof normalizeCard> | null] | null = null;
+  let trickCards: [Card, Card | null] | null = null;
   if (Array.isArray(trickCardsRaw) && trickCardsRaw.length >= 1)
     trickCards = [normalizeCard((trickCardsRaw[0] as Record<string, string>) ?? {}), trickCardsRaw[1] != null ? normalizeCard((trickCardsRaw[1] as Record<string, string>) ?? {}) : null];
 
