@@ -188,6 +188,9 @@ export function getWildOptionsForRun(cards: Card[]): Card[] {
     const r = valueToRank[max + 1] as Card["rank"];
     if (r) options.push({ suit, rank: r });
   }
+  if (ordering === "high" && max === 11 && !options.some((o) => o.rank === "ace")) {
+    options.push({ suit, rank: "ace" });
+  }
   return options;
 }
 
