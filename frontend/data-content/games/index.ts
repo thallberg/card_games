@@ -1,6 +1,7 @@
 import type { GameCardData } from "./types";
 import { pokerGameData } from "./poker/data";
 import { fivehoundredGameData } from "./fivehoundred/data";
+import { chicagoGameData } from "./chicago/data";
 
 /**
  * Alla kortspel som ska visas på framsidan.
@@ -9,6 +10,7 @@ import { fivehoundredGameData } from "./fivehoundred/data";
 export const games: GameCardData[] = [
   pokerGameData,
   fivehoundredGameData,
+  chicagoGameData,
 ];
 
 export type { GameCardData } from "./types";
