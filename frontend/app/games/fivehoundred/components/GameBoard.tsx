@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useGameState } from "../hooks/useGameState";
 import { useGameStateMultiplayer } from "../hooks/useGameStateMultiplayer";
 import {
@@ -11,6 +11,7 @@ import {
   MeldBuilderModal,
 } from "./index";
 import { Button } from "@/components/ui/button";
+import { getMeldPoints } from "../scoring";
 
 type GameBoardProps = { sessionId?: string };
 
@@ -73,6 +74,19 @@ export function GameBoard({ sessionId }: GameBoardProps) {
     if (!open) clearSelection();
   };
 
+  const roundMeldPoints = useMemo(() => {
+    const byPlayer: Record<string, number> = {};
+    const ids = state ? Object.keys(state.playerHands) : [];
+    for (const id of ids) byPlayer[id] = 0;
+    for (const meld of state?.melds ?? []) {
+      const owner = meld.ownerId ?? ids[0];
+      if (byPlayer[owner] !== undefined) {
+        byPlayer[owner] = (byPlayer[owner] ?? 0) + getMeldPoints(meld.cards);
+      }
+    }
+    return byPlayer;
+  }, [state?.melds, state?.playerHands]);
+
   if (!state) {
     return (
       <div className="flex min-h-[200px] items-center justify-center">
@@ -81,19 +95,26 @@ export function GameBoard({ sessionId }: GameBoardProps) {
     );
   }
 
-
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <p className="text-muted-foreground text-sm">
         {isHumanTurn ? "Din tur" : "Motståndarens tur – vänta på att de spelar."}
       </p>
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-xl font-semibold">500</h1>
-        <div className="flex gap-4 text-sm">
+        <div className="flex flex-wrap gap-6 text-sm">
           {getPlayerIds().map((id) => (
-            <span key={id}>
-              {id === myPlayerId ? "Du" : "Motståndare"}: {state.playerScores[id] ?? 0} poäng
-            </span>
+            <div key={id} className="flex flex-col gap-0.5">
+              <span className="font-medium">{id === myPlayerId ? "Du" : "Motståndare"}</span>
+              {state.phase !== "roundEnd" && state.phase !== "gameOver" && (
+                <span className="text-muted-foreground">
+                  Rundans poäng (utlagda): {roundMeldPoints[id] ?? 0}
+                </span>
+              )}
+              <span className="text-muted-foreground">
+                Sammanlagda poäng: {state.playerScores[id] ?? 0}
+              </span>
+            </div>
           ))}
         </div>
       </div>
