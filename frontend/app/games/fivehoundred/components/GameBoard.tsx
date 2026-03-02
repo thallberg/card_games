@@ -41,10 +41,8 @@ export function GameBoard({ sessionId }: GameBoardProps) {
     getPlayerIds,
     myPlayerId,
     lastDrawnCards,
-    lastDrawnCard,
     hasLaidFirstMeld,
   } = useMulti ? multi : single;
-  const lastDrawnCardsToShow = lastDrawnCards ?? (lastDrawnCard != null ? [lastDrawnCard] : []);
 
   const canDraw = state != null && state.phase === "draw" && state.currentPlayerId === myPlayerId;
 
@@ -216,7 +214,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
                     : undefined
                 }
                 disabled={!isHumanTurn || canDraw}
-                lastDrawnCards={lastDrawnCardsToShow}
+                lastDrawnCards={lastDrawnCards ?? []}
               />
               {state.phase === "meldOrDiscard" && isHumanTurn && (
                 <div className="flex flex-wrap items-center gap-2 self-center">
