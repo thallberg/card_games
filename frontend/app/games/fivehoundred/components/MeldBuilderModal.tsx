@@ -30,6 +30,8 @@ type MeldBuilderModalProps = {
   hand: Card[];
   selectedIndices: number[];
   melds: Meld[];
+  myPlayerId: string;
+  hasLaidFirstMeld: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** cardIndices = hand-index, wildRepresents = index i den nya melden -> vilket kort 2:an ska vara */
@@ -45,6 +47,8 @@ export function MeldBuilderModal({
   hand,
   selectedIndices,
   melds,
+  myPlayerId,
+  hasLaidFirstMeld,
   open,
   onOpenChange,
   onConfirmNewMeld,
@@ -215,7 +219,11 @@ export function MeldBuilderModal({
             </p>
             <div className="space-y-3">
               {melds.map((meld) => {
-                const addable = hand.map((_, i) => i).filter((i) => canAddCardToMeld(hand[i], meld));
+                const isOwnMeld = (meld.ownerId ?? myPlayerId) === myPlayerId;
+                const canAddToThisMeld = isOwnMeld || hasLaidFirstMeld;
+                const addable = canAddToThisMeld
+                  ? hand.map((_, i) => i).filter((i) => canAddCardToMeld(hand[i], meld))
+                  : [];
                 const pending = pendingAddWild?.meldId === meld.id ? pendingAddWild : null;
                 const meldIsRun = meld.type === "run" || isEffectiveRun(meld);
                 const addWildOptions = pending
@@ -313,7 +321,9 @@ export function MeldBuilderModal({
                       })}
                       {addable.length === 0 && !pending && (
                         <span className="text-muted-foreground text-xs">
-                          Inget av dina valda kort passar här
+                          {!canAddToThisMeld
+                            ? "Lägg ut minst en egen triss eller stege först."
+                            : "Inget av dina valda kort passar här"}
                         </span>
                       )}
                     </div>

@@ -349,6 +349,9 @@ export function useGameState() {
       if (handIndex < 0 || handIndex >= hand.length) return s;
       const meld = s.melds.find((m) => m.id === meldId);
       if (meld == null) return s;
+      const isOpponentMeld = (meld.ownerId ?? HUMAN_PLAYER) !== HUMAN_PLAYER;
+      if (isOpponentMeld && !s.melds.some((m) => m.ownerId === HUMAN_PLAYER))
+        return s;
       const card = hand[handIndex];
       if (!canAddCardToMeld(card, meld)) return s;
       const newHand = hand.filter((_, i) => i !== handIndex);
@@ -426,5 +429,6 @@ export function useGameState() {
     getPlayerIds,
     myPlayerId: HUMAN_PLAYER,
     lastDrawnCard,
+    hasLaidFirstMeld: state != null && state.melds.some((m) => m.ownerId === HUMAN_PLAYER),
   };
 }

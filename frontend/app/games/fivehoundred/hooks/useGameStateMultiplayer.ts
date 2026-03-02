@@ -136,5 +136,6 @@ export function useGameStateMultiplayer(sessionId: string | undefined) {
     getPlayerIds,
     myPlayerId,
     lastDrawnCard,
+    hasLaidFirstMeld: (state?.melds?.some((m) => m.ownerId === myPlayerId)) ?? false,
   };
 }

@@ -41,6 +41,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
     getPlayerIds,
     myPlayerId,
     lastDrawnCard,
+    hasLaidFirstMeld,
   } = useMulti ? multi : single;
 
   const canDraw = state != null && state.phase === "draw" && state.currentPlayerId === myPlayerId;
@@ -253,6 +254,8 @@ export function GameBoard({ sessionId }: GameBoardProps) {
             hand={humanHand}
             selectedIndices={selectedArr}
             melds={state.melds}
+            myPlayerId={myPlayerId}
+            hasLaidFirstMeld={hasLaidFirstMeld ?? false}
             open={meldBuilderOpen}
             onOpenChange={handleLayMeldClose}
             onConfirmNewMeld={(indices, wildRepresents) => {
