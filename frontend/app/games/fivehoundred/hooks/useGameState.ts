@@ -102,14 +102,20 @@ export function useGameState() {
             };
           }
           const gameWinner = checkGameOver(s.playerScores);
-          const next = advanceTurn(updated);
+          const nextId = getNextPlayerId(updated.currentPlayerId!);
+          const next = {
+            ...updated,
+            currentPlayerId: nextId,
+            phase: "draw" as const,
+            lastDraw: null,
+          };
           return gameWinner != null ? { ...next, winnerId: gameWinner } : next;
         });
         aiTurnRef.current = false;
       }, AI_DISCARD_DELAY_MS);
       return () => clearTimeout(t);
     }
-  }, [state?.phase, state?.currentPlayerId, advanceTurn]);
+  }, [state?.phase, state?.currentPlayerId]);
 
   const flushLastDrawn = useCallback(() => {
     if (lastDrawnRef.current) {
