@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import type { Card, Meld } from "../types";
-import { getMeldType, canAddCardToMeld, isWild, getWildOptionsForRun, getWildOptionsForSet, isEffectiveRun } from "../melds";
+import { getMeldType, canAddCardToMeld, isWild, getWildOptionsForRun, getWildOptionsForSet, isEffectiveRun, isValidEffectiveRun, isValidEffectiveSet } from "../melds";
 import { PlayingCard } from "./PlayingCard";
 import { getMeldDisplayCards } from "../melds";
 import { cn } from "@/lib/utils";
@@ -78,7 +78,13 @@ export function MeldBuilderModal({
   const allWildsChosen = wildIndicesInPicked.length === 0
     || autoSetWilds
     || wildIndicesInPicked.every((i) => wildSelections[i]);
-  const canLayNew = newMeldType !== null && allWildsChosen;
+  const effectiveCards = pickedCards.map((c, i) => wildSelections[i] ?? c);
+  const effectiveMeldValid = newMeldType === "run"
+    ? isValidEffectiveRun(effectiveCards)
+    : newMeldType === "set"
+      ? isValidEffectiveSet(effectiveCards)
+      : false;
+  const canLayNew = newMeldType !== null && allWildsChosen && effectiveMeldValid;
 
   const togglePicked = (handIndex: number) => {
     if (!selectedIndices.includes(handIndex)) return;
@@ -124,7 +130,7 @@ export function MeldBuilderModal({
         <section>
           <h3 className="mb-2 font-medium text-sm">Lägg ny kombination</h3>
           <p className="text-muted-foreground mb-2 text-xs">
-            Välj minst 3 av dina valda kort (tretal/fyrtal eller stege).
+            Välj minst 3 kort. 2:or är valfritt kort (25 poäng) – välj vad 2:an ska vara när du lägger ut.
           </p>
           <div className="flex flex-wrap gap-1">
             {selectedIndices.map((i) => {
@@ -161,7 +167,7 @@ export function MeldBuilderModal({
           )}
           {newMeldType && wildIndicesInPicked.length > 0 && !autoSetWilds && (
             <div className="mt-3 rounded-md border bg-muted/30 p-3">
-              <p className="mb-2 text-sm font-medium">Välj vad 2:an ska vara</p>
+              <p className="mb-2 text-sm font-medium">2:an är valfritt kort – välj vilket kort den ska vara (den ger fortfarande 25 poäng)</p>
               <div className="space-y-2">
                 {wildIndicesInPicked.map((meldIdx, num) => (
                   <div key={meldIdx} className="flex flex-wrap items-center gap-2">
@@ -182,6 +188,9 @@ export function MeldBuilderModal({
                 ))}
               </div>
             </div>
+          )}
+          {allWildsChosen && newMeldType && !effectiveMeldValid && (
+            <p className="text-destructive mt-2 text-xs">Välj olika kort för varje 2:a så att kombinationen blir giltig.</p>
           )}
           <Button
             className="mt-2 w-full"
@@ -256,7 +265,7 @@ export function MeldBuilderModal({
                         if (isWildCard && showChoice) {
                           return (
                             <div key={handIndex} className="flex flex-wrap items-center gap-1">
-                              <span className="text-muted-foreground text-xs">Vad ska 2:an vara?</span>
+                              <span className="text-muted-foreground text-xs">2:an är valfritt kort – välj vad den ska vara (25 poäng, du kan bygga vidare på den)</span>
                               {addWildOptions.map((opt) => (
                                 <Button
                                   key={`${opt.suit}-${opt.rank}`}

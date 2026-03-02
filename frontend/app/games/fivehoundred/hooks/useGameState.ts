@@ -285,18 +285,7 @@ export function useGameState() {
       if (!canAddCardToMeld(card, meld)) return s;
       const newHand = hand.filter((_, i) => i !== handIndex);
       const newCards = [...meld.cards, card];
-      if (meld.type === "run") {
-        const RANK_ORDER: Record<string, number> = {
-          "2": 0, "3": 1, "4": 2, "5": 3, "6": 4, "7": 5, "8": 6, "9": 7,
-          "10": 8, jack: 9, queen: 10, king: 11, ace: 12,
-        };
-        const isWild = (c: import("../types").Card) => c.rank === "2";
-        newCards.sort((a, b) => {
-          const va = isWild(a) ? -1 : RANK_ORDER[a.rank];
-          const vb = isWild(b) ? -1 : RANK_ORDER[b.rank];
-          return va - vb;
-        });
-      }
+      // Kort läggs i ordning; 2:ans position bestäms av wildRepresents (visas i getMeldDisplayCards).
       const newIndex = newCards.length - 1;
       const newWildRepresents = wildAs && card.rank === "2"
         ? { ...meld.wildRepresents, [newIndex]: wildAs }

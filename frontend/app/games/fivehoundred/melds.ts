@@ -1,11 +1,16 @@
 import type { Card, Meld } from "./types";
 import { RANKS, SUITS } from "./types";
 
-/** 2:or räknas som joker (valfri). */
+/**
+ * 2:or är wild (valfritt kort). Vid utläggning väljer spelaren vad 2:an ska vara.
+ * 2:an ger alltid 25 poäng (se scoring.ts) men räknas som det valda kortet för kombinationen.
+ */
+
 export function isWild(card: Card): boolean {
   return card.rank === "2";
 }
 
+/** Valörordning i stegar: 2 låg, ess hög. */
 export const RANK_ORDER: Record<string, number> = {
   "2": 0,
   "3": 1,
@@ -27,7 +32,7 @@ const VALUE_TO_RANK: Record<number, string> = Object.fromEntries(
 ) as Record<number, string>;
 
 /**
- * Kontrollerar om kort kan bilda ett giltigt tretal/fyrtal (samma valör, 2 = joker).
+ * Giltigt tretal/fyrtal: samma valör, 2 = wild (välj valör vid utläggning).
  */
 export function isValidSet(cards: Card[]): boolean {
   if (cards.length < 3 || cards.length > 4) return false;
@@ -40,7 +45,8 @@ export function isValidSet(cards: Card[]): boolean {
 }
 
 /**
- * Kontrollerar om kort kan bilda en giltig stege (samma färg, följd; ess som A-2-3 eller D-K-A).
+ * Giltig stege: samma färg, följd (2–3–4… eller …10–knekt–dam–kung–ess).
+ * 2:or är wild: man väljer vid utläggning vilket kort 2:an ska vara (t.ex. ruter 3,4,5,6 och 2 som ruter 7).
  */
 export function isValidRun(cards: Card[]): boolean {
   if (cards.length < 3) return false;
@@ -87,8 +93,38 @@ export function getMeldType(cards: Card[]): "set" | "run" | null {
 }
 
 /**
- * Möjliga kort som en 2:a får representera i en stege: förlängning under/över eller hål mellan.
- * T.ex. knekt + kung + 2 → 2 kan vara dam (gapet), 10 (förlängning nedåt), eller ess (förlängning uppåt).
+ * Validerar att redan "effektiva" kort (2:or ersatta med val) bildar en giltig stege (samma färg, följd, inga dubbletter).
+ */
+export function isValidEffectiveRun(cards: Card[]): boolean {
+  if (cards.length < 3) return false;
+  const suit = cards[0].suit;
+  if (cards.some((c) => c.suit !== suit)) return false;
+  const values = cards.map((c) => RANK_ORDER[c.rank]).sort((a, b) => a - b);
+  const seen = new Set<number>();
+  for (const v of values) {
+    if (seen.has(v)) return false;
+    seen.add(v);
+  }
+  for (let i = 1; i < values.length; i++) {
+    if (values[i] - values[i - 1] !== 1) return false;
+  }
+  return true;
+}
+
+/**
+ * Validerar att redan "effektiva" kort bildar ett giltigt tretal/fyrtal (samma valör, olika färger).
+ */
+export function isValidEffectiveSet(cards: Card[]): boolean {
+  if (cards.length < 3 || cards.length > 4) return false;
+  const rank = cards[0].rank;
+  const suits = new Set(cards.map((c) => c.suit));
+  return cards.every((c) => c.rank === rank) && suits.size === cards.length;
+}
+
+/**
+ * Möjliga kort som en 2:a får representera i en stege: hål i följden eller förlängning under/över.
+ * T.ex. ruter 3,4,5,6 + 2 → 2 kan vara ruter 2 eller ruter 7.
+ * Ruter 4,5,6,7,8,9 + 2 → 2 kan vara ruter 3 eller ruter 10 (sedan kan man bygga med knekt på 2:an som 10).
  */
 export function getWildOptionsForRun(cards: Card[]): Card[] {
   const rest = cards.filter((c) => !isWild(c));
@@ -117,7 +153,7 @@ export function getWildOptionsForRun(cards: Card[]): Card[] {
 }
 
 /**
- * Möjliga kort som en 2:a får representera i ett tretal/fyrtal (samma valör, saknad färg).
+ * Möjliga kort som en 2:a får representera i tretal/fyrtal: samma valör, saknad färg.
  */
 export function getWildOptionsForSet(cards: Card[]): Card[] {
   const rest = cards.filter((c) => !isWild(c));
@@ -128,8 +164,9 @@ export function getWildOptionsForSet(cards: Card[]): Card[] {
 }
 
 /**
- * Returnerar meldens kort så som spelet tolkar dem: 2:or ersatta med wildRepresents.
- * Används för logik (t.ex. "ligger dam redan där?", "kan jag lägga ess efter kung?").
+ * Melden som spelet tolkar den: 2:or ersatta med wildRepresents.
+ * Används för att avgöra vad som "ligger" i stegen (t.ex. kan jag lägga ruter 6 på 2:an som ruter 5?).
+ * 2:an ger fortfarande 25 poäng – här handlar det bara om vilket kort den *äger* som i kombinationen.
  */
 export function getEffectiveMeldCards(meld: Meld): Card[] {
   const wr = meld.wildRepresents;
@@ -141,7 +178,7 @@ export function getEffectiveMeldCards(meld: Meld): Card[] {
   });
 }
 
-/** True om meldens kort (effektivt) bildar en stege – använd när type kan vara fel (t.ex. från backend). */
+/** True om meldens effektiva kort bildar en stege. */
 export function isEffectiveRun(meld: Meld): boolean {
   const effective = getEffectiveMeldCards(meld);
   if (effective.length < 3) return false;
@@ -163,15 +200,13 @@ function effectiveContains(effective: Card[], card: Card): boolean {
 }
 
 /**
- * För stege: om fler än 3 kort visas bara första och sista (t.ex. ruter 3…9).
- * För stege med 3 kort, eller tretal/fyrtal: returnerar alla kort.
+ * Kort att visa för en meld. Stege med >3 kort: första och sista (t.ex. ruter 3…9).
+ * 2:or visas som det valda kortet (effektivt) så att det syns hur man kan bygga vidare.
  */
 export function getMeldDisplayCards(meld: Meld): Card[] {
   const effective = getEffectiveMeldCards(meld);
   const asRun = meld.type === "run" || isEffectiveRun(meld);
   if (!asRun) return effective;
-  const nonWild = effective.filter((c) => !isWild(c));
-  if (nonWild.length === 0) return effective;
   const sorted = [...effective].sort(
     (a, b) => RANK_ORDER[a.rank] - RANK_ORDER[b.rank]
   );
@@ -180,11 +215,9 @@ export function getMeldDisplayCards(meld: Meld): Card[] {
 }
 
 /**
- * Kan ett kort läggas till på en befintlig meld?
- * 2:or räknas alltid som det valda kortet (wildRepresents) – i alla stegar och tretal/fyrtal.
- * Man kan alltid fortsätta lägga på en 2:a: spelet tolkar den som det valda kortet, så du kan
- * lägga före eller efter (t.ex. 2=kung → du får lägga ess; 2=dam → du får lägga knekt eller kung).
- * Set: samma valör, max 4 kort. Stege: samma färg, valör = min-1 eller max+1.
+ * Kan kort läggas till på melden?
+ * 2:or räknas som det valda kortet (wildRepresents): man kan bygga på 2:an som om den vore det kortet
+ * (t.ex. 2 som ruter 5 → man får lägga ruter 6 på den). 2:an ger fortfarande 25 poäng.
  */
 export function canAddCardToMeld(card: Card, meld: Meld): boolean {
   const effective = getEffectiveMeldCards(meld);

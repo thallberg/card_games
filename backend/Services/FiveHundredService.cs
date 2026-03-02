@@ -212,6 +212,8 @@ public class FiveHundredService
                 var newMeld = new MeldDto { Id = Guid.NewGuid().ToString(), Cards = cards, Type = "set", OwnerId = playerId };
                 if (a.WildRepresents != null && a.WildRepresents.Count > 0)
                     newMeld.WildRepresents = new Dictionary<int, CardDto>(a.WildRepresents);
+                var effective = GetEffectiveMeldCards(newMeld);
+                newMeld.Type = IsEffectiveRun(effective) ? "run" : "set";
                 s.Melds.Add(newMeld);
                 return (null, null);
             case "addcardtomeld":
@@ -243,6 +245,7 @@ public class FiveHundredService
         s.LastDraw = null;
     }
 
+    /// <summary>2:or = 25 poäng (wild/valfritt kort men räknas alltid som 25).</summary>
     private static int GetCardPoints(string rank)
     {
         return rank switch
@@ -253,6 +256,36 @@ public class FiveHundredService
             "10" or "jack" or "queen" or "king" => 10,
             _ => 0
         };
+    }
+
+    private static readonly Dictionary<string, int> RankOrder = new()
+    {
+        ["2"] = 0, ["3"] = 1, ["4"] = 2, ["5"] = 3, ["6"] = 4, ["7"] = 5, ["8"] = 6, ["9"] = 7,
+        ["10"] = 8, ["jack"] = 9, ["queen"] = 10, ["king"] = 11, ["ace"] = 12
+    };
+
+    /// <summary>2:or ersatta med WildRepresents – används för att avgöra run/set och bygga vidare.</summary>
+    private static List<CardDto> GetEffectiveMeldCards(MeldDto meld)
+    {
+        if (meld.WildRepresents == null || meld.WildRepresents.Count == 0)
+            return meld.Cards.ToList();
+        return meld.Cards.Select((c, i) =>
+            (c.Rank == "2" && meld.WildRepresents.TryGetValue(i, out var rep)) ? rep : c
+        ).ToList();
+    }
+
+    private static bool IsEffectiveRun(List<CardDto> effective)
+    {
+        if (effective.Count < 3) return false;
+        var suit = effective[0].Suit;
+        if (effective.Any(c => c.Suit != suit)) return false;
+        var values = effective.Select(c => RankOrder.GetValueOrDefault(c.Rank, -1)).OrderBy(x => x).ToList();
+        if (values.Any(v => v < 0)) return false;
+        var seen = new HashSet<int>();
+        foreach (var v in values) { if (!seen.Add(v)) return false; }
+        for (int i = 1; i < values.Count; i++)
+            if (values[i] - values[i - 1] != 1) return false;
+        return true;
     }
 
     private const int PointsToWin = 500;

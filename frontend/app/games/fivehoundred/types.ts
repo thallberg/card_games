@@ -32,7 +32,7 @@ export type Meld = {
   id: string;
   cards: Card[];
   type: "set" | "run";
-  /** För varje 2:a i cards: index i cards -> vilket kort den ska räknas som (visuellt). */
+  /** 2:or är valfritt kort: index i cards → vilket kort 2:an ska vara (och räknas som vid byggande). 2:an ger fortfarande 25 poäng. */
   wildRepresents?: Record<number, Card>;
   /** Spelare som lade ut melden (för poäng vid rundavslut). */
   ownerId?: string;
