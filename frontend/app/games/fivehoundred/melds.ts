@@ -211,9 +211,9 @@ export function getEffectiveMeldCards(meld: Meld): Card[] {
   const wr = meld.wildRepresents;
   if (!wr || typeof wr !== "object") return [...meld.cards];
   return meld.cards.map((c, i) => {
-    const key = i as keyof typeof wr;
-    const rep = wr[key] ?? (wr as Record<string, Card>)[String(i)];
-    return rep ? rep : c;
+    const rep = (wr as Record<number, Card>)[i] ?? (wr as Record<string, Card>)[String(i)];
+    if (rep && typeof rep === "object" && "suit" in rep && "rank" in rep) return rep;
+    return c;
   });
 }
 
@@ -257,8 +257,8 @@ export function canAddCardToMeld(card: Card, meld: Meld): boolean {
     if (meld.cards.length >= 4) return false;
     if (isWild(card)) return true;
     if (effective.length === 0) return true;
-    const rank = effective[0].rank;
-    if (card.rank !== rank) return false;
+    const rankForSet = effective.find((c) => !isWild(c))?.rank ?? meld.cards.find((c) => !isWild(c))?.rank;
+    if (!rankForSet || card.rank !== rankForSet) return false;
     if (effectiveContains(effective, card)) return false;
     return true;
   }
