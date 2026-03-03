@@ -294,7 +294,8 @@ app.MapPost("/api/gamesessions/{id:guid}/start", async (Guid id, HttpContext ctx
         }
         catch (Exception ex)
         {
-            return Results.Json(new { error = "Kunde inte starta Texas Hold'em. Kör migreringar på servern: dotnet ef database update. Detalj: " + ex.Message }, statusCode: 500);
+            var inner = ex.InnerException?.Message ?? ex.Message;
+            return Results.Json(new { error = "Kunde inte starta Texas Hold'em. Detalj: " + inner }, statusCode: 500);
         }
     }
     var updated = await gameService.GetByIdAsync(id, userId);
