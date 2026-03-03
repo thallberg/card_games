@@ -6,4 +6,5 @@ public enum GameType
     Blackjack = 1,
     FiveHundred = 2,
     Chicago = 3,
+    TexasHoldem = 4,
 }

@@ -26,32 +26,33 @@ const winningCardClass = "ring-2 ring-green-500 bg-green-500/20 -translate-y-2 s
 type GameBoardProps = {
   state: TexasHoldemState;
   onStateChange: (s: TexasHoldemState) => void;
+  /** Vilken seat som är "jag" (default 0). */
+  humanSeatIndex?: number;
 };
 
-const HUMAN_SEAT = 0;
-
-export function GameBoard({ state, onStateChange }: GameBoardProps) {
+export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoardProps) {
+  const humanSeat = humanSeatIndex;
   const isMyTurn =
-    state.phase === "playing" && state.currentActorIndex === HUMAN_SEAT;
-  const mySeat = state.seats[HUMAN_SEAT];
+    state.phase === "playing" && state.currentActorIndex === humanSeat;
+  const mySeat = state.seats[humanSeat];
   const currentBet = state.currentBet;
   const toCall = mySeat ? currentBet - mySeat.betThisHand : 0;
   const minRaiseTotal = state.currentBet + state.minRaise;
   const [raiseAmount, setRaiseAmount] = useState(minRaiseTotal);
 
-  const handleFold = () => onStateChange(fold(state, HUMAN_SEAT));
-  const handleCheck = () => onStateChange(check(state, HUMAN_SEAT));
-  const handleCall = () => onStateChange(call(state, HUMAN_SEAT));
+  const handleFold = () => onStateChange(fold(state, humanSeat));
+  const handleCheck = () => onStateChange(check(state, humanSeat));
+  const handleCall = () => onStateChange(call(state, humanSeat));
   const handleRaise = () => {
     const amount = Math.max(
       state.minRaise,
       raiseAmount - state.currentBet
     );
-    onStateChange(raise(state, HUMAN_SEAT, amount));
+    onStateChange(raise(state, humanSeat, amount));
   };
   const handleAllIn = () => {
     if (mySeat && mySeat.stack > 0) {
-      onStateChange(raise(state, HUMAN_SEAT, mySeat.stack));
+      onStateChange(raise(state, humanSeat, mySeat.stack));
     }
   };
   const handleNextHand = () => onStateChange(startNextHand(state));
@@ -94,7 +95,7 @@ export function GameBoard({ state, onStateChange }: GameBoardProps) {
         {/* Längst upp: motståndare med kort (face up), vinnarens kort grönmarkerade */}
         <div className="flex flex-wrap justify-center gap-4">
           {state.seats.map((s, i) => {
-            if (i === HUMAN_SEAT) return null;
+            if (i === humanSeat) return null;
             const holeCards = state.holeCards[i] ?? [];
             const wasInHand = !s.folded;
             const handRank =
@@ -164,7 +165,7 @@ export function GameBoard({ state, onStateChange }: GameBoardProps) {
           <p className="mb-2 font-medium">{mySeat?.name} (Du)</p>
           <p className="text-muted-foreground text-sm">Stack: {mySeat?.stack ?? 0}</p>
           <div className="mt-3 flex justify-center gap-2">
-            {(state.holeCards[HUMAN_SEAT] ?? []).map((card, i) => (
+            {(state.holeCards[humanSeat] ?? []).map((card, i) => (
               <PlayingCard
                 key={i}
                 card={card}
@@ -174,9 +175,9 @@ export function GameBoard({ state, onStateChange }: GameBoardProps) {
               />
             ))}
           </div>
-          {mySeat && !mySeat.folded && state.board.length === 5 && state.holeCards[HUMAN_SEAT] && (
+          {mySeat && !mySeat.folded && state.board.length === 5 && state.holeCards[humanSeat] && (
             <p className="mt-2 text-center text-sm text-muted-foreground">
-              Din hand: {handRankLabel(bestHand(state.holeCards[HUMAN_SEAT], state.board).rank)}
+              Din hand: {handRankLabel(bestHand(state.holeCards[humanSeat], state.board).rank)}
             </p>
           )}
           <div className="mt-4 text-center">
@@ -205,10 +206,10 @@ export function GameBoard({ state, onStateChange }: GameBoardProps) {
         </span>
       </div>
 
-      {/* Längst upp: motståndare */}
+        {/* Längst upp: motståndare */}
       <div className="flex flex-wrap justify-center gap-4">
         {state.seats.map((s, i) => {
-          if (i === HUMAN_SEAT) return null;
+          if (i === humanSeat) return null;
           const folded = s.folded;
           const holeCards = state.holeCards[i] ?? [];
           return (
@@ -263,7 +264,7 @@ export function GameBoard({ state, onStateChange }: GameBoardProps) {
           {mySeat && mySeat.betThisHand > 0 && ` · Bet denna runda: ${mySeat.betThisHand}`}
         </p>
         <div className="mt-3 flex justify-center gap-2">
-          {(state.holeCards[HUMAN_SEAT] ?? []).map((card, i) => (
+          {(state.holeCards[humanSeat] ?? []).map((card, i) => (
             <PlayingCard key={i} card={card} size="md" />
           ))}
         </div>
@@ -314,9 +315,9 @@ export function GameBoard({ state, onStateChange }: GameBoardProps) {
           </p>
         )}
 
-        {state.bettingPhase === "showdown" && state.board.length === 5 && mySeat && !mySeat.folded && state.holeCards[HUMAN_SEAT] && (
+        {state.bettingPhase === "showdown" && state.board.length === 5 && mySeat && !mySeat.folded && state.holeCards[humanSeat] && (
           <p className="mt-2 text-center text-sm text-muted-foreground">
-            Din bästa hand: {handRankLabel(bestHand(state.holeCards[HUMAN_SEAT], state.board).rank)}
+            Din bästa hand: {handRankLabel(bestHand(state.holeCards[humanSeat], state.board).rank)}
           </p>
         )}
       </div>

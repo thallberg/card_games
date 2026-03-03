@@ -65,7 +65,12 @@ export default function SpelPage() {
       });
       if (res.ok) {
         const session = sessions.find((s) => s.id === sessionId);
-        const gamePath = session?.gameType === "Chicago" ? "/games/chicago" : "/games/fivehoundred";
+        const gamePath =
+          session?.gameType === "Chicago"
+            ? "/games/chicago"
+            : session?.gameType === "TexasHoldem"
+              ? "/games/texasholdem"
+              : "/games/fivehoundred";
         router.push(`${gamePath}?sessionId=${sessionId}`);
         return;
       }
@@ -122,7 +127,7 @@ export default function SpelPage() {
                       >
                         <div>
                           <span className="font-medium">
-                            {s.gameType === "FiveHundred" ? "500" : s.gameType === "Chicago" ? "Chicago" : s.gameType}
+                            {s.gameType === "FiveHundred" ? "500" : s.gameType === "Chicago" ? "Chicago" : s.gameType === "TexasHoldem" ? "Texas Hold'em" : s.gameType}
                           </span>
                           <span className="text-muted-foreground text-sm">
                             {" "}– ledd av {s.leaderDisplayName} · {s.currentPlayerCount}/{s.maxPlayers} spelare
@@ -170,11 +175,19 @@ export default function SpelPage() {
                       className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-card p-3"
                     >
                       <span>
-                        {s.gameType === "FiveHundred" ? "500" : s.gameType === "Chicago" ? "Chicago" : s.gameType === "Chicago" ? "Chicago" : s.gameType} – {s.leaderDisplayName}
+                        {s.gameType === "FiveHundred" ? "500" : s.gameType === "Chicago" ? "Chicago" : s.gameType === "TexasHoldem" ? "Texas Hold'em" : s.gameType} – {s.leaderDisplayName}
                       </span>
                       <div className="flex gap-2">
                         <Button asChild size="sm">
-                          <Link href={s.gameType === "Chicago" ? `/games/chicago?sessionId=${s.id}` : `/games/fivehoundred?sessionId=${s.id}`}>
+                          <Link
+                            href={
+                              s.gameType === "Chicago"
+                                ? `/games/chicago?sessionId=${s.id}`
+                                : s.gameType === "TexasHoldem"
+                                  ? `/games/texasholdem?sessionId=${s.id}`
+                                  : `/games/fivehoundred?sessionId=${s.id}`
+                            }
+                          >
                             Fortsätt spela
                           </Link>
                         </Button>

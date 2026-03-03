@@ -21,6 +21,7 @@ builder.Services.AddScoped<FriendService>();
 builder.Services.AddScoped<GameSessionService>();
 builder.Services.AddScoped<FiveHundredService>();
 builder.Services.AddScoped<ChicagoService>();
+builder.Services.AddScoped<TexasHoldemService>();
 
 builder.Services.AddCors(options =>
 {
@@ -266,7 +267,7 @@ app.MapPost("/api/gamesessions/{id:guid}/leave", async (Guid id, HttpContext ctx
     return Results.Ok();
 }).RequireAuthorization();
 
-app.MapPost("/api/gamesessions/{id:guid}/start", async (Guid id, HttpContext ctx, GameSessionService gameService, FiveHundredService fiveHundredService, ChicagoService chicagoService) =>
+app.MapPost("/api/gamesessions/{id:guid}/start", async (Guid id, HttpContext ctx, GameSessionService gameService, FiveHundredService fiveHundredService, ChicagoService chicagoService, TexasHoldemService texasHoldemService) =>
 {
     var userId = GetUserId(ctx.User);
     if (userId == null) return Results.Unauthorized();
@@ -283,6 +284,11 @@ app.MapPost("/api/gamesessions/{id:guid}/start", async (Guid id, HttpContext ctx
     {
         var (initOk, initErr) = await chicagoService.CreateInitialStateAsync(id);
         if (!initOk) return Results.BadRequest(new { error = initErr ?? "Kunde inte initiera Chicago." });
+    }
+    if (session.GameType == "TexasHoldem")
+    {
+        var (initOk, initErr) = await texasHoldemService.CreateInitialStateAsync(id);
+        if (!initOk) return Results.BadRequest(new { error = initErr ?? "Kunde inte initiera Texas Hold'em." });
     }
     var updated = await gameService.GetByIdAsync(id, userId);
     return Results.Ok(updated);
@@ -348,6 +354,25 @@ app.MapPost("/api/gamesessions/{id:guid}/chicago/start-round", async (Guid id, H
     if (stateJson == null) return Results.NotFound();
     var state = System.Text.Json.JsonSerializer.Deserialize<object>(stateJson);
     return Results.Json(new { state, myPlayerId });
+}).RequireAuthorization();
+
+app.MapGet("/api/gamesessions/{id:guid}/texasholdem/state", async (Guid id, HttpContext ctx, TexasHoldemService texasHoldemService) =>
+{
+    var userId = GetUserId(ctx.User);
+    if (userId == null) return Results.Unauthorized();
+    var (stateJson, mySeatIndex) = await texasHoldemService.GetStateForUserAsync(id, userId.Value);
+    if (stateJson == null) return Results.NotFound();
+    var state = System.Text.Json.JsonSerializer.Deserialize<object>(stateJson);
+    return Results.Json(new { state, mySeatIndex });
+}).RequireAuthorization();
+
+app.MapPost("/api/gamesessions/{id:guid}/texasholdem/action", async (Guid id, TexasHoldemActionRequest req, HttpContext ctx, TexasHoldemService texasHoldemService) =>
+{
+    var userId = GetUserId(ctx.User);
+    if (userId == null) return Results.Unauthorized();
+    var (ok, err) = await texasHoldemService.ApplyActionAsync(id, userId.Value, req);
+    if (!ok) return Results.BadRequest(new { error = err });
+    return Results.Ok();
 }).RequireAuthorization();
 
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok", app = "Kortspel API" }));

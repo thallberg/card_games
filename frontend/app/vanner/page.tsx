@@ -22,7 +22,7 @@ export default function VannerPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [createGameFor, setCreateGameFor] = useState<Friend | null>(null);
-  const [createGameType, setCreateGameType] = useState<2 | 3>(2);
+  const [createGameType, setCreateGameType] = useState<2 | 3 | 4>(2);
   const [creating, setCreating] = useState(false);
 
   const loadData = useCallback(async () => {
@@ -69,10 +69,11 @@ export default function VannerPage() {
     if (!createGameFor) return;
     setCreating(true);
     try {
+      const maxPlayers = createGameType === 3 ? 2 : createGameType === 4 ? 6 : 4;
       const createRes = await apiFetch("/api/gamesessions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ gameType: createGameType, maxPlayers: createGameType === 3 ? 2 : 4 }),
+        body: JSON.stringify({ gameType: createGameType, maxPlayers }),
       });
       if (!createRes.ok) {
         const err = await createRes.json().catch(() => ({}));
@@ -200,13 +201,22 @@ export default function VannerPage() {
               >
                 Chicago
               </Button>
+              <Button
+                variant={createGameType === 4 ? "default" : "outline"}
+                size="sm"
+                onClick={() => setCreateGameType(4)}
+              >
+                Texas Hold&apos;em
+              </Button>
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setCreateGameFor(null)}>
                 Avbryt
               </Button>
               <Button onClick={handleCreateGame} disabled={creating}>
-                {creating ? "Skapar..." : `Skapa ${createGameType === 3 ? "Chicago" : "500"} och skicka inbjudan`}
+                {creating
+                  ? "Skapar..."
+                  : `Skapa ${createGameType === 2 ? "500" : createGameType === 3 ? "Chicago" : "Texas Hold'em"} och skicka inbjudan`}
               </Button>
             </div>
           </div>
