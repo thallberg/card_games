@@ -1,5 +1,5 @@
 import type { GameCardData } from "./types";
-import { pokerGameData } from "./poker/data";
+import { texasholdemGameData } from "./texasholdem/data";
 import { fivehoundredGameData } from "./fivehoundred/data";
 import { chicagoGameData } from "./chicago/data";
 
@@ -8,7 +8,7 @@ import { chicagoGameData } from "./chicago/data";
  * Lägg till fler spel här när de finns i data-content/games/<spel>/data.ts.
  */
 export const games: GameCardData[] = [
-  pokerGameData,
+  texasholdemGameData,
   fivehoundredGameData,
   chicagoGameData,
 ];
