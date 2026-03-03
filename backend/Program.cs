@@ -287,8 +287,15 @@ app.MapPost("/api/gamesessions/{id:guid}/start", async (Guid id, HttpContext ctx
     }
     if (session.GameType == "TexasHoldem")
     {
-        var (initOk, initErr) = await texasHoldemService.CreateInitialStateAsync(id);
-        if (!initOk) return Results.BadRequest(new { error = initErr ?? "Kunde inte initiera Texas Hold'em." });
+        try
+        {
+            var (initOk, initErr) = await texasHoldemService.CreateInitialStateAsync(id);
+            if (!initOk) return Results.BadRequest(new { error = initErr ?? "Kunde inte initiera Texas Hold'em." });
+        }
+        catch (Exception ex)
+        {
+            return Results.Json(new { error = "Kunde inte starta Texas Hold'em. Kör migreringar på servern: dotnet ef database update. Detalj: " + ex.Message }, statusCode: 500);
+        }
     }
     var updated = await gameService.GetByIdAsync(id, userId);
     return Results.Ok(updated);
@@ -360,10 +367,17 @@ app.MapGet("/api/gamesessions/{id:guid}/texasholdem/state", async (Guid id, Http
 {
     var userId = GetUserId(ctx.User);
     if (userId == null) return Results.Unauthorized();
-    var (stateJson, mySeatIndex) = await texasHoldemService.GetStateForUserAsync(id, userId.Value);
-    if (stateJson == null) return Results.NotFound();
-    var state = System.Text.Json.JsonSerializer.Deserialize<object>(stateJson);
-    return Results.Json(new { state, mySeatIndex });
+    try
+    {
+        var (stateJson, mySeatIndex) = await texasHoldemService.GetStateForUserAsync(id, userId.Value);
+        if (stateJson == null) return Results.NotFound();
+        var state = System.Text.Json.JsonSerializer.Deserialize<object>(stateJson);
+        return Results.Json(new { state, mySeatIndex });
+    }
+    catch (Exception ex)
+    {
+        return Results.Json(new { error = "Kunde inte hämta spelstate. Kontrollera att migreringar är körda på servern. " + ex.Message }, statusCode: 500);
+    }
 }).RequireAuthorization();
 
 app.MapPost("/api/gamesessions/{id:guid}/texasholdem/action", async (Guid id, TexasHoldemActionRequest req, HttpContext ctx, TexasHoldemService texasHoldemService) =>

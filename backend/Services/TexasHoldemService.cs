@@ -47,7 +47,7 @@ public class TexasHoldemService
         int pot = 0;
         for (int i = 0; i < numPlayers; i++)
         {
-            var displayName = ordered[i].User.DisplayName;
+            var displayName = ordered[i].User?.DisplayName ?? $"Spelare {i + 1}";
             int stack = DefaultBuyIn;
             int betThisHand = 0;
             bool actedThisRound = false;
