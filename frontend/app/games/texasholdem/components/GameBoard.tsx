@@ -38,6 +38,8 @@ export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoar
   const currentBet = state.currentBet;
   const toCall = mySeat ? currentBet - mySeat.betThisHand : 0;
   const minRaiseTotal = state.currentBet + state.minRaise;
+  /** Stack <= att calla → endast All-in eller Fold. */
+  const allInOrFoldOnly = mySeat && toCall > 0 && mySeat.stack <= toCall;
   const [raiseAmount, setRaiseAmount] = useState(minRaiseTotal);
 
   const handleFold = () => onStateChange(fold(state, humanSeat));
@@ -212,18 +214,26 @@ export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoar
           if (i === humanSeat) return null;
           const folded = s.folded;
           const holeCards = state.holeCards[i] ?? [];
+          const opponentToCall = currentBet - s.betThisHand;
+          const isTheirTurn = state.currentActorIndex === i;
           return (
             <div
               key={s.id}
               className={cn(
-                "rounded-lg border bg-card p-3 min-w-[120px] text-center",
-                state.currentActorIndex === i && "ring-2 ring-primary"
+                "rounded-lg border bg-card p-3 min-w-[140px] text-center",
+                isTheirTurn && "ring-2 ring-primary"
               )}
             >
               <p className="font-medium">{s.name}</p>
-              <p className="text-muted-foreground text-xs">
-                Stack: {s.stack} {s.betThisHand > 0 && ` · Bet: ${s.betThisHand}`}
+              <p className="text-muted-foreground text-xs">Stack: {s.stack}</p>
+              <p className="text-xs font-medium text-foreground">
+                {s.betThisHand > 0 ? `Betat denna hand: ${s.betThisHand}` : "Betat: 0"}
               </p>
+              {isTheirTurn && !folded && (
+                <p className="mt-1 text-primary text-xs font-medium">
+                  {opponentToCall <= 0 ? "Kan checka" : `Måste betala ${opponentToCall} för att calla`}
+                </p>
+              )}
               {folded ? (
                 <p className="mt-2 text-destructive text-sm">Folded</p>
               ) : (
@@ -243,16 +253,22 @@ export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoar
         })}
       </div>
 
-      {/* I mitten: utlagda kort + potten (statsade pengar) */}
+      {/* I mitten: utlagda kort + potten + nuvarande bet */}
       <div className="flex flex-col items-center gap-4 rounded-xl border bg-muted/30 py-6">
         <div className="flex flex-wrap justify-center gap-2">
           {state.board.map((card, i) => (
             <PlayingCard key={i} card={card} size="md" />
           ))}
         </div>
-        <div className="rounded-full bg-amber-500/20 px-6 py-2 text-center">
-          <p className="text-amber-800 dark:text-amber-200 text-sm font-medium">Pot</p>
-          <p className="text-xl font-bold">{state.pot}</p>
+        <div className="flex flex-wrap items-center justify-center gap-6">
+          <div className="rounded-full bg-amber-500/20 px-6 py-2 text-center">
+            <p className="text-amber-800 dark:text-amber-200 text-sm font-medium">Pot</p>
+            <p className="text-xl font-bold">{state.pot}</p>
+          </div>
+          <div className="rounded-full bg-muted px-4 py-2 text-center">
+            <p className="text-muted-foreground text-xs">Nuvarande bet att matcha</p>
+            <p className="text-lg font-semibold">{currentBet}</p>
+          </div>
         </div>
       </div>
 
@@ -261,8 +277,13 @@ export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoar
         <p className="mb-2 font-medium">{mySeat?.name} (Du)</p>
         <p className="text-muted-foreground text-sm">
           Stack: {mySeat?.stack ?? 0}
-          {mySeat && mySeat.betThisHand > 0 && ` · Bet denna runda: ${mySeat.betThisHand}`}
+          {mySeat && mySeat.betThisHand > 0 && ` · Betat denna hand: ${mySeat.betThisHand}`}
         </p>
+        {isMyTurn && mySeat && !mySeat.folded && (
+          <p className="rounded-md bg-primary/10 px-3 py-1.5 text-center text-sm font-medium text-primary">
+            {toCall <= 0 ? "Du kan checka" : `För att gå med: betala ${toCall}`}
+          </p>
+        )}
         <div className="mt-3 flex justify-center gap-2">
           {(state.holeCards[humanSeat] ?? []).map((card, i) => (
             <PlayingCard key={i} card={card} size="md" />
@@ -274,46 +295,68 @@ export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoar
             <Button variant="destructive" size="sm" onClick={handleFold}>
               Fold
             </Button>
-            {toCall <= 0 ? (
-              <Button size="sm" onClick={handleCheck}>
-                Check
-              </Button>
-            ) : (
-              <Button size="sm" onClick={handleCall}>
-                Call {toCall}
-              </Button>
-            )}
-            <div className="flex items-center gap-2">
-              <Input
-                type="number"
-                min={minRaiseTotal}
-                max={(mySeat?.betThisHand ?? 0) + mySeat.stack}
-                value={raiseAmount}
-                onChange={(e) =>
-                  setRaiseAmount(Number(e.target.value) || minRaiseTotal)
-                }
-                className="w-24"
-              />
-              <Button size="sm" onClick={handleRaise}>
-                Raise till {raiseAmount}
-              </Button>
+            {allInOrFoldOnly ? (
               <Button
                 size="sm"
                 variant="secondary"
                 onClick={handleAllIn}
-                disabled={!mySeat || mySeat.stack <= 0}
+                disabled={mySeat.stack <= 0}
               >
-                All-in ({mySeat?.stack ?? 0})
+                All-in ({mySeat.stack})
               </Button>
-            </div>
+            ) : (
+              <>
+                {toCall <= 0 ? (
+                  <Button size="sm" onClick={handleCheck}>
+                    Check
+                  </Button>
+                ) : (
+                  <Button size="sm" onClick={handleCall}>
+                    Call {toCall}
+                  </Button>
+                )}
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    min={minRaiseTotal}
+                    max={(mySeat?.betThisHand ?? 0) + mySeat.stack}
+                    value={raiseAmount}
+                    onChange={(e) =>
+                      setRaiseAmount(Number(e.target.value) || minRaiseTotal)
+                    }
+                    className="w-24"
+                  />
+                  <Button size="sm" onClick={handleRaise}>
+                    {currentBet === 0 ? "Bet" : "Raise"} {raiseAmount}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={handleAllIn}
+                    disabled={!mySeat || mySeat.stack <= 0}
+                  >
+                    All-in ({mySeat?.stack ?? 0})
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
         )}
 
-        {state.phase === "playing" && !isMyTurn && (
-          <p className="mt-3 text-center text-muted-foreground text-sm">
-            Väntar på {state.seats[state.currentActorIndex]?.name}...
-          </p>
-        )}
+        {state.phase === "playing" && !isMyTurn && (() => {
+          const actingSeat = state.seats[state.currentActorIndex];
+          const actingToCall = actingSeat ? currentBet - actingSeat.betThisHand : 0;
+          return (
+            <div className="mt-3 space-y-1 rounded-md border bg-muted/50 p-3 text-center text-sm">
+              <p className="font-medium">Väntar på {actingSeat?.name}</p>
+              <p className="text-muted-foreground">
+                {actingToCall <= 0
+                  ? "Motståndaren kan checka."
+                  : `Motståndaren måste betala ${actingToCall} för att gå med (calla).`}
+              </p>
+            </div>
+          );
+        })()}
 
         {state.bettingPhase === "showdown" && state.board.length === 5 && mySeat && !mySeat.folded && state.holeCards[humanSeat] && (
           <p className="mt-2 text-center text-sm text-muted-foreground">
