@@ -36,13 +36,22 @@ export function LayoutClient({
     setUser(getUserFromStorage());
   }, []);
 
-  const fetchPendingCount = useCallback(async () => {
-    const res = await apiFetch("/api/friends/requests/received");
-    if (res.ok) {
-      const data = await res.json().catch(() => []);
-      setPendingFriendRequestsCount(Array.isArray(data) ? data.length : 0);
-    } else {
+  const POLL_MS = 60_000;
+  const PAUSE_AFTER_ERROR_MS = 5 * 60 * 1000; // 5 min paus vid t.ex. 500 så vi inte spammer konsolen lokalt
+
+  const fetchPendingCount = useCallback(async (): Promise<boolean> => {
+    try {
+      const res = await apiFetch("/api/friends/requests/received");
+      if (res.ok) {
+        const data = await res.json().catch(() => []);
+        setPendingFriendRequestsCount(Array.isArray(data) ? data.length : 0);
+        return true;
+      }
       setPendingFriendRequestsCount(0);
+      return false; // t.ex. 401/500 – pausa polling
+    } catch {
+      setPendingFriendRequestsCount(0);
+      return false;
     }
   }, []);
 
@@ -51,12 +60,21 @@ export function LayoutClient({
       setPendingFriendRequestsCount(0);
       return;
     }
-    fetchPendingCount();
-    const interval = setInterval(fetchPendingCount, 60_000);
-    const onRefresh = () => fetchPendingCount();
+    let cancelled = false;
+    let timeoutId: ReturnType<typeof setTimeout>;
+    const scheduleNext = (success: boolean) => {
+      if (cancelled) return;
+      const delay = success ? POLL_MS : PAUSE_AFTER_ERROR_MS;
+      timeoutId = setTimeout(() => {
+        fetchPendingCount().then(scheduleNext);
+      }, delay);
+    };
+    fetchPendingCount().then(scheduleNext);
+    const onRefresh = () => fetchPendingCount().then((ok) => ok && scheduleNext(true));
     window.addEventListener("friend-requests-changed", onRefresh);
     return () => {
-      clearInterval(interval);
+      cancelled = true;
+      clearTimeout(timeoutId);
       window.removeEventListener("friend-requests-changed", onRefresh);
     };
   }, [user, fetchPendingCount]);
