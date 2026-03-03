@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Backend.Data;
 using Backend.DTOs;
 using Backend.Models;
@@ -21,10 +22,11 @@ public class TexasHoldemService
 
     public TexasHoldemService(ApplicationDbContext db) => _db = db;
 
+    /// <summary>Skapar initial Texas Hold'em-state när spelet startas. Samma mönster som FiveHundred och Chicago.</summary>
     public async Task<(bool Ok, string? Error)> CreateInitialStateAsync(Guid sessionId)
     {
         var session = await _db.GameSessions
-            .Include(g => g.Players).ThenInclude(p => p.User)
+            .Include(g => g.Players)
             .FirstOrDefaultAsync(g => g.Id == sessionId);
         if (session == null) return (false, "Sessionen hittades inte.");
         if (session.GameType != GameType.TexasHoldem) return (false, "Inte ett Texas Hold'em-spel.");
@@ -34,46 +36,55 @@ public class TexasHoldemService
         var numPlayers = ordered.Count;
         var smallBlind = DefaultBigBlind / 2;
         var deck = CreateAndShuffleDeck();
-        var holeCards = new List<List<object>>();
+        int sbIndex = numPlayers == 2 ? 0 : 1;
+        int bbIndex = numPlayers == 2 ? 1 : 2;
+        int pot = 0;
+
+        var holeCardsArray = new JsonArray();
         for (int i = 0; i < numPlayers; i++)
         {
             var c1 = deck[deck.Count - 1]; deck.RemoveAt(deck.Count - 1);
             var c2 = deck[deck.Count - 1]; deck.RemoveAt(deck.Count - 1);
-            holeCards.Add(new List<object> { new { suit = c1.Suit, rank = c1.Rank }, new { suit = c2.Suit, rank = c2.Rank } });
+            holeCardsArray.Add(new JsonArray
+            {
+                new JsonObject { ["suit"] = c1.Suit, ["rank"] = c1.Rank },
+                new JsonObject { ["suit"] = c2.Suit, ["rank"] = c2.Rank },
+            });
         }
-        var seats = new List<object>();
-        int sbIndex = numPlayers == 2 ? 0 : 1;
-        int bbIndex = numPlayers == 2 ? 1 : 2;
-        int pot = 0;
+
+        var seatsArray = new JsonArray();
         for (int i = 0; i < numPlayers; i++)
         {
-            var displayName = ordered[i].User?.DisplayName ?? $"Spelare {i + 1}";
             int stack = DefaultBuyIn;
             int betThisHand = 0;
             bool actedThisRound = false;
             if (i == sbIndex) { var post = Math.Min(smallBlind, stack); stack -= post; betThisHand = post; actedThisRound = true; pot += post; }
             else if (i == bbIndex) { var post = Math.Min(DefaultBigBlind, stack); stack -= post; betThisHand = post; actedThisRound = true; pot += post; }
-            seats.Add(new
+            seatsArray.Add(new JsonObject
             {
-                id = $"p{i + 1}",
-                name = displayName,
-                stack,
-                betThisHand,
-                actedThisRound,
-                folded = false,
-                isAllIn = stack <= 0,
-                seatIndex = i,
+                ["id"] = $"p{i + 1}",
+                ["name"] = $"Spelare {i + 1}",
+                ["stack"] = stack,
+                ["betThisHand"] = betThisHand,
+                ["actedThisRound"] = actedThisRound,
+                ["folded"] = false,
+                ["isAllIn"] = stack <= 0,
+                ["seatIndex"] = i,
             });
         }
-        int currentActorIndex = numPlayers == 2 ? 0 : 2;
-        var activeInHand = Enumerable.Range(0, numPlayers).ToList();
-        var board = new List<object>();
-        var deckJson = deck.Select(c => new { suit = c.Suit, rank = c.Rank }).ToList();
 
-        var state = new Dictionary<string, object?>
+        int currentActorIndex = numPlayers == 2 ? 0 : 2;
+        var activeInHandArray = new JsonArray();
+        for (int i = 0; i < numPlayers; i++) activeInHandArray.Add(i);
+
+        var deckArray = new JsonArray();
+        foreach (var c in deck)
+            deckArray.Add(new JsonObject { ["suit"] = c.Suit, ["rank"] = c.Rank });
+
+        var state = new JsonObject
         {
             ["phase"] = "playing",
-            ["seats"] = seats,
+            ["seats"] = seatsArray,
             ["numPlayers"] = numPlayers,
             ["buyIn"] = DefaultBuyIn,
             ["bigBlind"] = DefaultBigBlind,
@@ -81,14 +92,14 @@ public class TexasHoldemService
             ["dealerIndex"] = 0,
             ["currentActorIndex"] = currentActorIndex,
             ["bettingPhase"] = "preflop",
-            ["board"] = board,
-            ["holeCards"] = holeCards,
-            ["deck"] = deckJson,
+            ["board"] = new JsonArray(),
+            ["holeCards"] = holeCardsArray,
+            ["deck"] = deckArray,
             ["pot"] = pot,
             ["currentBet"] = DefaultBigBlind,
             ["minRaise"] = DefaultBigBlind,
             ["lastHandWinnerIndex"] = null,
-            ["activeInHand"] = activeInHand,
+            ["activeInHand"] = activeInHandArray,
         };
 
         var stateJson = JsonSerializer.Serialize(state, JsonOptions);
