@@ -103,6 +103,46 @@ namespace Backend.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "ChicagoStates",
+                columns: table => new
+                {
+                    GameSessionId = table.Column<Guid>(type: "uuid", nullable: false),
+                    StateJson = table.Column<string>(type: "text", nullable: false),
+                    PlayerOrderJson = table.Column<string>(type: "text", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ChicagoStates", x => x.GameSessionId);
+                    table.ForeignKey(
+                        name: "FK_ChicagoStates_GameSessions_GameSessionId",
+                        column: x => x.GameSessionId,
+                        principalTable: "GameSessions",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "FiveHundredStates",
+                columns: table => new
+                {
+                    GameSessionId = table.Column<Guid>(type: "uuid", nullable: false),
+                    StateJson = table.Column<string>(type: "text", nullable: false),
+                    PlayerOrderJson = table.Column<string>(type: "text", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_FiveHundredStates", x => x.GameSessionId);
+                    table.ForeignKey(
+                        name: "FK_FiveHundredStates_GameSessions_GameSessionId",
+                        column: x => x.GameSessionId,
+                        principalTable: "GameSessions",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "GameSessionPlayers",
                 columns: table => new
                 {
@@ -126,6 +166,25 @@ namespace Backend.Migrations
                         principalTable: "Users",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "TexasHoldemStates",
+                columns: table => new
+                {
+                    GameSessionId = table.Column<Guid>(type: "uuid", nullable: false),
+                    StateJson = table.Column<string>(type: "text", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TexasHoldemStates", x => x.GameSessionId);
+                    table.ForeignKey(
+                        name: "FK_TexasHoldemStates_GameSessions_GameSessionId",
+                        column: x => x.GameSessionId,
+                        principalTable: "GameSessions",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(
@@ -164,10 +223,19 @@ namespace Backend.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
+                name: "ChicagoStates");
+
+            migrationBuilder.DropTable(
+                name: "FiveHundredStates");
+
+            migrationBuilder.DropTable(
                 name: "FriendRequests");
 
             migrationBuilder.DropTable(
                 name: "GameSessionPlayers");
+
+            migrationBuilder.DropTable(
+                name: "TexasHoldemStates");
 
             migrationBuilder.DropTable(
                 name: "UserFriends");

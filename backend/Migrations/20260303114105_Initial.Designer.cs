@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Backend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260302093403_AddChicagoState")]
-    partial class AddChicagoState
+    [Migration("20260303114105_Initial")]
+    partial class Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -149,6 +149,23 @@ namespace Backend.Migrations
                     b.ToTable("GameSessionPlayers");
                 });
 
+            modelBuilder.Entity("Backend.Models.TexasHoldemState", b =>
+                {
+                    b.Property<Guid>("GameSessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("StateJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("GameSessionId");
+
+                    b.ToTable("TexasHoldemStates");
+                });
+
             modelBuilder.Entity("Backend.Models.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -267,6 +284,17 @@ namespace Backend.Migrations
                     b.Navigation("GameSession");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Backend.Models.TexasHoldemState", b =>
+                {
+                    b.HasOne("Backend.Models.GameSession", "GameSession")
+                        .WithMany()
+                        .HasForeignKey("GameSessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("GameSession");
                 });
 
             modelBuilder.Entity("Backend.Models.UserFriend", b =>
