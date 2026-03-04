@@ -10,7 +10,7 @@ import {
   getNextPlayerId,
 } from "../game-state";
 import { createDeck, shuffle, sortHand } from "../deck";
-import { getHandPoints, getHandDescription, compareHands } from "../hand-score";
+import { getHandPoints, getHandDescription } from "../hand-score";
 import { HAND_SIZE, MAX_DRAW_ROUNDS } from "../constants";
 
 const HUMAN: PlayerId = "p1";
@@ -195,9 +195,8 @@ export function useChicagoGame() {
         const humanPoints = getHandPoints(humanHand);
         const aiPoints = getHandPoints(aiHand);
         roundHandPoints = { p1: humanPoints, p2: aiPoints };
-        const handWinner = compareHands(humanHand, aiHand);
-        if (handWinner === -1) newScores[HUMAN] = (newScores[HUMAN] ?? 0) + humanPoints;
-        else if (handWinner === 1) newScores[AI] = (newScores[AI] ?? 0) + aiPoints;
+        newScores[HUMAN] = (newScores[HUMAN] ?? 0) + humanPoints;
+        newScores[AI] = (newScores[AI] ?? 0) + aiPoints;
       }
 
       const completed = [
@@ -369,9 +368,8 @@ export function useChicagoGame() {
           const humanPoints = getHandPoints(humanHand);
           const aiPoints = getHandPoints(aiHand);
           roundHandPoints = { p1: humanPoints, p2: aiPoints };
-          const handWinner = compareHands(humanHand, aiHand);
-          if (handWinner === -1) newScores[HUMAN] = (newScores[HUMAN] ?? 0) + humanPoints;
-          else if (handWinner === 1) newScores[AI] = (newScores[AI] ?? 0) + aiPoints;
+          newScores[HUMAN] = (newScores[HUMAN] ?? 0) + humanPoints;
+          newScores[AI] = (newScores[AI] ?? 0) + aiPoints;
         }
 
         const completed = [

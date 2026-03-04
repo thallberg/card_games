@@ -6,7 +6,7 @@ import type { GameState } from "../game-state";
 import { RANK_VALUE } from "../types";
 import { getNextPlayerId } from "../game-state";
 import { sortHand } from "../deck";
-import { getHandPoints, getHandDescription, compareHands } from "../hand-score";
+import { getHandPoints, getHandDescription } from "../hand-score";
 import { fetchChicagoState, sendChicagoAction, startChicagoNewRound } from "../api/chicagoApi";
 import { getPlayerIds } from "../game-state";
 
@@ -238,9 +238,8 @@ export function useChicagoGameMultiplayer(sessionId: string | undefined) {
         const p1Points = getHandPoints(p1Hand);
         const p2Points = getHandPoints(p2Hand);
         roundHandPoints = { p1: p1Points, p2: p2Points };
-        const handWinner = compareHands(p1Hand, p2Hand);
-        if (handWinner === -1) newScores.p1 = (newScores.p1 ?? 0) + p1Points;
-        else if (handWinner === 1) newScores.p2 = (newScores.p2 ?? 0) + p2Points;
+        newScores.p1 = (newScores.p1 ?? 0) + p1Points;
+        newScores.p2 = (newScores.p2 ?? 0) + p2Points;
       }
 
       const completed = [
