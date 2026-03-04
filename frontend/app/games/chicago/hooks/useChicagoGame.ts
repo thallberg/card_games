@@ -76,6 +76,7 @@ export function useChicagoGame() {
           deck: d,
           drawPick: { openCard, hiddenCard, picksLeft: 0, tempHand, isFreeSwap: false },
           playerHands: { ...s.playerHands, [HUMAN]: tempHand },
+          lastOpponentDiscardCount: undefined,
         };
       }
 
@@ -89,6 +90,7 @@ export function useChicagoGame() {
         deck: newDeck,
         playerHands: { ...s.playerHands, [HUMAN]: newHand },
         currentPlayerId: AI,
+        lastOpponentDiscardCount: undefined,
       };
     });
     setSelectedToDiscard(new Set());
@@ -253,6 +255,7 @@ export function useChicagoGame() {
         roundHandPoints: { p1: 0, p2: 0 },
         playPhaseHands: { p1: [], p2: [] },
         rondNumber: s.rondNumber + 1,
+        lastOpponentDiscardCount: undefined,
       };
     });
     setSelectedToDiscard(new Set());
@@ -282,6 +285,7 @@ export function useChicagoGame() {
             trickLeader: allRoundsDone ? "p2" : s.trickLeader,
             currentPlayerId: HUMAN,
             playPhaseHands: allRoundsDone ? { ...s.playerHands } : s.playPhaseHands,
+            lastOpponentDiscardCount: 0,
           };
         }
         const indices: number[] = [];
@@ -289,6 +293,7 @@ export function useChicagoGame() {
           const i = Math.floor(Math.random() * hand.length);
           if (!indices.includes(i)) indices.push(i);
         }
+        const discardedCards = indices.map((i) => hand[i]);
         const newDeck = [...s.deck];
         const newHand = hand.filter((_, i) => !indices.includes(i));
         for (let i = 0; i < toDiscard && newDeck.length > 0; i++) {
@@ -306,6 +311,7 @@ export function useChicagoGame() {
           trickLeader: allRoundsDone ? "p2" : s.trickLeader,
           currentPlayerId: HUMAN,
           playPhaseHands: allRoundsDone ? nextHands : s.playPhaseHands,
+          lastOpponentDiscardCount: discardedCards.length,
         };
       });
       aiThinking.current = false;

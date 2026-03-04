@@ -79,7 +79,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
       {state.phase === "draw" && (
         <section className="rounded-lg border bg-muted/30 p-3 sm:p-4">
           {state.currentPlayerId === (useMulti ? (myPlayerId === "p1" ? "p2" : "p1") : "p2") ? (
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground text-center">
               Omgång {state.drawRound + 1} av 3 – motståndaren kastar kort…
             </p>
           ) : state.drawPick ? (
@@ -90,7 +90,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
               <p className="text-muted-foreground text-xs">
                 Du får ett öppet kort och ett dolt kort – välj vilket du vill ta.
               </p>
-              <div className="flex flex-wrap items-end gap-4 sm:gap-6">
+              <div className="flex flex-wrap items-end justify-center gap-4 sm:gap-6">
                 <div className="flex flex-col items-center gap-2 min-w-0">
                   <span className="text-muted-foreground text-xs">Öppet kort</span>
                   <PlayingCard card={state.drawPick.openCard} faceUp onClick={() => chooseDrawnCard("open")} />
@@ -109,13 +109,20 @@ export function GameBoard({ sessionId }: GameBoardProps) {
             </div>
           ) : (
             <>
-              <h2 className="mb-2 text-sm font-medium">
+              <h2 className="mb-2 text-sm font-medium text-center">
                 Omgång {state.drawRound + 1} av {3} – välj kort att kasta
               </h2>
-              <p className="text-muted-foreground mb-3 text-xs">
-                Markera kort att kasta. Kastar du <strong>ett</strong> kort får du välja mellan ett öppet och ett dolt kort; kastar du fler får du lika många nya från leken. 3 omgångar (du och motståndaren turvis). Klicka &quot;Färdig&quot; om du inte vill kasta.
-              </p>
-              <div className="flex flex-wrap gap-2">
+              {state.drawRound === 0 && (
+                <p className="text-muted-foreground mb-3 text-xs text-center">
+                  Markera kort att kasta. Kastar du <strong>ett</strong> kort får du välja mellan ett öppet och ett dolt kort; kastar du fler får du lika många nya från leken. 3 omgångar (du och motståndaren turvis). Klicka &quot;Nöjd&quot; om du inte vill kasta.
+                </p>
+              )}
+              {typeof state.lastOpponentDiscardCount === "number" && (
+                <p className="text-muted-foreground text-xs mb-3 text-center">
+                  Motståndaren kastade {state.lastOpponentDiscardCount} kort
+                </p>
+              )}
+              <div className="flex flex-wrap justify-center gap-2">
                 {humanHand.map((card, i) => (
                   <PlayingCard
                     key={`${card.suit}-${card.rank}-${i}`}
@@ -139,11 +146,9 @@ export function GameBoard({ sessionId }: GameBoardProps) {
                 >
                   Kasta {selectedToDiscard.size} kort och plocka nya
                 </Button>
-                {state.drawRound > 0 && (
-                  <Button variant="outline" onClick={doneWithDraw} className="min-h-11 w-full sm:w-auto">
-                    Färdig – gå till utspelet
-                  </Button>
-                )}
+                <Button variant="outline" onClick={doneWithDraw} className="min-h-11 w-full sm:w-auto">
+                  Nöjd
+                </Button>
               </div>
             </>
           )}
@@ -156,24 +161,26 @@ export function GameBoard({ sessionId }: GameBoardProps) {
             <h2 className="mb-2 text-sm font-medium">Stick {state.trickNumber + 1} av 5</h2>
 
             {state.completedTricks && state.completedTricks.length > 0 && (
-              <div className="mb-4 space-y-2 border-b border-muted-foreground/20 pb-4 overflow-x-auto">
-                <span className="text-muted-foreground text-xs font-medium">Tidigare stick:</span>
-                {state.completedTricks.map((t, i) => (
-                  <div key={i} className="flex flex-wrap items-center gap-1 sm:gap-2 text-xs sm:text-sm min-w-0">
-                    <span className="text-muted-foreground whitespace-nowrap">Stick {i + 1}:</span>
-                    <span className="text-muted-foreground text-xs">
-                      {t.trickLeader === myPlayerId ? "Du" : "Motståndaren"} lade
-                    </span>
-                    <PlayingCard card={t.leaderCard} faceUp />
-                    <span className="text-muted-foreground text-xs">
-                      {getNextPlayerId(t.trickLeader) === myPlayerId ? "Du" : "Motståndaren"} lade
-                    </span>
-                    <PlayingCard card={t.followerCard} faceUp />
-                    <span className="text-muted-foreground text-xs">
-                      → {t.winner === myPlayerId ? "Du" : "Motståndaren"} vann
-                    </span>
-                  </div>
-                ))}
+              <div className="mb-4 space-y-3 overflow-x-auto">
+                <span className="text-muted-foreground text-xs font-medium block">Tidigare stick:</span>
+                {state.completedTricks.map((t, i) => {
+                  const oppCard = t.trickLeader === myPlayerId ? t.followerCard : t.leaderCard;
+                  const myCard = t.trickLeader === myPlayerId ? t.leaderCard : t.followerCard;
+                  return (
+                    <div key={i}>
+                      {i > 0 && <hr className="my-3 border-muted-foreground/20" />}
+                      <div className="flex flex-wrap items-center justify-center gap-2 text-xs sm:text-sm">
+                        <span className="text-muted-foreground">Stick {i + 1}:</span>
+                        <span className="flex items-center gap-1">
+                          Motståndaren: <PlayingCard card={oppCard} faceUp />
+                        </span>
+                        <span className="flex items-center gap-1">
+                          Du: <PlayingCard card={myCard} faceUp />
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
 
@@ -250,7 +257,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
                 {getHandDescription(myHand)}
                 {humanWonHand ? ` — högre hand (+${myHandPoints} p)` : opponentWonHand ? ` — lägre hand (+${myHandPoints} p)` : ` — lika (+${myHandPoints} p)`}
               </p>
-              <div className="flex flex-wrap gap-1">
+              <div className="flex flex-wrap justify-center gap-1">
                 {myHand.map((card, i) => (
                   <PlayingCard
                     key={`me-${card.suit}-${card.rank}-${i}`}
@@ -267,7 +274,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
                 {getHandDescription(oppHand)}
                 {opponentWonHand ? ` — högre hand (+${oppHandPoints} p)` : humanWonHand ? ` — lägre hand (+${oppHandPoints} p)` : ` — lika (+${oppHandPoints} p)`}
               </p>
-              <div className="flex flex-wrap gap-1">
+              <div className="flex flex-wrap justify-center gap-1">
                 {oppHand.map((card, i) => (
                   <PlayingCard
                     key={`opp-${card.suit}-${card.rank}-${i}`}

@@ -204,6 +204,33 @@ export function GameBoard({ sessionId }: GameBoardProps) {
                 </span>
               )}
             </h2>
+            {state.phase === "meldOrDiscard" && isHumanTurn && (
+              <div className="mb-3 flex w-full flex-wrap gap-2">
+                {selectedArr.length === 1 && (
+                  <Button type="button" variant="outline" onClick={handleKasta} className="min-h-11 flex-1">
+                    Kasta
+                  </Button>
+                )}
+                {selectedArr.length >= 1 && (
+                  <Button type="button" onClick={handleLayMeldOpen} className="min-h-11 flex-1">
+                    Lägg ut
+                  </Button>
+                )}
+                {!stockEmpty && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="min-h-11 flex-1"
+                    onClick={() => {
+                      passWithoutDiscard();
+                      clearSelection();
+                    }}
+                  >
+                    Nöjd
+                  </Button>
+                )}
+              </div>
+            )}
             <div className="flex flex-wrap items-end gap-3">
               <PlayerHand
                 cards={humanHand}
@@ -216,33 +243,6 @@ export function GameBoard({ sessionId }: GameBoardProps) {
                 disabled={!isHumanTurn || canDraw}
                 lastDrawnCards={lastDrawnCards ?? []}
               />
-              {state.phase === "meldOrDiscard" && isHumanTurn && (
-                <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 self-center w-full sm:w-auto">
-                  {selectedArr.length === 1 && (
-                    <Button type="button" variant="outline" onClick={handleKasta} className="min-h-11">
-                      Kasta
-                    </Button>
-                  )}
-                  {selectedArr.length >= 1 && (
-                    <Button type="button" onClick={handleLayMeldOpen} className="min-h-11">
-                      Lägg ut
-                    </Button>
-                  )}
-                  {!stockEmpty && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="min-h-11"
-                      onClick={() => {
-                        passWithoutDiscard();
-                        clearSelection();
-                      }}
-                    >
-                      Nöjd
-                    </Button>
-                  )}
-                </div>
-              )}
             </div>
             <p className="text-muted-foreground mt-1 text-xs">
               {stockEmpty

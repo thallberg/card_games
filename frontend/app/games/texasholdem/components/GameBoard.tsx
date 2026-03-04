@@ -260,15 +260,9 @@ export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoar
             <PlayingCard key={i} card={card} size="md" />
           ))}
         </div>
-        <div className="flex flex-wrap items-center justify-center gap-6">
-          <div className="rounded-full bg-amber-500/20 px-6 py-2 text-center">
-            <p className="text-amber-800 dark:text-amber-200 text-sm font-medium">Pot</p>
-            <p className="text-xl font-bold">{state.pot}</p>
-          </div>
-          <div className="rounded-full bg-muted px-4 py-2 text-center">
-            <p className="text-muted-foreground text-xs">Nuvarande bet att matcha</p>
-            <p className="text-lg font-semibold">{currentBet}</p>
-          </div>
+        <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground">
+          <span>Pot {state.pot}</span>
+          <span>Bet att matcha {currentBet}</span>
         </div>
       </div>
 
@@ -291,42 +285,49 @@ export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoar
         </div>
 
         {isMyTurn && mySeat && !mySeat.folded && !mySeat.isAllIn && (
-          <div className="mt-4 flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-center gap-2">
-            <Button variant="destructive" size="sm" onClick={handleFold}>
-              Fold
-            </Button>
-            {allInOrFoldOnly ? (
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={handleAllIn}
-                disabled={mySeat.stack <= 0}
-              >
-                All-in ({mySeat.stack})
+          <div className="mt-4 flex flex-col gap-2">
+            <div className="flex w-full gap-2">
+              <Button variant="destructive" size="sm" onClick={handleFold} className="flex-1 min-h-11">
+                Fold
               </Button>
-            ) : (
+              {allInOrFoldOnly ? (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={handleAllIn}
+                  disabled={mySeat.stack <= 0}
+                  className="flex-1 min-h-11"
+                >
+                  All-in ({mySeat.stack})
+                </Button>
+              ) : (
+                <>
+                  {toCall <= 0 ? (
+                    <Button size="sm" onClick={handleCheck} className="flex-1 min-h-11">
+                      Check
+                    </Button>
+                  ) : (
+                    <Button size="sm" onClick={handleCall} className="flex-1 min-h-11">
+                      Call {toCall}
+                    </Button>
+                  )}
+                </>
+              )}
+            </div>
+            {!allInOrFoldOnly && (
               <>
-                {toCall <= 0 ? (
-                  <Button size="sm" onClick={handleCheck}>
-                    Check
-                  </Button>
-                ) : (
-                  <Button size="sm" onClick={handleCall}>
-                    Call {toCall}
-                  </Button>
-                )}
-                <div className="flex flex-wrap items-center justify-center gap-2 w-full sm:w-auto">
-                  <Input
-                    type="number"
-                    min={minRaiseTotal}
-                    max={(mySeat?.betThisHand ?? 0) + mySeat.stack}
-                    value={raiseAmount}
-                    onChange={(e) =>
-                      setRaiseAmount(Number(e.target.value) || minRaiseTotal)
-                    }
-                    className="w-full sm:w-24 min-h-11"
-                  />
-                  <Button size="sm" onClick={handleRaise}>
+                <Input
+                  type="number"
+                  min={minRaiseTotal}
+                  max={(mySeat?.betThisHand ?? 0) + mySeat.stack}
+                  value={raiseAmount}
+                  onChange={(e) =>
+                    setRaiseAmount(Number(e.target.value) || minRaiseTotal)
+                  }
+                  className="w-full min-h-11"
+                />
+                <div className="flex w-full gap-2">
+                  <Button size="sm" onClick={handleRaise} className="flex-1 min-h-11">
                     {currentBet === 0 ? "Bet" : "Raise"} {raiseAmount}
                   </Button>
                   <Button
@@ -334,6 +335,7 @@ export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoar
                     variant="secondary"
                     onClick={handleAllIn}
                     disabled={!mySeat || mySeat.stack <= 0}
+                    className="flex-1 min-h-11"
                   >
                     All-in ({mySeat?.stack ?? 0})
                   </Button>

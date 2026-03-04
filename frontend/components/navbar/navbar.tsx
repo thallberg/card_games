@@ -98,11 +98,7 @@ export function Navbar({ user, onRegisterClick, onLoginClick, onLogout, onInvite
           <span className="sr-only md:not-sr-only md:inline">Kortspel</span>
         </Link>
 
-        <div className="flex flex-1 justify-center">
-          <h1 className="text-base sm:text-lg font-semibold tracking-tight text-foreground truncate">
-            Kortspel
-          </h1>
-        </div>
+        <div className="flex flex-1" />
 
         {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-1">
