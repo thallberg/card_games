@@ -146,7 +146,7 @@ export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoar
         </div>
 
         {/* I mitten: bordet (kort som ingår i vinnande handen grönmarkerade och uppskjutna) + potten */}
-        <div className="flex flex-col items-center gap-4 rounded-xl border bg-muted/30 py-6">
+        <div className="flex flex-col items-center gap-4 rounded-xl border border-[var(--border)] bg-[var(--warm-peach)]/40 py-6">
           <div className="flex flex-wrap justify-center gap-2 pt-4">
             {state.board.map((card, i) => (
               <PlayingCard
@@ -157,8 +157,8 @@ export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoar
               />
             ))}
           </div>
-          <div className="rounded-full bg-amber-500/20 px-6 py-2 text-center">
-            <p className="text-amber-800 dark:text-amber-200 text-sm font-medium">Pot (vunnet av {winnerName})</p>
+          <div className="rounded-full bg-[var(--warm-gold)]/30 px-6 py-2 text-center">
+            <p className="text-[var(--foreground)] text-sm font-medium">Pot (vunnet av {winnerName})</p>
           </div>
         </div>
 
@@ -349,7 +349,7 @@ export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoar
           const actingSeat = state.seats[state.currentActorIndex];
           const actingToCall = actingSeat ? currentBet - actingSeat.betThisHand : 0;
           return (
-            <div className="mt-3 space-y-1 rounded-md border bg-muted/50 p-3 text-center text-sm">
+            <div className="mt-3 space-y-1 rounded-md border border-[var(--border)] bg-[var(--warm-sand)]/50 p-3 text-center text-sm">
               <p className="font-medium">Väntar på {actingSeat?.name}</p>
               <p className="text-muted-foreground">
                 {actingToCall <= 0

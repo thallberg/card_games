@@ -77,7 +77,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
       </div>
 
       {state.phase === "draw" && (
-        <section className="rounded-lg border bg-muted/30 p-3 sm:p-4">
+        <section className="rounded-lg border border-[var(--border)] bg-[var(--warm-peach)]/30 p-3 sm:p-4">
           {state.currentPlayerId === (useMulti ? (myPlayerId === "p1" ? "p2" : "p1") : "p2") ? (
             <p className="text-muted-foreground text-center">
               Omgång {state.drawRound + 1} av 3 – motståndaren kastar kort…
@@ -157,7 +157,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
 
       {state.phase === "play" && (
         <>
-          <section className="rounded-lg border bg-muted/20 p-3 sm:p-4">
+          <section className="rounded-lg border border-[var(--border)] bg-[var(--warm-sand)]/40 p-3 sm:p-4">
             <h2 className="mb-2 text-sm font-medium">Stick {state.trickNumber + 1} av 5</h2>
 
             {state.completedTricks && state.completedTricks.length > 0 && (
@@ -243,7 +243,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
         const myHand = state.playPhaseHands?.[myPlayerId] ?? [];
         const oppHand = state.playPhaseHands?.[otherId] ?? [];
         return (
-        <div className="rounded-lg border bg-muted/50 p-4 sm:p-6">
+        <div className="rounded-lg border border-[var(--border)] bg-[var(--warm-peach)]/50 p-4 sm:p-6">
           <p className="text-center font-medium">
             {state.roundUtspeletWinner === myPlayerId ? "Du" : "Motståndaren"} vann utspelet (sista sticket)! +1 poäng
           </p>
@@ -251,7 +251,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
             Båda får poäng för sin hand.
           </p>
           <div className="mt-4 sm:mt-6 grid gap-4 sm:gap-6 sm:grid-cols-2">
-            <div className="rounded-md border-2 border-green-600/50 bg-green-500/5 p-3 sm:p-4">
+            <div className="rounded-md border-2 border-[var(--warm-sage)]/60 bg-[var(--warm-sage)]/15 p-3 sm:p-4">
               <h3 className="mb-1 text-sm font-medium text-muted-foreground">Din hand</h3>
               <p className="mb-2 text-xs text-muted-foreground">
                 {getHandDescription(myHand)}
@@ -268,7 +268,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
                 ))}
               </div>
             </div>
-            <div className="rounded-md border-2 border-amber-600/40 bg-amber-500/5 p-3 sm:p-4">
+            <div className="rounded-md border-2 border-[var(--warm-gold)]/50 bg-[var(--warm-gold)]/15 p-3 sm:p-4">
               <h3 className="mb-1 text-sm font-medium text-muted-foreground">Motståndarens hand</h3>
               <p className="mb-2 text-xs text-muted-foreground">
                 {getHandDescription(oppHand)}
@@ -297,7 +297,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
       })()}
 
       {state.phase === "gameOver" && (
-        <div className="rounded-lg border bg-muted/50 p-6 text-center">
+        <div className="rounded-lg border border-[var(--border)] bg-[var(--warm-peach)]/50 p-6 text-center">
           <p className="font-medium">Spelet är slut.</p>
           {!useMulti && (
             <Button onClick={resetGame} className="mt-2">Spela igen</Button>

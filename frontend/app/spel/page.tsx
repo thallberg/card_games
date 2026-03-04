@@ -123,7 +123,7 @@ export default function SpelPage() {
                     return (
                       <li
                         key={s.id}
-                        className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center justify-between gap-2 rounded-lg border bg-card p-3"
+                        className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center justify-between gap-2 rounded-lg border border-[var(--border)] bg-card p-3 shadow-sm"
                       >
                         <div className="min-w-0">
                           <span className="font-medium">
@@ -172,7 +172,7 @@ export default function SpelPage() {
                   {inProgress.map((s) => (
                     <li
                       key={s.id}
-                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg border bg-card p-3"
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg border border-[var(--border)] bg-card p-3 shadow-sm"
                     >
                       <span className="min-w-0 truncate">
                         {s.gameType === "FiveHundred" ? "500" : s.gameType === "Chicago" ? "Chicago" : s.gameType === "TexasHoldem" ? "Texas Hold'em" : s.gameType} – {s.leaderDisplayName}

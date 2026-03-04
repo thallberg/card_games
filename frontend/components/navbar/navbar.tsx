@@ -88,7 +88,7 @@ export function Navbar({ user, onRegisterClick, onLoginClick, onLogout, onInvite
   );
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b border-[var(--border)] bg-[var(--warm-cream)]/95 backdrop-blur supports-backdrop-filter:bg-[var(--warm-cream)]/80">
       <div className="mx-auto flex h-14 min-h-[44px] max-w-7xl items-center px-3 sm:px-6">
         <Link
           href="/"

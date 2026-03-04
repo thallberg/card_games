@@ -117,7 +117,7 @@ export default function VannerPage() {
         )}
 
         {receivedRequests.length > 0 && (
-          <div className="mb-6 rounded-lg border bg-muted/30 p-4">
+          <div className="mb-6 rounded-lg border border-[var(--border)] bg-[var(--warm-peach)]/30 p-4">
             <h2 className="mb-3 text-sm font-medium text-muted-foreground">
               Vänförfrågningar ({receivedRequests.length})
             </h2>
@@ -160,7 +160,7 @@ export default function VannerPage() {
             {friends.map((f) => (
               <li
                 key={f.id}
-                className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg border bg-card p-3"
+                className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg border border-[var(--border)] bg-card p-3 shadow-sm"
               >
                 <div className="min-w-0">
                   <span className="font-medium">{f.displayName}</span>

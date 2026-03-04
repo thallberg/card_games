@@ -130,7 +130,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
       </div>
 
       {state.phase === "gameOver" && state.winnerId && (
-        <div className="rounded-lg border bg-muted/50 p-4 text-center">
+        <div className="rounded-lg border border-[var(--border)] bg-[var(--warm-peach)]/50 p-4 text-center">
           <p className="font-medium">
             {state.winnerId === myPlayerId ? "Du" : "Motståndaren"} har vunnit spelet!
           </p>
@@ -141,7 +141,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
       )}
 
       {state.phase === "roundEnd" && state.winnerId && (
-        <div className="rounded-lg border bg-muted/50 p-4 text-center">
+        <div className="rounded-lg border border-[var(--border)] bg-[var(--warm-peach)]/50 p-4 text-center">
           <p className="font-medium">
             Rundan över! {state.winnerId === myPlayerId ? "Du" : "Motståndaren"} gick ut.
           </p>
@@ -186,7 +186,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
           </div>
 
           {state.lastDraw === "discard" && isHumanTurn && (
-            <p className="rounded-md border border-amber-500/50 bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">
+            <p className="rounded-md border border-[var(--warm-gold)]/50 bg-[var(--warm-gold)]/15 px-3 py-2 text-sm text-foreground">
               Du plockade kast högen – lägg ut minst 3 kort denna tur, annars −50 poäng.
             </p>
           )}
