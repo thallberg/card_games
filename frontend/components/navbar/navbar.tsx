@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Spade, Menu, X, User, UserPlus, Users, Gamepad2, LogOut, LogIn, UserPlus as RegisterIcon } from "lucide-react";
+import Image from "next/image";
+import { Menu, X, User, UserPlus, Users, Gamepad2, LogOut, LogIn, UserPlus as RegisterIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -94,7 +95,7 @@ export function Navbar({ user, onRegisterClick, onLoginClick, onLogout, onInvite
           href="/"
           className="flex items-center gap-2 font-semibold text-foreground hover:opacity-80 min-h-[44px]"
         >
-          <Spade className="size-6 shrink-0" aria-hidden />
+          <Image src="/df161571-b42c-43f0-8b05-5c26a4bd9d01.png" alt="" width={24} height={24} className="size-6 shrink-0 object-contain" aria-hidden />
           <span className="sr-only md:not-sr-only md:inline">Kortspel</span>
         </Link>
 
