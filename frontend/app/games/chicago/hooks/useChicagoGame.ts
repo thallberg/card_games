@@ -10,7 +10,7 @@ import {
   getNextPlayerId,
 } from "../game-state";
 import { createDeck, shuffle, sortHand } from "../deck";
-import { getHandPoints, getHandDescription, compareHands } from "../hand-score";
+import { getHandPoints, getHandDescription } from "../hand-score";
 import { HAND_SIZE, MAX_DRAW_ROUNDS } from "../constants";
 
 const HUMAN: PlayerId = "p1";
@@ -76,6 +76,7 @@ export function useChicagoGame() {
           deck: d,
           drawPick: { openCard, hiddenCard, picksLeft: 0, tempHand, isFreeSwap: false },
           playerHands: { ...s.playerHands, [HUMAN]: tempHand },
+          lastOpponentDiscardCount: undefined,
         };
       }
 
@@ -89,6 +90,7 @@ export function useChicagoGame() {
         deck: newDeck,
         playerHands: { ...s.playerHands, [HUMAN]: newHand },
         currentPlayerId: AI,
+        lastOpponentDiscardCount: undefined,
       };
     });
     setSelectedToDiscard(new Set());
@@ -195,9 +197,8 @@ export function useChicagoGame() {
         const humanPoints = getHandPoints(humanHand);
         const aiPoints = getHandPoints(aiHand);
         roundHandPoints = { p1: humanPoints, p2: aiPoints };
-        const handWinner = compareHands(humanHand, aiHand);
-        if (handWinner === -1) newScores[HUMAN] = (newScores[HUMAN] ?? 0) + humanPoints;
-        else if (handWinner === 1) newScores[AI] = (newScores[AI] ?? 0) + aiPoints;
+        newScores[HUMAN] = (newScores[HUMAN] ?? 0) + humanPoints;
+        newScores[AI] = (newScores[AI] ?? 0) + aiPoints;
       }
 
       const completed = [
@@ -254,6 +255,7 @@ export function useChicagoGame() {
         roundHandPoints: { p1: 0, p2: 0 },
         playPhaseHands: { p1: [], p2: [] },
         rondNumber: s.rondNumber + 1,
+        lastOpponentDiscardCount: undefined,
       };
     });
     setSelectedToDiscard(new Set());
@@ -283,6 +285,7 @@ export function useChicagoGame() {
             trickLeader: allRoundsDone ? "p2" : s.trickLeader,
             currentPlayerId: HUMAN,
             playPhaseHands: allRoundsDone ? { ...s.playerHands } : s.playPhaseHands,
+            lastOpponentDiscardCount: 0,
           };
         }
         const indices: number[] = [];
@@ -290,6 +293,7 @@ export function useChicagoGame() {
           const i = Math.floor(Math.random() * hand.length);
           if (!indices.includes(i)) indices.push(i);
         }
+        const discardedCards = indices.map((i) => hand[i]);
         const newDeck = [...s.deck];
         const newHand = hand.filter((_, i) => !indices.includes(i));
         for (let i = 0; i < toDiscard && newDeck.length > 0; i++) {
@@ -307,6 +311,7 @@ export function useChicagoGame() {
           trickLeader: allRoundsDone ? "p2" : s.trickLeader,
           currentPlayerId: HUMAN,
           playPhaseHands: allRoundsDone ? nextHands : s.playPhaseHands,
+          lastOpponentDiscardCount: discardedCards.length,
         };
       });
       aiThinking.current = false;
@@ -369,9 +374,8 @@ export function useChicagoGame() {
           const humanPoints = getHandPoints(humanHand);
           const aiPoints = getHandPoints(aiHand);
           roundHandPoints = { p1: humanPoints, p2: aiPoints };
-          const handWinner = compareHands(humanHand, aiHand);
-          if (handWinner === -1) newScores[HUMAN] = (newScores[HUMAN] ?? 0) + humanPoints;
-          else if (handWinner === 1) newScores[AI] = (newScores[AI] ?? 0) + aiPoints;
+          newScores[HUMAN] = (newScores[HUMAN] ?? 0) + humanPoints;
+          newScores[AI] = (newScores[AI] ?? 0) + aiPoints;
         }
 
         const completed = [

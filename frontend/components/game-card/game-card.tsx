@@ -23,7 +23,7 @@ export function GameCard({ game }: GameCardProps) {
 
   return (
     <Link href={game.path} className="block transition-opacity hover:opacity-90">
-      <Card className="h-full cursor-pointer transition-shadow hover:shadow-md">
+      <Card className="h-full cursor-pointer border-[var(--border)] transition-all hover:shadow-lg hover:border-[var(--warm-coral)]/40 hover:bg-[var(--warm-cream)]/50">
         <CardHeader>
           <CardTitle>{game.title}</CardTitle>
           <CardDescription>{description}</CardDescription>

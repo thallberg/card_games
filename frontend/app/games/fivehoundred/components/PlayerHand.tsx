@@ -39,7 +39,7 @@ export function PlayerHand({
 }: PlayerHandProps) {
   const lastDrawnIndices = lastDrawnCards.length > 0 ? indicesOfDrawnCards(cards, lastDrawnCards) : new Set<number>();
   return (
-    <div className="flex flex-wrap justify-center gap-3">
+    <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
       {cards.map((card, i) => (
         <div
           key={`${card.suit}-${card.rank}-${i}`}

@@ -109,15 +109,15 @@ export default function VannerPage() {
   }
 
   return (
-    <main className="flex-1 p-4 sm:p-6">
+    <main className="flex-1 p-3 sm:p-6">
       <section className="mx-auto max-w-2xl">
-        <h1 className="mb-4 text-xl font-semibold">Mina vänner</h1>
+        <h1 className="mb-4 text-lg sm:text-xl font-semibold">Mina vänner</h1>
         {error && (
           <p className="mb-4 text-destructive text-sm">{error}</p>
         )}
 
         {receivedRequests.length > 0 && (
-          <div className="mb-6 rounded-lg border bg-muted/30 p-4">
+          <div className="mb-6 rounded-lg border border-[var(--border)] bg-[var(--warm-peach)]/30 p-4">
             <h2 className="mb-3 text-sm font-medium text-muted-foreground">
               Vänförfrågningar ({receivedRequests.length})
             </h2>
@@ -125,13 +125,14 @@ export default function VannerPage() {
               {receivedRequests.map((req) => (
                 <li
                   key={req.id}
-                  className="flex items-center justify-between rounded border bg-background p-3"
+                  className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 rounded border bg-background p-3"
                 >
-                  <span>{req.fromUserDisplayName} vill bli din vän</span>
-                  <div className="flex gap-2">
+                  <span className="truncate">{req.fromUserDisplayName} vill bli din vän</span>
+                  <div className="flex gap-2 shrink-0">
                     <Button
                       size="sm"
                       onClick={() => respondToRequest(req.id, true)}
+                      className="min-h-10 flex-1 sm:flex-initial"
                     >
                       Acceptera
                     </Button>
@@ -139,6 +140,7 @@ export default function VannerPage() {
                       size="sm"
                       variant="outline"
                       onClick={() => respondToRequest(req.id, false)}
+                      className="min-h-10 flex-1 sm:flex-initial"
                     >
                       Avvisa
                     </Button>
@@ -158,16 +160,17 @@ export default function VannerPage() {
             {friends.map((f) => (
               <li
                 key={f.id}
-                className="flex items-center justify-between rounded-lg border bg-card p-3"
+                className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg border border-[var(--border)] bg-card p-3 shadow-sm"
               >
-                <div>
+                <div className="min-w-0">
                   <span className="font-medium">{f.displayName}</span>
-                  <span className="text-muted-foreground text-sm"> {f.email}</span>
+                  <span className="text-muted-foreground text-sm block sm:inline truncate"> {f.email}</span>
                 </div>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setCreateGameFor(f)}
+                  className="min-h-10 w-full sm:w-auto shrink-0"
                 >
                   Skapa spel
                 </Button>
@@ -186,11 +189,12 @@ export default function VannerPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-4">
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button
                 variant={createGameType === 2 ? "default" : "outline"}
                 size="sm"
                 onClick={() => setCreateGameType(2)}
+                className="min-h-10 flex-1 sm:flex-initial"
               >
                 500
               </Button>
@@ -198,6 +202,7 @@ export default function VannerPage() {
                 variant={createGameType === 3 ? "default" : "outline"}
                 size="sm"
                 onClick={() => setCreateGameType(3)}
+                className="min-h-10 flex-1 sm:flex-initial"
               >
                 Chicago
               </Button>
@@ -205,15 +210,16 @@ export default function VannerPage() {
                 variant={createGameType === 4 ? "default" : "outline"}
                 size="sm"
                 onClick={() => setCreateGameType(4)}
+                className="min-h-10 flex-1 sm:flex-initial"
               >
                 Texas Hold&apos;em
               </Button>
             </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setCreateGameFor(null)}>
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
+              <Button variant="outline" onClick={() => setCreateGameFor(null)} className="min-h-10">
                 Avbryt
               </Button>
-              <Button onClick={handleCreateGame} disabled={creating}>
+              <Button onClick={handleCreateGame} disabled={creating} className="min-h-10">
                 {creating
                   ? "Skapar..."
                   : `Skapa ${createGameType === 2 ? "500" : createGameType === 3 ? "Chicago" : "Texas Hold'em"} och skicka inbjudan`}

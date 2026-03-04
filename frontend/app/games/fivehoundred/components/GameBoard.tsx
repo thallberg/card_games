@@ -98,13 +98,13 @@ export function GameBoard({ sessionId }: GameBoardProps) {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6 px-1 sm:px-0">
       <p className="text-muted-foreground text-sm">
         {isHumanTurn ? "Din tur" : "Motståndarens tur – vänta på att de spelar."}
       </p>
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-xl font-semibold">500</h1>
-        <div className="flex flex-wrap gap-6 text-sm">
+      <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-4">
+        <h1 className="text-lg sm:text-xl font-semibold">500</h1>
+        <div className="flex flex-wrap gap-4 sm:gap-6 text-xs sm:text-sm">
           {getPlayerIds().map((id) => {
             const handSize = state.playerHands[id]?.length ?? 0;
             return (
@@ -130,7 +130,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
       </div>
 
       {state.phase === "gameOver" && state.winnerId && (
-        <div className="rounded-lg border bg-muted/50 p-4 text-center">
+        <div className="rounded-lg border border-[var(--border)] bg-[var(--warm-peach)]/50 p-4 text-center">
           <p className="font-medium">
             {state.winnerId === myPlayerId ? "Du" : "Motståndaren"} har vunnit spelet!
           </p>
@@ -141,7 +141,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
       )}
 
       {state.phase === "roundEnd" && state.winnerId && (
-        <div className="rounded-lg border bg-muted/50 p-4 text-center">
+        <div className="rounded-lg border border-[var(--border)] bg-[var(--warm-peach)]/50 p-4 text-center">
           <p className="font-medium">
             Rundan över! {state.winnerId === myPlayerId ? "Du" : "Motståndaren"} gick ut.
           </p>
@@ -156,7 +156,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
 
       {state.phase !== "roundEnd" && state.phase !== "gameOver" && (
         <>
-          <div className="flex flex-wrap items-end justify-center gap-8">
+          <div className="flex flex-wrap items-end justify-center gap-4 sm:gap-8">
             <StockPile
               count={state.stock.length}
               onDraw={drawFromStock}
@@ -186,7 +186,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
           </div>
 
           {state.lastDraw === "discard" && isHumanTurn && (
-            <p className="rounded-md border border-amber-500/50 bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">
+            <p className="rounded-md border border-[var(--warm-gold)]/50 bg-[var(--warm-gold)]/15 px-3 py-2 text-sm text-foreground">
               Du plockade kast högen – lägg ut minst 3 kort denna tur, annars −50 poäng.
             </p>
           )}
@@ -204,6 +204,33 @@ export function GameBoard({ sessionId }: GameBoardProps) {
                 </span>
               )}
             </h2>
+            {state.phase === "meldOrDiscard" && isHumanTurn && (
+              <div className="mb-3 flex w-full flex-wrap gap-2">
+                {selectedArr.length === 1 && (
+                  <Button type="button" variant="outline" onClick={handleKasta} className="min-h-11 flex-1">
+                    Kasta
+                  </Button>
+                )}
+                {selectedArr.length >= 1 && (
+                  <Button type="button" onClick={handleLayMeldOpen} className="min-h-11 flex-1">
+                    Lägg ut
+                  </Button>
+                )}
+                {!stockEmpty && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="min-h-11 flex-1"
+                    onClick={() => {
+                      passWithoutDiscard();
+                      clearSelection();
+                    }}
+                  >
+                    Nöjd
+                  </Button>
+                )}
+              </div>
+            )}
             <div className="flex flex-wrap items-end gap-3">
               <PlayerHand
                 cards={humanHand}
@@ -216,32 +243,6 @@ export function GameBoard({ sessionId }: GameBoardProps) {
                 disabled={!isHumanTurn || canDraw}
                 lastDrawnCards={lastDrawnCards ?? []}
               />
-              {state.phase === "meldOrDiscard" && isHumanTurn && (
-                <div className="flex flex-wrap items-center gap-2 self-center">
-                  {selectedArr.length === 1 && (
-                    <Button type="button" variant="outline" onClick={handleKasta}>
-                      Kasta
-                    </Button>
-                  )}
-                  {selectedArr.length >= 1 && (
-                    <Button type="button" onClick={handleLayMeldOpen}>
-                      Lägg ut
-                    </Button>
-                  )}
-                  {!stockEmpty && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        passWithoutDiscard();
-                        clearSelection();
-                      }}
-                    >
-                      Nöjd
-                    </Button>
-                  )}
-                </div>
-              )}
             </div>
             <p className="text-muted-foreground mt-1 text-xs">
               {stockEmpty

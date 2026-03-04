@@ -21,7 +21,9 @@ export function PlayingCard({
   className,
   size = "md",
 }: PlayingCardProps) {
-  const sizeClass = size === "sm" ? "h-[72px] w-[50px]" : "h-[120px] w-[84px]";
+  const sizeClass = size === "sm"
+    ? "h-[56px] w-[39px] sm:h-[72px] sm:w-[50px]"
+    : "h-[80px] w-[56px] sm:h-[100px] sm:w-[70px] md:h-[120px] md:w-[84px]";
   if (!faceUp) {
     return (
       <div

@@ -88,9 +88,9 @@ export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoar
       : new Set<string>();
 
     return (
-      <div className="mx-auto flex max-w-4xl flex-col gap-8">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <h1 className="text-xl font-semibold">Texas Hold&apos;em</h1>
+      <div className="mx-auto flex max-w-4xl flex-col gap-4 sm:gap-8 px-2 sm:px-0">
+        <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-4">
+          <h1 className="text-lg sm:text-xl font-semibold">Texas Hold&apos;em</h1>
           <span className="text-muted-foreground text-sm">Handen är slut</span>
         </div>
 
@@ -109,7 +109,7 @@ export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoar
               <div
                 key={s.id}
                 className={cn(
-                  "rounded-lg border bg-card p-3 min-w-[140px] text-center",
+                  "rounded-lg border bg-card p-3 min-w-[120px] sm:min-w-[140px] text-center",
                   isWinner && "ring-2 ring-green-500 bg-green-500/10"
                 )}
               >
@@ -146,7 +146,7 @@ export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoar
         </div>
 
         {/* I mitten: bordet (kort som ingår i vinnande handen grönmarkerade och uppskjutna) + potten */}
-        <div className="flex flex-col items-center gap-4 rounded-xl border bg-muted/30 py-6">
+        <div className="flex flex-col items-center gap-4 rounded-xl border border-[var(--border)] bg-[var(--warm-peach)]/40 py-6">
           <div className="flex flex-wrap justify-center gap-2 pt-4">
             {state.board.map((card, i) => (
               <PlayingCard
@@ -157,8 +157,8 @@ export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoar
               />
             ))}
           </div>
-          <div className="rounded-full bg-amber-500/20 px-6 py-2 text-center">
-            <p className="text-amber-800 dark:text-amber-200 text-sm font-medium">Pot (vunnet av {winnerName})</p>
+          <div className="rounded-full bg-[var(--warm-gold)]/30 px-6 py-2 text-center">
+            <p className="text-[var(--foreground)] text-sm font-medium">Pot (vunnet av {winnerName})</p>
           </div>
         </div>
 
@@ -191,10 +191,10 @@ export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoar
   }
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-8">
+    <div className="mx-auto flex max-w-4xl flex-col gap-4 sm:gap-8 px-2 sm:px-0">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-xl font-semibold">Texas Hold&apos;em</h1>
+      <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-4">
+        <h1 className="text-lg sm:text-xl font-semibold">Texas Hold&apos;em</h1>
         <span className="text-muted-foreground text-sm">
           {state.bettingPhase === "preflop"
             ? "Preflop"
@@ -220,7 +220,7 @@ export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoar
             <div
               key={s.id}
               className={cn(
-                "rounded-lg border bg-card p-3 min-w-[140px] text-center",
+                "rounded-lg border bg-card p-3 min-w-[120px] sm:min-w-[140px] text-center",
                 isTheirTurn && "ring-2 ring-primary"
               )}
             >
@@ -260,15 +260,9 @@ export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoar
             <PlayingCard key={i} card={card} size="md" />
           ))}
         </div>
-        <div className="flex flex-wrap items-center justify-center gap-6">
-          <div className="rounded-full bg-amber-500/20 px-6 py-2 text-center">
-            <p className="text-amber-800 dark:text-amber-200 text-sm font-medium">Pot</p>
-            <p className="text-xl font-bold">{state.pot}</p>
-          </div>
-          <div className="rounded-full bg-muted px-4 py-2 text-center">
-            <p className="text-muted-foreground text-xs">Nuvarande bet att matcha</p>
-            <p className="text-lg font-semibold">{currentBet}</p>
-          </div>
+        <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground">
+          <span>Pot {state.pot}</span>
+          <span>Bet att matcha {currentBet}</span>
         </div>
       </div>
 
@@ -291,42 +285,49 @@ export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoar
         </div>
 
         {isMyTurn && mySeat && !mySeat.folded && !mySeat.isAllIn && (
-          <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-            <Button variant="destructive" size="sm" onClick={handleFold}>
-              Fold
-            </Button>
-            {allInOrFoldOnly ? (
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={handleAllIn}
-                disabled={mySeat.stack <= 0}
-              >
-                All-in ({mySeat.stack})
+          <div className="mt-4 flex flex-col gap-2">
+            <div className="flex w-full gap-2">
+              <Button variant="destructive" size="sm" onClick={handleFold} className="flex-1 min-h-11">
+                Fold
               </Button>
-            ) : (
+              {allInOrFoldOnly ? (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={handleAllIn}
+                  disabled={mySeat.stack <= 0}
+                  className="flex-1 min-h-11"
+                >
+                  All-in ({mySeat.stack})
+                </Button>
+              ) : (
+                <>
+                  {toCall <= 0 ? (
+                    <Button size="sm" onClick={handleCheck} className="flex-1 min-h-11">
+                      Check
+                    </Button>
+                  ) : (
+                    <Button size="sm" onClick={handleCall} className="flex-1 min-h-11">
+                      Call {toCall}
+                    </Button>
+                  )}
+                </>
+              )}
+            </div>
+            {!allInOrFoldOnly && (
               <>
-                {toCall <= 0 ? (
-                  <Button size="sm" onClick={handleCheck}>
-                    Check
-                  </Button>
-                ) : (
-                  <Button size="sm" onClick={handleCall}>
-                    Call {toCall}
-                  </Button>
-                )}
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    min={minRaiseTotal}
-                    max={(mySeat?.betThisHand ?? 0) + mySeat.stack}
-                    value={raiseAmount}
-                    onChange={(e) =>
-                      setRaiseAmount(Number(e.target.value) || minRaiseTotal)
-                    }
-                    className="w-24"
-                  />
-                  <Button size="sm" onClick={handleRaise}>
+                <Input
+                  type="number"
+                  min={minRaiseTotal}
+                  max={(mySeat?.betThisHand ?? 0) + mySeat.stack}
+                  value={raiseAmount}
+                  onChange={(e) =>
+                    setRaiseAmount(Number(e.target.value) || minRaiseTotal)
+                  }
+                  className="w-full min-h-11"
+                />
+                <div className="flex w-full gap-2">
+                  <Button size="sm" onClick={handleRaise} className="flex-1 min-h-11">
                     {currentBet === 0 ? "Bet" : "Raise"} {raiseAmount}
                   </Button>
                   <Button
@@ -334,6 +335,7 @@ export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoar
                     variant="secondary"
                     onClick={handleAllIn}
                     disabled={!mySeat || mySeat.stack <= 0}
+                    className="flex-1 min-h-11"
                   >
                     All-in ({mySeat?.stack ?? 0})
                   </Button>
@@ -347,7 +349,7 @@ export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoar
           const actingSeat = state.seats[state.currentActorIndex];
           const actingToCall = actingSeat ? currentBet - actingSeat.betThisHand : 0;
           return (
-            <div className="mt-3 space-y-1 rounded-md border bg-muted/50 p-3 text-center text-sm">
+            <div className="mt-3 space-y-1 rounded-md border border-[var(--border)] bg-[var(--warm-sand)]/50 p-3 text-center text-sm">
               <p className="font-medium">Väntar på {actingSeat?.name}</p>
               <p className="text-muted-foreground">
                 {actingToCall <= 0

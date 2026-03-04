@@ -86,7 +86,7 @@ export function LayoutClient({
   };
 
   return (
-    <>
+    <div className="flex min-h-[100dvh] flex-col">
       <Navbar
         user={user}
         onRegisterClick={() => {
@@ -111,7 +111,7 @@ export function LayoutClient({
         mode={authMode}
         onSuccess={() => setUser(getUserFromStorage())}
       />
-      {children}
-    </>
+      <div className="flex flex-1 flex-col min-h-0">{children}</div>
+    </div>
   );
 }

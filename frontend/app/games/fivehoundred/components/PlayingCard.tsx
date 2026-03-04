@@ -23,7 +23,7 @@ export function PlayingCard({
     return (
       <div
         className={cn(
-          "flex h-[120px] w-[84px] shrink-0 items-center justify-center rounded-md border-2 border-border bg-muted/80 text-muted-foreground text-xs",
+          "flex h-[80px] w-[56px] sm:h-[100px] sm:w-[70px] md:h-[120px] md:w-[84px] shrink-0 items-center justify-center rounded-md border-2 border-border bg-muted/80 text-muted-foreground text-xs",
           className
         )}
       >
@@ -39,7 +39,7 @@ export function PlayingCard({
       type="button"
       onClick={onClick}
       className={cn(
-        "relative h-[120px] w-[84px] shrink-0 overflow-hidden rounded-md border border-border bg-muted shadow-sm transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-ring",
+        "relative h-[80px] w-[56px] sm:h-[100px] sm:w-[70px] md:h-[120px] md:w-[84px] shrink-0 overflow-hidden rounded-md border border-border bg-muted shadow-sm transition-transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-ring",
         className
       )}
       disabled={!onClick}

@@ -44,6 +44,8 @@ export type GameState = {
   /** Händer när utspelet började (för handpoäng). */
   playPhaseHands: Record<PlayerId, Card[]>;
   rondNumber: number;
+  /** Antal kort motståndaren kastade senast (singleplayer – visas när det är vår tur). */
+  lastOpponentDiscardCount?: number;
 };
 
 const PLAYER_IDS: PlayerId[] = ["p1", "p2"];
@@ -72,6 +74,7 @@ export function createInitialState(): GameState {
     roundHandPoints: { p1: 0, p2: 0 },
     playPhaseHands: { p1: [], p2: [] },
     rondNumber: 1,
+    lastOpponentDiscardCount: undefined,
   };
 }
 
