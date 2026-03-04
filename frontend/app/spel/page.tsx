@@ -105,9 +105,9 @@ export default function SpelPage() {
   const inProgress = sessions.filter((s) => s.status === "InProgress");
 
   return (
-    <main className="flex-1 p-4 sm:p-6">
+    <main className="flex-1 p-3 sm:p-6">
       <section className="mx-auto max-w-2xl">
-        <h1 className="mb-4 text-xl font-semibold">Mina spel</h1>
+        <h1 className="mb-4 text-lg sm:text-xl font-semibold">Mina spel</h1>
         {sessions.length === 0 ? (
           <p className="text-muted-foreground">
             Du har inga spel än. Gå till <Link href="/vanner" className="underline">Vänner</Link> och skapa ett spel med en vän.
@@ -123,17 +123,17 @@ export default function SpelPage() {
                     return (
                       <li
                         key={s.id}
-                        className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-card p-3"
+                        className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center justify-between gap-2 rounded-lg border bg-card p-3"
                       >
-                        <div>
+                        <div className="min-w-0">
                           <span className="font-medium">
                             {s.gameType === "FiveHundred" ? "500" : s.gameType === "Chicago" ? "Chicago" : s.gameType === "TexasHoldem" ? "Texas Hold'em" : s.gameType}
                           </span>
-                          <span className="text-muted-foreground text-sm">
+                          <span className="text-muted-foreground text-sm block sm:inline">
                             {" "}– ledd av {s.leaderDisplayName} · {s.currentPlayerCount}/{s.maxPlayers} spelare
                           </span>
                         </div>
-                        <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2 shrink-0">
                           {isLeader && (
                             s.currentPlayerCount >= 2 ? (
                               <Button
@@ -172,12 +172,12 @@ export default function SpelPage() {
                   {inProgress.map((s) => (
                     <li
                       key={s.id}
-                      className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-card p-3"
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg border bg-card p-3"
                     >
-                      <span>
+                      <span className="min-w-0 truncate">
                         {s.gameType === "FiveHundred" ? "500" : s.gameType === "Chicago" ? "Chicago" : s.gameType === "TexasHoldem" ? "Texas Hold'em" : s.gameType} – {s.leaderDisplayName}
                       </span>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 shrink-0 flex-wrap">
                         <Button asChild size="sm">
                           <Link
                             href={

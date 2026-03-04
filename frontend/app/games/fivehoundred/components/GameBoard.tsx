@@ -98,13 +98,13 @@ export function GameBoard({ sessionId }: GameBoardProps) {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6 px-1 sm:px-0">
       <p className="text-muted-foreground text-sm">
         {isHumanTurn ? "Din tur" : "Motståndarens tur – vänta på att de spelar."}
       </p>
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-xl font-semibold">500</h1>
-        <div className="flex flex-wrap gap-6 text-sm">
+      <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-4">
+        <h1 className="text-lg sm:text-xl font-semibold">500</h1>
+        <div className="flex flex-wrap gap-4 sm:gap-6 text-xs sm:text-sm">
           {getPlayerIds().map((id) => {
             const handSize = state.playerHands[id]?.length ?? 0;
             return (
@@ -156,7 +156,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
 
       {state.phase !== "roundEnd" && state.phase !== "gameOver" && (
         <>
-          <div className="flex flex-wrap items-end justify-center gap-8">
+          <div className="flex flex-wrap items-end justify-center gap-4 sm:gap-8">
             <StockPile
               count={state.stock.length}
               onDraw={drawFromStock}
@@ -217,14 +217,14 @@ export function GameBoard({ sessionId }: GameBoardProps) {
                 lastDrawnCards={lastDrawnCards ?? []}
               />
               {state.phase === "meldOrDiscard" && isHumanTurn && (
-                <div className="flex flex-wrap items-center gap-2 self-center">
+                <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 self-center w-full sm:w-auto">
                   {selectedArr.length === 1 && (
-                    <Button type="button" variant="outline" onClick={handleKasta}>
+                    <Button type="button" variant="outline" onClick={handleKasta} className="min-h-11">
                       Kasta
                     </Button>
                   )}
                   {selectedArr.length >= 1 && (
-                    <Button type="button" onClick={handleLayMeldOpen}>
+                    <Button type="button" onClick={handleLayMeldOpen} className="min-h-11">
                       Lägg ut
                     </Button>
                   )}
@@ -232,6 +232,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
                     <Button
                       type="button"
                       variant="outline"
+                      className="min-h-11"
                       onClick={() => {
                         passWithoutDiscard();
                         clearSelection();

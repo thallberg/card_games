@@ -88,9 +88,9 @@ export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoar
       : new Set<string>();
 
     return (
-      <div className="mx-auto flex max-w-4xl flex-col gap-8">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <h1 className="text-xl font-semibold">Texas Hold&apos;em</h1>
+      <div className="mx-auto flex max-w-4xl flex-col gap-4 sm:gap-8 px-2 sm:px-0">
+        <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-4">
+          <h1 className="text-lg sm:text-xl font-semibold">Texas Hold&apos;em</h1>
           <span className="text-muted-foreground text-sm">Handen är slut</span>
         </div>
 
@@ -109,7 +109,7 @@ export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoar
               <div
                 key={s.id}
                 className={cn(
-                  "rounded-lg border bg-card p-3 min-w-[140px] text-center",
+                  "rounded-lg border bg-card p-3 min-w-[120px] sm:min-w-[140px] text-center",
                   isWinner && "ring-2 ring-green-500 bg-green-500/10"
                 )}
               >
@@ -191,10 +191,10 @@ export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoar
   }
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-8">
+    <div className="mx-auto flex max-w-4xl flex-col gap-4 sm:gap-8 px-2 sm:px-0">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-xl font-semibold">Texas Hold&apos;em</h1>
+      <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-4">
+        <h1 className="text-lg sm:text-xl font-semibold">Texas Hold&apos;em</h1>
         <span className="text-muted-foreground text-sm">
           {state.bettingPhase === "preflop"
             ? "Preflop"
@@ -220,7 +220,7 @@ export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoar
             <div
               key={s.id}
               className={cn(
-                "rounded-lg border bg-card p-3 min-w-[140px] text-center",
+                "rounded-lg border bg-card p-3 min-w-[120px] sm:min-w-[140px] text-center",
                 isTheirTurn && "ring-2 ring-primary"
               )}
             >
@@ -291,7 +291,7 @@ export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoar
         </div>
 
         {isMyTurn && mySeat && !mySeat.folded && !mySeat.isAllIn && (
-          <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+          <div className="mt-4 flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-center gap-2">
             <Button variant="destructive" size="sm" onClick={handleFold}>
               Fold
             </Button>
@@ -315,7 +315,7 @@ export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoar
                     Call {toCall}
                   </Button>
                 )}
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center justify-center gap-2 w-full sm:w-auto">
                   <Input
                     type="number"
                     min={minRaiseTotal}
@@ -324,7 +324,7 @@ export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoar
                     onChange={(e) =>
                       setRaiseAmount(Number(e.target.value) || minRaiseTotal)
                     }
-                    className="w-24"
+                    className="w-full sm:w-24 min-h-11"
                   />
                   <Button size="sm" onClick={handleRaise}>
                     {currentBet === 0 ? "Bet" : "Raise"} {raiseAmount}

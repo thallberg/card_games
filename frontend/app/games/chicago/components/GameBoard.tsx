@@ -56,10 +56,10 @@ export function GameBoard({ sessionId }: GameBoardProps) {
       : getNextPlayerId(state.trickLeader) === myPlayerId);
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-xl font-semibold">Poker Chicago</h1>
-        <div className="flex gap-6 text-sm">
+    <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6 px-1 sm:px-0">
+      <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-4">
+        <h1 className="text-lg sm:text-xl font-semibold">Poker Chicago</h1>
+        <div className="flex gap-4 sm:gap-6 text-xs sm:text-sm">
           {getPlayerIds().map((id) => (
             <div key={id} className="flex flex-col gap-0.5">
               <span className="font-medium">{id === myPlayerId ? "Du" : "Motståndare"}</span>
@@ -77,7 +77,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
       </div>
 
       {state.phase === "draw" && (
-        <section className="rounded-lg border bg-muted/30 p-4">
+        <section className="rounded-lg border bg-muted/30 p-3 sm:p-4">
           {state.currentPlayerId === (useMulti ? (myPlayerId === "p1" ? "p2" : "p1") : "p2") ? (
             <p className="text-muted-foreground">
               Omgång {state.drawRound + 1} av 3 – motståndaren kastar kort…
@@ -90,8 +90,8 @@ export function GameBoard({ sessionId }: GameBoardProps) {
               <p className="text-muted-foreground text-xs">
                 Du får ett öppet kort och ett dolt kort – välj vilket du vill ta.
               </p>
-              <div className="flex flex-wrap items-end gap-4">
-                <div className="flex flex-col items-center gap-2">
+              <div className="flex flex-wrap items-end gap-4 sm:gap-6">
+                <div className="flex flex-col items-center gap-2 min-w-0">
                   <span className="text-muted-foreground text-xs">Öppet kort</span>
                   <PlayingCard card={state.drawPick.openCard} faceUp onClick={() => chooseDrawnCard("open")} />
                   <Button size="sm" onClick={() => chooseDrawnCard("open")}>
@@ -126,20 +126,21 @@ export function GameBoard({ sessionId }: GameBoardProps) {
                   />
                 ))}
               </div>
-              <div className="mt-3 flex flex-wrap gap-2">
+              <div className="mt-3 flex flex-col sm:flex-row flex-wrap gap-2">
                 {canFreeSwapAllFive && (
-                  <Button variant="secondary" onClick={freeSwapAllFive}>
+                  <Button variant="secondary" onClick={freeSwapAllFive} className="min-h-11 w-full sm:w-auto">
                     Byt alla 5 (gratis, endast omgång 1, max {3 - (state.freeSwapUsedCount ?? 0)} kvar)
                   </Button>
                 )}
                 <Button
                   onClick={confirmDiscard}
                   disabled={!canConfirmDiscard}
+                  className="min-h-11 w-full sm:w-auto"
                 >
                   Kasta {selectedToDiscard.size} kort och plocka nya
                 </Button>
                 {state.drawRound > 0 && (
-                  <Button variant="outline" onClick={doneWithDraw}>
+                  <Button variant="outline" onClick={doneWithDraw} className="min-h-11 w-full sm:w-auto">
                     Färdig – gå till utspelet
                   </Button>
                 )}
@@ -151,14 +152,14 @@ export function GameBoard({ sessionId }: GameBoardProps) {
 
       {state.phase === "play" && (
         <>
-          <section className="rounded-lg border bg-muted/20 p-4">
+          <section className="rounded-lg border bg-muted/20 p-3 sm:p-4">
             <h2 className="mb-2 text-sm font-medium">Stick {state.trickNumber + 1} av 5</h2>
 
             {state.completedTricks && state.completedTricks.length > 0 && (
-              <div className="mb-4 space-y-2 border-b border-muted-foreground/20 pb-4">
+              <div className="mb-4 space-y-2 border-b border-muted-foreground/20 pb-4 overflow-x-auto">
                 <span className="text-muted-foreground text-xs font-medium">Tidigare stick:</span>
                 {state.completedTricks.map((t, i) => (
-                  <div key={i} className="flex flex-wrap items-center gap-2 text-sm">
+                  <div key={i} className="flex flex-wrap items-center gap-1 sm:gap-2 text-xs sm:text-sm min-w-0">
                     <span className="text-muted-foreground whitespace-nowrap">Stick {i + 1}:</span>
                     <span className="text-muted-foreground text-xs">
                       {t.trickLeader === myPlayerId ? "Du" : "Motståndaren"} lade
@@ -235,19 +236,19 @@ export function GameBoard({ sessionId }: GameBoardProps) {
         const myHand = state.playPhaseHands?.[myPlayerId] ?? [];
         const oppHand = state.playPhaseHands?.[otherId] ?? [];
         return (
-        <div className="rounded-lg border bg-muted/50 p-6">
+        <div className="rounded-lg border bg-muted/50 p-4 sm:p-6">
           <p className="text-center font-medium">
             {state.roundUtspeletWinner === myPlayerId ? "Du" : "Motståndaren"} vann utspelet (sista sticket)! +1 poäng
           </p>
           <p className="text-center text-muted-foreground text-sm mt-1">
-            Endast den med högst hand får handpoäng.
+            Båda får poäng för sin hand.
           </p>
-          <div className="mt-6 grid gap-6 sm:grid-cols-2">
-            <div className="rounded-md border-2 border-green-600/50 bg-green-500/5 p-4">
+          <div className="mt-4 sm:mt-6 grid gap-4 sm:gap-6 sm:grid-cols-2">
+            <div className="rounded-md border-2 border-green-600/50 bg-green-500/5 p-3 sm:p-4">
               <h3 className="mb-1 text-sm font-medium text-muted-foreground">Din hand</h3>
               <p className="mb-2 text-xs text-muted-foreground">
                 {getHandDescription(myHand)}
-                {humanWonHand ? ` — vann handen (+${myHandPoints} p)` : opponentWonHand ? " — lägre hand (0 p)" : " — lika (0 p)"}
+                {humanWonHand ? ` — högre hand (+${myHandPoints} p)` : opponentWonHand ? ` — lägre hand (+${myHandPoints} p)` : ` — lika (+${myHandPoints} p)`}
               </p>
               <div className="flex flex-wrap gap-1">
                 {myHand.map((card, i) => (
@@ -260,11 +261,11 @@ export function GameBoard({ sessionId }: GameBoardProps) {
                 ))}
               </div>
             </div>
-            <div className="rounded-md border-2 border-amber-600/40 bg-amber-500/5 p-4">
+            <div className="rounded-md border-2 border-amber-600/40 bg-amber-500/5 p-3 sm:p-4">
               <h3 className="mb-1 text-sm font-medium text-muted-foreground">Motståndarens hand</h3>
               <p className="mb-2 text-xs text-muted-foreground">
                 {getHandDescription(oppHand)}
-                {opponentWonHand ? ` — vann handen (+${oppHandPoints} p)` : humanWonHand ? " — lägre hand (0 p)" : " — lika (0 p)"}
+                {opponentWonHand ? ` — högre hand (+${oppHandPoints} p)` : humanWonHand ? ` — lägre hand (+${oppHandPoints} p)` : ` — lika (+${oppHandPoints} p)`}
               </p>
               <div className="flex flex-wrap gap-1">
                 {oppHand.map((card, i) => (
@@ -278,12 +279,10 @@ export function GameBoard({ sessionId }: GameBoardProps) {
               </div>
             </div>
           </div>
-          <div className="mt-6 flex justify-center gap-2">
-            <Button onClick={startNewRound}>Nästa rond</Button>
+          <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row justify-center gap-2">
+            <Button onClick={startNewRound} className="min-h-11 w-full sm:w-auto">Nästa rond</Button>
             {!useMulti && (
-              <Button variant="outline" onClick={resetGame}>
-                Börja om
-              </Button>
+              <Button variant="outline" onClick={resetGame} className="min-h-11 w-full sm:w-auto">Börja om</Button>
             )}
           </div>
         </div>
