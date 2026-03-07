@@ -22,7 +22,7 @@ public class TexasHoldemService
 
     public TexasHoldemService(ApplicationDbContext db) => _db = db;
 
-    public async Task<(bool Ok, string? Error)> CreateInitialStateAsync(Guid sessionId)
+    public async Task<(bool Ok, string? Error)> CreateInitialStateAsync(Guid sessionId, int? buyIn = null, int? bigBlind = null)
     {
         var session = await _db.GameSessions
             .Include(g => g.Players).ThenInclude(p => p.User)
@@ -33,7 +33,9 @@ public class TexasHoldemService
 
         var ordered = session.Players.OrderBy(p => p.SeatOrder).Take(6).ToList();
         var numPlayers = ordered.Count;
-        var smallBlind = DefaultBigBlind / 2;
+        var actualBuyIn = buyIn ?? DefaultBuyIn;
+        var actualBigBlind = bigBlind ?? DefaultBigBlind;
+        var smallBlind = actualBigBlind / 2;
         var deck = CreateAndShuffleDeck();
         var holeCards = new List<List<object>>();
         for (int i = 0; i < numPlayers; i++)
@@ -49,11 +51,11 @@ public class TexasHoldemService
         for (int i = 0; i < numPlayers; i++)
         {
             var displayName = ordered[i].User.DisplayName;
-            int stack = DefaultBuyIn;
+            int stack = actualBuyIn;
             int betThisHand = 0;
             bool actedThisRound = false;
-            if (i == sbIndex) { var post = Math.Min(smallBlind, stack); stack -= post; betThisHand = post; actedThisRound = true; pot += post; }
-            else if (i == bbIndex) { var post = Math.Min(DefaultBigBlind, stack); stack -= post; betThisHand = post; actedThisRound = true; pot += post; }
+            if (i == sbIndex) { var post = Math.Min(smallBlind, stack); stack -= post; betThisHand = post; actedThisRound = true; }
+            else if (i == bbIndex) { var post = Math.Min(actualBigBlind, stack); stack -= post; betThisHand = post; actedThisRound = true; }
             seats.Add(new
             {
                 id = $"p{i + 1}",
@@ -76,8 +78,8 @@ public class TexasHoldemService
             ["phase"] = "playing",
             ["seats"] = seats,
             ["numPlayers"] = numPlayers,
-            ["buyIn"] = DefaultBuyIn,
-            ["bigBlind"] = DefaultBigBlind,
+            ["buyIn"] = actualBuyIn,
+            ["bigBlind"] = actualBigBlind,
             ["smallBlind"] = smallBlind,
             ["dealerIndex"] = 0,
             ["currentActorIndex"] = currentActorIndex,
@@ -86,8 +88,8 @@ public class TexasHoldemService
             ["holeCards"] = holeCards,
             ["deck"] = deckJson,
             ["pot"] = pot,
-            ["currentBet"] = DefaultBigBlind,
-            ["minRaise"] = DefaultBigBlind,
+            ["currentBet"] = actualBigBlind,
+            ["minRaise"] = actualBigBlind,
             ["lastHandWinnerIndex"] = null,
             ["activeInHand"] = activeInHand,
         };

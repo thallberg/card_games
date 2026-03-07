@@ -287,7 +287,15 @@ app.MapPost("/api/gamesessions/{id:guid}/start", async (Guid id, HttpContext ctx
     }
     if (session.GameType == "TexasHoldem")
     {
-        var (initOk, initErr) = await texasHoldemService.CreateInitialStateAsync(id);
+        int? buyIn = null;
+        int? bigBlind = null;
+        try
+        {
+            var body = await ctx.Request.ReadFromJsonAsync<TexasHoldemStartRequest>();
+            if (body != null) { buyIn = body.BuyIn; bigBlind = body.BigBlind; }
+        }
+        catch { }
+        var (initOk, initErr) = await texasHoldemService.CreateInitialStateAsync(id, buyIn, bigBlind);
         if (!initOk) return Results.BadRequest(new { error = initErr ?? "Kunde inte initiera Texas Hold'em." });
     }
     var updated = await gameService.GetByIdAsync(id, userId);

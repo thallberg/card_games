@@ -106,7 +106,33 @@ export function useGameState() {
             }
           }
 
-          if (hand.length === 0) return s;
+          if (hand.length === 0) {
+            const updated = {
+              ...s,
+              melds,
+              cardsLaidThisTurn,
+              playerHands: { ...s.playerHands, [AI_PLAYER]: hand },
+              lastLaidMeldIds: aiLaidMeldId ? [aiLaidMeldId] : [],
+            };
+            if (s.lastDraw === "discard" && cardsLaidThisTurn < 3) {
+              updated.playerScores = {
+                ...updated.playerScores,
+                [AI_PLAYER]: (updated.playerScores[AI_PLAYER] ?? 0) - PICKUP_PENALTY,
+              };
+            }
+            const meldByPlayer = getMeldPointsByPlayer(updated.melds, getPlayerIds());
+            const newScores = { ...updated.playerScores };
+            newScores[AI_PLAYER] = (newScores[AI_PLAYER] ?? 0) + meldByPlayer[AI_PLAYER];
+            newScores[HUMAN_PLAYER] = (newScores[HUMAN_PLAYER] ?? 0) + meldByPlayer[HUMAN_PLAYER] - getHandPenalty(updated.playerHands[HUMAN_PLAYER] ?? []);
+            const gameWinner = checkGameOver(newScores);
+            return {
+              ...updated,
+              playerScores: newScores,
+              phase: gameWinner != null ? ("gameOver" as const) : ("roundEnd" as const),
+              winnerId: gameWinner ?? AI_PLAYER,
+              lastLaidMeldIds: [],
+            };
+          }
           const handIndex = Math.floor(Math.random() * hand.length);
           const cardToDiscard = hand[handIndex];
           const newHand = hand.filter((_, i) => i !== handIndex);
@@ -337,13 +363,33 @@ export function useGameState() {
           newMelds = [...newMelds, merged];
         }
       }
-      return {
+      const next = {
         ...s,
         playerHands: { ...s.playerHands, [HUMAN_PLAYER]: newHand },
         melds: newMelds,
         cardsLaidThisTurn: (s.cardsLaidThisTurn ?? 0) + cards.length,
         lastLaidMeldIds: [laidId],
       };
+      if (newHand.length === 0) {
+        const ids = getPlayerIds();
+        const meldByPlayer = getMeldPointsByPlayer(next.melds, ids);
+        const newScores = { ...next.playerScores };
+        newScores[HUMAN_PLAYER] = (newScores[HUMAN_PLAYER] ?? 0) + meldByPlayer[HUMAN_PLAYER];
+        for (const id of ids) {
+          if (id === HUMAN_PLAYER) continue;
+          const penalty = getHandPenalty(next.playerHands[id] ?? []);
+          newScores[id] = (newScores[id] ?? 0) + meldByPlayer[id] - penalty;
+        }
+        const gameWinner = checkGameOver(newScores);
+        return {
+          ...next,
+          playerScores: newScores,
+          phase: gameWinner != null ? ("gameOver" as const) : ("roundEnd" as const),
+          winnerId: gameWinner ?? HUMAN_PLAYER,
+          lastLaidMeldIds: [],
+        };
+      }
+      return next;
     });
   }, []);
 
@@ -382,13 +428,33 @@ export function useGameState() {
         newMelds = newMelds.filter((m) => m.id !== meldId && m.id !== otherRun.id);
         newMelds = [...newMelds, merged];
       }
-      return {
+      const next = {
         ...s,
         playerHands: { ...s.playerHands, [HUMAN_PLAYER]: newHand },
         melds: newMelds,
         cardsLaidThisTurn: (s.cardsLaidThisTurn ?? 0) + 1,
         lastLaidMeldIds: [laidId],
       };
+      if (newHand.length === 0) {
+        const ids = getPlayerIds();
+        const meldByPlayer = getMeldPointsByPlayer(next.melds, ids);
+        const newScores = { ...next.playerScores };
+        newScores[HUMAN_PLAYER] = (newScores[HUMAN_PLAYER] ?? 0) + meldByPlayer[HUMAN_PLAYER];
+        for (const id of ids) {
+          if (id === HUMAN_PLAYER) continue;
+          const penalty = getHandPenalty(next.playerHands[id] ?? []);
+          newScores[id] = (newScores[id] ?? 0) + meldByPlayer[id] - penalty;
+        }
+        const gameWinner = checkGameOver(newScores);
+        return {
+          ...next,
+          playerScores: newScores,
+          phase: gameWinner != null ? ("gameOver" as const) : ("roundEnd" as const),
+          winnerId: gameWinner ?? HUMAN_PLAYER,
+          lastLaidMeldIds: [],
+        };
+      }
+      return next;
     });
   }, []);
 
