@@ -13,7 +13,7 @@ import {
 import { sortHand } from "../deck";
 import { getMeldType, canAddCardToMeld, canMergeRuns, mergeRunMelds } from "../melds";
 import { findFirstPossibleMeld } from "../ai-melds";
-import { getHandPenalty, getMeldPoints } from "../scoring";
+import { getHandPenalty, getMeldPointsByPlayer } from "../scoring";
 import { PICKUP_PENALTY } from "../constants";
 
 const HUMAN_PLAYER: PlayerId = "p1";
@@ -129,12 +129,10 @@ export function useGameState() {
             };
           }
           if (newHand.length === 0) {
+            const meldByPlayer = getMeldPointsByPlayer(updated.melds, getPlayerIds());
             const newScores = { ...updated.playerScores };
-            for (const m of updated.melds) {
-              if (m.ownerId === AI_PLAYER)
-                newScores[AI_PLAYER] = (newScores[AI_PLAYER] ?? 0) + getMeldPoints(m.cards);
-            }
-            newScores[HUMAN_PLAYER] = (newScores[HUMAN_PLAYER] ?? 0) - getHandPenalty(updated.playerHands[HUMAN_PLAYER] ?? []);
+            newScores[AI_PLAYER] = (newScores[AI_PLAYER] ?? 0) + meldByPlayer[AI_PLAYER];
+            newScores[HUMAN_PLAYER] = (newScores[HUMAN_PLAYER] ?? 0) + meldByPlayer[HUMAN_PLAYER] - getHandPenalty(updated.playerHands[HUMAN_PLAYER] ?? []);
             const gameWinner = checkGameOver(newScores);
             return {
               ...updated,
@@ -261,17 +259,14 @@ export function useGameState() {
         };
       }
       if (newHand.length === 0) {
-        let myMeldPoints = 0;
-        for (const m of updated.melds) {
-          if (m.ownerId === HUMAN_PLAYER) myMeldPoints += getMeldPoints(m.cards);
-        }
-        const newScores = { ...updated.playerScores };
-        newScores[HUMAN_PLAYER] = (newScores[HUMAN_PLAYER] ?? 0) + myMeldPoints;
         const ids = getPlayerIds();
+        const meldByPlayer = getMeldPointsByPlayer(updated.melds, ids);
+        const newScores = { ...updated.playerScores };
+        newScores[HUMAN_PLAYER] = (newScores[HUMAN_PLAYER] ?? 0) + meldByPlayer[HUMAN_PLAYER];
         for (const id of ids) {
           if (id === HUMAN_PLAYER) continue;
           const penalty = getHandPenalty(updated.playerHands[id] ?? []);
-          newScores[id] = (newScores[id] ?? 0) - penalty;
+          newScores[id] = (newScores[id] ?? 0) + meldByPlayer[id] - penalty;
         }
         const gameWinner = checkGameOver(newScores);
         return {
@@ -374,7 +369,8 @@ export function useGameState() {
       const newWildRepresents = wildAs && card.rank === "2"
         ? { ...meld.wildRepresents, [newIndex]: wildAs }
         : meld.wildRepresents;
-      const updatedMeld = { ...meld, cards: newCards, wildRepresents: newWildRepresents };
+      const newCardContributors = { ...meld.cardContributors, [newIndex]: HUMAN_PLAYER };
+      const updatedMeld = { ...meld, cards: newCards, wildRepresents: newWildRepresents, cardContributors: newCardContributors };
       let newMelds = s.melds.map((m) =>
         m.id === meldId ? updatedMeld : m
       );

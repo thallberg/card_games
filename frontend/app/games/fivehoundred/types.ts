@@ -36,6 +36,8 @@ export type Meld = {
   wildRepresents?: Record<number, Card>;
   /** Spelare som lade ut melden (för poäng vid rundavslut). */
   ownerId?: string;
+  /** Index i cards → spelare som lade till det kortet (addcardtomeld). Om saknas, räknas kortet till ownerId. */
+  cardContributors?: Record<number, string>;
 };
 
 export type PlayerId = string;

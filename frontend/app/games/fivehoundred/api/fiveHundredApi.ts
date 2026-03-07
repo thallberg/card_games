@@ -28,6 +28,7 @@ function apiStateToGameState(raw: Record<string, unknown>): GameState {
     type?: string; Type?: string;
     wildRepresents?: Record<string, unknown>; WildRepresents?: Record<string, unknown>;
     ownerId?: string; OwnerId?: string;
+    cardContributors?: Record<string, string>; CardContributors?: Record<string, string>;
   }>;
   return {
     stock: normalizeCards((r.stock ?? r.Stock ?? []) as unknown[]),
@@ -45,12 +46,23 @@ function apiStateToGameState(raw: Record<string, unknown>): GameState {
         if (Object.keys(wildRepresents).length === 0) wildRepresents = undefined;
       }
       const ownerId = (m.ownerId ?? m.OwnerId) as string | undefined;
+      const rawContrib = (m.cardContributors ?? m.CardContributors) as Record<string, string> | undefined;
+      let cardContributors: Record<number, string> | undefined;
+      if (rawContrib && typeof rawContrib === "object") {
+        cardContributors = {};
+        for (const [k, v] of Object.entries(rawContrib)) {
+          const i = parseInt(k, 10);
+          if (!Number.isNaN(i) && typeof v === "string") cardContributors![i] = v;
+        }
+        if (Object.keys(cardContributors).length === 0) cardContributors = undefined;
+      }
       return {
         id: (m.id ?? m.Id ?? "") as string,
         cards: normalizeCards((m.cards ?? m.Cards ?? []) as unknown[]),
         type: ((m.type ?? m.Type ?? "set") as "set" | "run") ?? "set",
         ...(wildRepresents && { wildRepresents }),
         ...(ownerId && { ownerId }),
+        ...(cardContributors && { cardContributors }),
       };
     }),
     currentPlayerId: (r.currentPlayerId ?? r.CurrentPlayerId ?? null) as GameState["currentPlayerId"],

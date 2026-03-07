@@ -309,13 +309,16 @@ export function mergeRunMelds(meldA: Meld, meldB: Meld): Meld {
   const effectiveB = getEffectiveMeldCards(meldB);
   const ordering = getRunOrdering([...effectiveA, ...effectiveB]);
   const order = ordering === "low" ? RANK_ORDER_LOW : RANK_ORDER;
-  const pairsA: [Card, Card][] = meldA.cards.map((c, i) => [c, effectiveA[i]]);
-  const pairsB: [Card, Card][] = meldB.cards.map((c, i) => [c, effectiveB[i]]);
+  const getContrib = (m: Meld, i: number) => m.cardContributors?.[i] ?? m.ownerId;
+  const pairsA: [Card, Card, string][] = meldA.cards.map((c, i) => [c, effectiveA[i], getContrib(meldA, i) ?? ""]);
+  const pairsB: [Card, Card, string][] = meldB.cards.map((c, i) => [c, effectiveB[i], getContrib(meldB, i) ?? ""]);
   const pairs = [...pairsA, ...pairsB].sort((pa, pb) => (order[pa[1].rank] ?? 0) - (order[pb[1].rank] ?? 0));
   const cards = pairs.map((p) => p[0]);
   const wildRepresents: Record<number, Card> = {};
-  pairs.forEach(([phys, eff], i) => {
+  const cardContributors: Record<number, string> = {};
+  pairs.forEach(([phys, eff, contrib], i) => {
     if (isWild(phys)) wildRepresents[i] = eff;
+    if (contrib) cardContributors[i] = contrib;
   });
   return {
     id: meldA.id,
@@ -323,6 +326,7 @@ export function mergeRunMelds(meldA: Meld, meldB: Meld): Meld {
     type: "run",
     ownerId: meldA.ownerId,
     ...(Object.keys(wildRepresents).length > 0 ? { wildRepresents } : undefined),
+    ...(Object.keys(cardContributors).length > 0 ? { cardContributors } : undefined),
   };
 }
 
