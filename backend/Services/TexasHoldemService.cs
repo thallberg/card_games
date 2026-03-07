@@ -22,8 +22,7 @@ public class TexasHoldemService
 
     public TexasHoldemService(ApplicationDbContext db) => _db = db;
 
-    /// <summary>Skapar initial Texas Hold'em-state när spelet startas. Samma mönster som FiveHundred och Chicago.</summary>
-    public async Task<(bool Ok, string? Error)> CreateInitialStateAsync(Guid sessionId)
+    public async Task<(bool Ok, string? Error)> CreateInitialStateAsync(Guid sessionId, int? buyIn = null, int? bigBlind = null)
     {
         var session = await _db.GameSessions
             .Include(g => g.Players)
@@ -34,7 +33,9 @@ public class TexasHoldemService
 
         var ordered = session.Players.OrderBy(p => p.SeatOrder).Take(6).ToList();
         var numPlayers = ordered.Count;
-        var smallBlind = DefaultBigBlind / 2;
+        var actualBuyIn = buyIn ?? DefaultBuyIn;
+        var actualBigBlind = bigBlind ?? DefaultBigBlind;
+        var smallBlind = actualBigBlind / 2;
         var deck = CreateAndShuffleDeck();
         int sbIndex = numPlayers == 2 ? 0 : 1;
         int bbIndex = numPlayers == 2 ? 1 : 2;
@@ -55,11 +56,11 @@ public class TexasHoldemService
         var seatsArray = new JsonArray();
         for (int i = 0; i < numPlayers; i++)
         {
-            int stack = DefaultBuyIn;
+            int stack = actualBuyIn;
             int betThisHand = 0;
             bool actedThisRound = false;
             if (i == sbIndex) { var post = Math.Min(smallBlind, stack); stack -= post; betThisHand = post; actedThisRound = true; pot += post; }
-            else if (i == bbIndex) { var post = Math.Min(DefaultBigBlind, stack); stack -= post; betThisHand = post; actedThisRound = true; pot += post; }
+            else if (i == bbIndex) { var post = Math.Min(actualBigBlind, stack); stack -= post; betThisHand = post; actedThisRound = true; pot += post; }
             seatsArray.Add(new JsonObject
             {
                 ["id"] = $"p{i + 1}",
@@ -86,8 +87,8 @@ public class TexasHoldemService
             ["phase"] = "playing",
             ["seats"] = seatsArray,
             ["numPlayers"] = numPlayers,
-            ["buyIn"] = DefaultBuyIn,
-            ["bigBlind"] = DefaultBigBlind,
+            ["buyIn"] = actualBuyIn,
+            ["bigBlind"] = actualBigBlind,
             ["smallBlind"] = smallBlind,
             ["dealerIndex"] = 0,
             ["currentActorIndex"] = currentActorIndex,
@@ -96,8 +97,8 @@ public class TexasHoldemService
             ["holeCards"] = holeCardsArray,
             ["deck"] = deckArray,
             ["pot"] = pot,
-            ["currentBet"] = DefaultBigBlind,
-            ["minRaise"] = DefaultBigBlind,
+            ["currentBet"] = actualBigBlind,
+            ["minRaise"] = actualBigBlind,
             ["lastHandWinnerIndex"] = null,
             ["activeInHand"] = activeInHandArray,
         };

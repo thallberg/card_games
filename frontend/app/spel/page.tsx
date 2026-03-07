@@ -4,6 +4,15 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { apiFetch } from "@/lib/api";
 
 type Player = { userId: string; displayName: string; seatOrder: number; joinedAt: string };
@@ -26,6 +35,11 @@ export default function SpelPage() {
   const [starting, setStarting] = useState<string | null>(null);
   const [leaving, setLeaving] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [texasSetup, setTexasSetup] = useState<{
+    sessionId: string;
+    buyIn: number;
+    bigBlind: number;
+  } | null>(null);
 
   useEffect(() => {
     const raw = typeof window !== "undefined" ? localStorage.getItem("user") : null;
@@ -57,11 +71,13 @@ export default function SpelPage() {
     return () => { cancelled = true; };
   }, [router]);
 
-  const handleStart = async (sessionId: string) => {
+  const handleStart = async (sessionId: string, body?: { buyIn?: number; bigBlind?: number }) => {
     setStarting(sessionId);
     try {
       const res = await apiFetch(`/api/gamesessions/${sessionId}/start`, {
         method: "POST",
+        headers: body ? { "Content-Type": "application/json" } : undefined,
+        body: body ? JSON.stringify(body) : undefined,
       });
       if (res.ok) {
         const session = sessions.find((s) => s.id === sessionId);
@@ -72,6 +88,7 @@ export default function SpelPage() {
               ? "/games/texasholdem"
               : "/games/fivehoundred";
         router.push(`${gamePath}?sessionId=${sessionId}`);
+        setTexasSetup(null);
         return;
       }
     } finally {
@@ -136,13 +153,29 @@ export default function SpelPage() {
                         <div className="flex flex-wrap items-center gap-2 shrink-0">
                           {isLeader && (
                             s.currentPlayerCount >= 2 ? (
-                              <Button
-                                size="sm"
-                                onClick={() => handleStart(s.id)}
-                                disabled={starting === s.id}
-                              >
-                                {starting === s.id ? "Startar..." : "Starta spelet"}
-                              </Button>
+                              s.gameType === "TexasHoldem" ? (
+                                <Button
+                                  size="sm"
+                                  onClick={() =>
+                                    setTexasSetup({
+                                      sessionId: s.id,
+                                      buyIn: 2000,
+                                      bigBlind: 20,
+                                    })
+                                  }
+                                  disabled={starting === s.id}
+                                >
+                                  Starta spelet
+                                </Button>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleStart(s.id)}
+                                  disabled={starting === s.id}
+                                >
+                                  {starting === s.id ? "Startar..." : "Starta spelet"}
+                                </Button>
+                              )
                             ) : (
                               <span className="text-muted-foreground text-sm">Väntar på spelare</span>
                             )
@@ -208,6 +241,72 @@ export default function SpelPage() {
           </div>
         )}
       </section>
+
+      <Dialog open={!!texasSetup} onOpenChange={(open) => !open && setTexasSetup(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Texas Hold&apos;em – Inställningar</DialogTitle>
+          </DialogHeader>
+          {texasSetup && (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleStart(texasSetup.sessionId, {
+                  buyIn: texasSetup.buyIn,
+                  bigBlind: texasSetup.bigBlind,
+                });
+              }}
+              className="space-y-4"
+            >
+              <div>
+                <Label htmlFor="buyin">Buy-in per spelare</Label>
+                <Input
+                  id="buyin"
+                  type="number"
+                  min={1}
+                  value={texasSetup.buyIn}
+                  onChange={(e) =>
+                    setTexasSetup((p) =>
+                      p ? { ...p, buyIn: Number(e.target.value) || 2000 } : p
+                    )
+                  }
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="bigblind">Big blind</Label>
+                <Input
+                  id="bigblind"
+                  type="number"
+                  min={1}
+                  value={texasSetup.bigBlind}
+                  onChange={(e) =>
+                    setTexasSetup((p) =>
+                      p ? { ...p, bigBlind: Number(e.target.value) || 20 } : p
+                    )
+                  }
+                  className="mt-1"
+                />
+                <p className="text-muted-foreground text-sm mt-1">
+                  Small blind blir automatiskt hälften: {Math.floor(texasSetup.bigBlind / 2)}
+                </p>
+              </div>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setTexasSetup(null)}
+                >
+                  Avbryt
+                </Button>
+                <Button type="submit" disabled={starting === texasSetup.sessionId}>
+                  {starting === texasSetup.sessionId ? "Startar..." : "Starta spelet"}
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }

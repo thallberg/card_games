@@ -98,12 +98,12 @@ public class FiveHundredService
         state.Stock = stock;
         state.Discard = discard;
         state.Melds = new List<MeldDto>();
-        state.CurrentPlayerId = P1;
+        state.RoundNumber = state.RoundNumber + 1;
+        state.CurrentPlayerId = state.RoundNumber % 2 == 1 ? P1 : P2;
         state.PlayerHands = hands;
         state.Phase = "draw";
         state.LastDraw = null;
         state.WinnerId = null;
-        state.RoundNumber = state.RoundNumber + 1;
 
         row.StateJson = JsonSerializer.Serialize(state, JsonOptions);
         row.UpdatedAt = DateTime.UtcNow;
@@ -223,6 +223,8 @@ public class FiveHundredService
                 s.Melds.Add(newMeld);
                 s.CardsLaidThisTurn += cards.Count;
                 s.LastLaidMeldIds = new List<string> { newMeld.Id };
+                if (addMeldHand.Count == 0)
+                    EndRound(s, playerId);
                 return (null, null);
             case "addcardtomeld":
                 if (s.Phase != "meldOrDiscard" || string.IsNullOrEmpty(a.MeldId) || a.CardIndex == null) return ("Ogiltigt drag.", null);
@@ -244,6 +246,8 @@ public class FiveHundredService
                 SortHand(addToMeldHand);
                 s.CardsLaidThisTurn += 1;
                 s.LastLaidMeldIds = new List<string> { a.MeldId };
+                if (addToMeldHand.Count == 0)
+                    EndRound(s, playerId);
                 return (null, null);
             default:
                 return ("Okänd åtgärd.", null);

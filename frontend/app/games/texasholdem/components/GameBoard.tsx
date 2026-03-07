@@ -8,6 +8,7 @@ import {
   call,
   raise,
   startNextHand,
+  getTotalPot,
 } from "../game-state";
 import type { Card } from "../types";
 import { bestHand, handRankLabel } from "../hand-rankings";
@@ -261,7 +262,7 @@ export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoar
           ))}
         </div>
         <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground">
-          <span>Pot {state.pot}</span>
+          <span>Pot {getTotalPot(state)}</span>
           <span>Bet att matcha {currentBet}</span>
         </div>
       </div>

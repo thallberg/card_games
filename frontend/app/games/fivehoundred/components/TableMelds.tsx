@@ -22,8 +22,21 @@ type TableMeldsProps = {
   lastLaidMeldIds?: string[];
 };
 
+function isCompletedSet(meld: Meld): boolean {
+  if (meld.type === "run") return false;
+  return meld.cards.length >= 4;
+}
+
 export function TableMelds({ melds, lastLaidMeldIds = [] }: TableMeldsProps) {
   const recentSet = new Set(lastLaidMeldIds);
+  const sortedMelds = [...melds].sort((a, b) => {
+    const aRecent = recentSet.has(a.id) ? 1 : 0;
+    const bRecent = recentSet.has(b.id) ? 1 : 0;
+    if (aRecent !== bRecent) return bRecent - aRecent;
+    const aComplete = isCompletedSet(a) ? 1 : 0;
+    const bComplete = isCompletedSet(b) ? 1 : 0;
+    return aComplete - bComplete;
+  });
   return (
     <div className="w-full max-h-[320px] overflow-y-auto overflow-x-hidden rounded-lg border border-dashed border-muted-foreground/20 bg-muted/10">
       <div className="grid grid-cols-3 gap-3 p-4">
@@ -32,7 +45,7 @@ export function TableMelds({ melds, lastLaidMeldIds = [] }: TableMeldsProps) {
             Inga kombinationer utlagda än.
           </p>
         ) : (
-          melds.map((meld) => (
+          sortedMelds.map((meld) => (
             <div
               key={meld.id}
               className={cn(

@@ -68,7 +68,7 @@ export function checkGameOver(scores: Record<PlayerId, number>): PlayerId | null
   return null;
 }
 
-/** Ny rond: behåller poäng och roundNumber, ny kortlek och giv. */
+/** Ny rond: behåller poäng och roundNumber, ny kortlek och giv. Varannan rond: p1 börjar, varannan p2. */
 export function createNewRoundState(current: GameState): GameState {
   const deck = shuffle(createDeck());
   const hands: Record<PlayerId, Card[]> = {} as Record<PlayerId, Card[]>;
@@ -79,17 +79,19 @@ export function createNewRoundState(current: GameState): GameState {
   }
   const stock = deck.slice(HAND_SIZE * PLAYER_IDS.length);
   const discard = stock.length > 0 ? [stock.pop()!] : [];
+  const newRoundNumber = current.roundNumber + 1;
+  const firstPlayerIndex = (newRoundNumber - 1) % PLAYER_IDS.length;
   return {
     stock,
     discard,
     melds: [],
-    currentPlayerId: PLAYER_IDS[0],
+    currentPlayerId: PLAYER_IDS[firstPlayerIndex],
     playerHands: hands,
     playerScores: { ...current.playerScores },
     phase: "draw",
     lastDraw: null,
     cardsLaidThisTurn: 0,
-    roundNumber: current.roundNumber + 1,
+    roundNumber: newRoundNumber,
     winnerId: null,
   };
 }

@@ -114,7 +114,7 @@ export function startNewGame(
       isAllIn: stack <= 0,
     };
   });
-  const pot = (seatsWithBlinds[sbIndex]?.betThisHand ?? 0) + (seatsWithBlinds[bbIndex]?.betThisHand ?? 0);
+  const pot = 0;
   const currentActorIndex = numPlayers === 2 ? 0 : 2;
   const activeInHand = seatsWithBlinds.map((_, i) => i).filter((i) => !seatsWithBlinds[i].folded);
 
@@ -143,6 +143,11 @@ export function getSmallBlind(bigBlind: number): number {
   return Math.floor(bigBlind / 2);
 }
 
+export function getTotalPot(state: TexasHoldemState): number {
+  const inPot = state.seats.reduce((sum, s) => sum + (s.betThisHand ?? 0), 0);
+  return state.pot + inPot;
+}
+
 function nextActiveSeatIndex(state: TexasHoldemState, from: number): number {
   const n = state.numPlayers;
   for (let i = 1; i <= n; i++) {
@@ -169,8 +174,8 @@ function allActedThisRound(state: TexasHoldemState): boolean {
 
 function advanceBettingPhase(state: TexasHoldemState): TexasHoldemState {
   const addedPot = state.seats.reduce((sum, s) => sum + s.betThisHand, 0);
-  const pot = state.pot + addedPot;
   const seats = state.seats.map((s) => ({ ...s, actedThisRound: false, betThisHand: 0 }));
+  const pot = state.pot + addedPot;
   const active = state.activeInHand.filter((i) => !seats[i].folded);
   if (active.length <= 1) {
     const winner = active[0];
@@ -319,8 +324,7 @@ export function call(state: TexasHoldemState, seatIndex: number): TexasHoldemSta
         }
       : s
   );
-  const pot = state.pot + amount;
-  const nextState = { ...state, seats, pot };
+  const nextState = { ...state, seats };
   if (allActedThisRound(nextState)) {
     if (nextState.bettingPhase === "showdown") return doShowdown(nextState);
     return advanceBettingPhase(nextState);
@@ -353,11 +357,9 @@ export function raise(
         }
       : { ...s, actedThisRound: false }
   );
-  const pot = state.pot + actual;
   const nextState = {
     ...state,
     seats,
-    pot,
     currentBet: newCurrentBet,
     minRaise: Math.max(state.minRaise, newCurrentBet - state.currentBet),
   };
@@ -409,7 +411,7 @@ export function startNextHand(state: TexasHoldemState): TexasHoldemState {
       isAllIn: stack <= 0,
     };
   });
-  const pot = (seats[sbIndex]?.betThisHand ?? 0) + (seats[bbIndex]?.betThisHand ?? 0);
+  const pot = 0;
   const currentActorIndex = numPlayers === 2 ? sbIndex : (bbIndex + 1) % numPlayers;
   const activeInHand = seats.map((_, i) => i).filter((i) => !seats[i].folded);
 
