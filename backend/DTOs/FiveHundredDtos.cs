@@ -38,6 +38,8 @@ public class MeldDto
     public Dictionary<int, CardDto>? WildRepresents { get; set; }
     /// <summary>Spelare som lade ut denna meld (för poängberäkning vid rundavslut).</summary>
     public string? OwnerId { get; set; }
+    /// <summary>Index i Cards -> spelare som lade till det kortet (addcardtomeld). Om saknas, räknas kortet till OwnerId.</summary>
+    public Dictionary<int, string>? CardContributors { get; set; }
 }
 
 public class FiveHundredActionRequest

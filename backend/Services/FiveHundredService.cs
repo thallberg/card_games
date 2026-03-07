@@ -234,6 +234,8 @@ public class FiveHundredService
                 addToMeldHand.RemoveAt(a.CardIndex.Value);
                 meld.Cards.Add(addCard);
                 var newIdx = meld.Cards.Count - 1;
+                meld.CardContributors ??= new Dictionary<int, string>();
+                meld.CardContributors[newIdx] = playerId;
                 if (addCard.Rank == "2" && a.WildAs != null)
                 {
                     meld.WildRepresents ??= new Dictionary<int, CardDto>();
@@ -320,22 +322,37 @@ public class FiveHundredService
 
     private const int PointsToWin = 500;
 
+    /// <summary>Vilken spelare får poäng för kort i meld – den som lade till kortet (CardContributors) eller meld-ägaren (OwnerId).</summary>
+    private static string GetCardPointOwner(MeldDto m, int cardIndex)
+    {
+        if (m.CardContributors != null && m.CardContributors.TryGetValue(cardIndex, out var contrib))
+            return contrib;
+        return m.OwnerId ?? "";
+    }
+
     private static void EndRound(FiveHundredStateDto s, string winnerId)
     {
-        var winnerScore = s.PlayerScores.TryGetValue(winnerId, out var ws) ? ws : 0;
+        var meldPointsByPlayer = new Dictionary<string, int>();
+        foreach (var pid in PlayerIds) meldPointsByPlayer[pid] = 0;
         foreach (var m in s.Melds)
         {
-            if (m.OwnerId != winnerId) continue;
-            winnerScore += m.Cards.Sum(c => GetCardPoints(c.Rank));
+            for (int i = 0; i < m.Cards.Count; i++)
+            {
+                var owner = GetCardPointOwner(m, i);
+                if (string.IsNullOrEmpty(owner) || !meldPointsByPlayer.ContainsKey(owner)) continue;
+                var pts = GetCardPoints(m.Cards[i].Rank);
+                meldPointsByPlayer[owner] += pts;
+            }
         }
+        var winnerScore = (s.PlayerScores.TryGetValue(winnerId, out var ws) ? ws : 0) + meldPointsByPlayer[winnerId];
         s.PlayerScores[winnerId] = winnerScore;
         foreach (var pid in PlayerIds)
         {
             if (pid == winnerId) continue;
             var oppHand = s.PlayerHands.TryGetValue(pid, out var oh) ? oh : new List<CardDto>();
-            var penalty = oppHand.Sum(c => GetCardPoints(c.Rank));
+            var handPenalty = oppHand.Sum(c => GetCardPoints(c.Rank));
             var oppScore = s.PlayerScores.TryGetValue(pid, out var os) ? os : 0;
-            s.PlayerScores[pid] = oppScore - penalty;
+            s.PlayerScores[pid] = oppScore + meldPointsByPlayer[pid] - handPenalty;
         }
         s.WinnerId = winnerId;
         s.Phase = winnerScore >= PointsToWin ? "gameOver" : "roundEnd";

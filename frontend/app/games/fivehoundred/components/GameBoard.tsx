@@ -11,7 +11,7 @@ import {
   MeldBuilderModal,
 } from "./index";
 import { Button } from "@/components/ui/button";
-import { getMeldPoints } from "../scoring";
+import { getCardPoints } from "../scoring";
 
 type GameBoardProps = { sessionId?: string };
 
@@ -81,10 +81,13 @@ export function GameBoard({ sessionId }: GameBoardProps) {
     const ids = state ? Object.keys(state.playerHands) : [];
     for (const id of ids) byPlayer[id] = 0;
     for (const meld of state?.melds ?? []) {
-      const owner = meld.ownerId ?? ids[0];
-      if (byPlayer[owner] !== undefined) {
-        byPlayer[owner] = (byPlayer[owner] ?? 0) + getMeldPoints(meld.cards);
-      }
+      const defaultOwner = meld.ownerId ?? ids[0];
+      meld.cards.forEach((card, i) => {
+        const pointOwner = meld.cardContributors?.[i] ?? defaultOwner;
+        if (byPlayer[pointOwner] !== undefined) {
+          byPlayer[pointOwner] += getCardPoints(card);
+        }
+      });
     }
     return byPlayer;
   }, [state?.melds, state?.playerHands]);
@@ -161,6 +164,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
               count={state.stock.length}
               onDraw={drawFromStock}
               disabled={!canDraw}
+              isMyTurn={isHumanTurn}
             />
             <DiscardPile
               topCard={topDiscard}

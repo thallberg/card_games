@@ -1,4 +1,5 @@
 import type { Card } from "./types";
+import type { Meld } from "./types";
 
 /**
  * Poäng per valör (vid utläggning).
@@ -34,4 +35,23 @@ export function getMeldPoints(cards: Card[]): number {
  */
 export function getHandPenalty(cards: Card[]): number {
   return cards.reduce((sum, c) => sum + getCardPoints(c), 0);
+}
+
+/** Poäng per spelare från melds – varje kort ger poäng till den som lade det (cardContributors) eller meld-ägaren (ownerId). */
+export function getMeldPointsByPlayer(
+  melds: Meld[],
+  playerIds: string[]
+): Record<string, number> {
+  const byPlayer: Record<string, number> = {};
+  for (const id of playerIds) byPlayer[id] = 0;
+  for (const meld of melds) {
+    const defaultOwner = meld.ownerId ?? playerIds[0];
+    meld.cards.forEach((card, i) => {
+      const pointOwner = meld.cardContributors?.[i] ?? defaultOwner;
+      if (byPlayer[pointOwner] !== undefined) {
+        byPlayer[pointOwner] += getCardPoints(card);
+      }
+    });
+  }
+  return byPlayer;
 }

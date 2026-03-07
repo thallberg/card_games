@@ -34,7 +34,7 @@ export function useGameStateMultiplayer(sessionId: string | undefined) {
 
   useEffect(() => {
     if (!sessionId || !state) return;
-    if (state.phase === "roundEnd" || state.phase === "gameOver") {
+    if (state.phase === "gameOver") {
       if (pollRef.current) {
         clearInterval(pollRef.current);
         pollRef.current = null;
@@ -42,7 +42,7 @@ export function useGameStateMultiplayer(sessionId: string | undefined) {
       return;
     }
     const isMyTurn = state.currentPlayerId === myPlayerId;
-    if (isMyTurn) {
+    if (isMyTurn && state.phase !== "roundEnd") {
       if (pollRef.current) {
         clearInterval(pollRef.current);
         pollRef.current = null;
