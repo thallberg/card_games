@@ -17,11 +17,13 @@ export async function sendTexasHoldemAction(
   sessionId: string,
   action: string,
   stateJson: string
-): Promise<boolean> {
+): Promise<{ ok: boolean; state?: unknown }> {
   const res = await apiFetch(`/api/gamesessions/${sessionId}/texasholdem/action`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ action: "saveState", stateJson }),
   });
-  return res.ok;
+  if (!res.ok) return { ok: false };
+  const data = await res.json();
+  return { ok: true, state: data.state };
 }

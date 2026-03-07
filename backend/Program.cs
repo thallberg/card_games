@@ -370,9 +370,10 @@ app.MapPost("/api/gamesessions/{id:guid}/texasholdem/action", async (Guid id, Te
 {
     var userId = GetUserId(ctx.User);
     if (userId == null) return Results.Unauthorized();
-    var (ok, err) = await texasHoldemService.ApplyActionAsync(id, userId.Value, req);
+    var (ok, err, stateJson) = await texasHoldemService.ApplyActionAsync(id, userId.Value, req);
     if (!ok) return Results.BadRequest(new { error = err });
-    return Results.Ok();
+    var state = stateJson != null ? System.Text.Json.JsonSerializer.Deserialize<object>(stateJson) : null;
+    return Results.Json(new { state });
 }).RequireAuthorization();
 
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok", app = "Kortspel API" }));

@@ -57,6 +57,11 @@ function getRunOrdering(cards: Card[]): "low" | "high" {
   const hasAce = cards.some((c) => c.rank === "ace");
   const has2 = cards.some((c) => c.rank === "2");
   if (hasAce && has2) return "low";
+  if (hasAce) {
+    const highOrder = RANK_ORDER;
+    const hasHighNonAce = cards.some((c) => c.rank !== "ace" && (highOrder[c.rank] ?? 0) >= 9);
+    return hasHighNonAce ? "high" : "low";
+  }
   return "high";
 }
 
@@ -113,7 +118,7 @@ export function isValidRun(cards: Card[]): boolean {
   const hasAce = rest.some((c) => c.rank === "ace");
   const has2 = rest.some((c) => c.rank === "2");
   if (hasAce && has2) return tryOrdering("low");
-  if (hasAce) return tryOrdering("high");
+  if (hasAce) return tryOrdering("high") || tryOrdering("low");
   return tryOrdering("high");
 }
 
