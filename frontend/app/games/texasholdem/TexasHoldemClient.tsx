@@ -131,10 +131,18 @@ export function TexasHoldemClient() {
   };
 
   const handleStateChange = useCallback(
-    (newState: TexasHoldemState) => {
+    async (newState: TexasHoldemState) => {
       setState(newState);
       if (isMultiplayer && sessionId) {
-        sendTexasHoldemAction(sessionId, "saveState", JSON.stringify(newState));
+        const result = await sendTexasHoldemAction(
+          sessionId,
+          "saveState",
+          JSON.stringify(newState)
+        );
+        if (result.ok && result.state != null) {
+          const parsed = parseState(result.state);
+          if (parsed) setState(parsed);
+        }
       }
     },
     [isMultiplayer, sessionId]

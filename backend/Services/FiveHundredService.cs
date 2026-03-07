@@ -310,7 +310,13 @@ public class FiveHundredService
         if (effective.Any(c => c.Suit != suit)) return false;
         var hasAce = effective.Any(c => c.Rank == "ace");
         var has2 = effective.Any(c => c.Rank == "2");
-        var order = (hasAce && has2) ? RankOrderLow : RankOrder;
+        if (hasAce && has2) return TryRunWithOrder(effective, RankOrderLow);
+        if (hasAce) return TryRunWithOrder(effective, RankOrder) || TryRunWithOrder(effective, RankOrderLow);
+        return TryRunWithOrder(effective, RankOrder);
+    }
+
+    private static bool TryRunWithOrder(List<CardDto> effective, Dictionary<string, int> order)
+    {
         var values = effective.Select(c => order.GetValueOrDefault(c.Rank, -1)).Where(v => v >= 0).OrderBy(x => x).ToList();
         if (values.Count != effective.Count) return false;
         var seen = new HashSet<int>();

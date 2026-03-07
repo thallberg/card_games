@@ -159,21 +159,21 @@ public class TexasHoldemService
         return (stateJson, mySeatIndex);
     }
 
-    /// <summary>Apply action: client sends updated state. Server merges with existing state so other players' hole cards are preserved.</summary>
-    public async Task<(bool Ok, string? Error)> ApplyActionAsync(Guid sessionId, Guid userId, TexasHoldemActionRequest request)
+    /// <summary>Apply action: client sends updated state. Server merges with existing state so other players' hole cards are preserved. Runs server-side showdown when phase=handOver. Returns corrected state JSON.</summary>
+    public async Task<(bool Ok, string? Error, string? StateJson)> ApplyActionAsync(Guid sessionId, Guid userId, TexasHoldemActionRequest request)
     {
         var session = await _db.GameSessions.Include(g => g.Players).FirstOrDefaultAsync(g => g.Id == sessionId);
-        if (session == null) return (false, "Sessionen hittades inte.");
-        if (session.Players.All(p => p.UserId != userId)) return (false, "Du är inte med i spelet.");
+        if (session == null) return (false, "Sessionen hittades inte.", null);
+        if (session.Players.All(p => p.UserId != userId)) return (false, "Du är inte med i spelet.", null);
 
         var row = await _db.TexasHoldemStates.FirstOrDefaultAsync(t => t.GameSessionId == sessionId);
-        if (row == null) return (false, "Spelet har inte startat.");
+        if (row == null) return (false, "Spelet har inte startat.", null);
 
         if (request.Action == "saveState" && request.StateJson != null)
         {
             var ordered = session.Players.OrderBy(p => p.SeatOrder).ToList();
             var mySeatIndex = ordered.FindIndex(p => p.UserId == userId);
-            if (mySeatIndex < 0) return (false, "Du är inte med i spelet.");
+            if (mySeatIndex < 0) return (false, "Du är inte med i spelet.", null);
 
             using var serverDoc = JsonDocument.Parse(row.StateJson);
             var serverRoot = serverDoc.RootElement;
@@ -212,12 +212,118 @@ public class TexasHoldemService
                 await writer.FlushAsync();
             }
             outStream.Position = 0;
-            row.StateJson = await new StreamReader(outStream).ReadToEndAsync();
+            var mergedJson = await new StreamReader(outStream).ReadToEndAsync();
+
+            var merged = JsonNode.Parse(mergedJson);
+            if (merged != null && merged["phase"]?.GetValue<string>() == "handOver")
+            {
+                var winner = ResolveShowdown(merged);
+                if (winner != null)
+                    merged["lastHandWinnerIndex"] = winner.Value;
+            }
+
+            row.StateJson = merged?.ToJsonString() ?? mergedJson;
             row.UpdatedAt = DateTime.UtcNow;
             await _db.SaveChangesAsync();
-            return (true, null);
+
+            // Vid handOver visas alla kort (showdown). Annars maskera andra spelares hole cards.
+            var stateToReturn = merged?["phase"]?.GetValue<string>() == "handOver"
+                ? row.StateJson
+                : MaskStateForUser(row.StateJson, mySeatIndex);
+            return (true, null, stateToReturn);
         }
-        return (false, "Ogiltig action.");
+        return (false, "Ogiltig action.", null);
+    }
+
+    private static string? MaskStateForUser(string stateJson, int mySeatIndex)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(stateJson);
+            var root = doc.RootElement;
+            using var stream = new MemoryStream();
+            using (var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = false }))
+            {
+                writer.WriteStartObject();
+                foreach (var prop in root.EnumerateObject())
+                {
+                    writer.WritePropertyName(prop.Name);
+                    if (prop.Name == "holeCards" && prop.Value.ValueKind == JsonValueKind.Array)
+                    {
+                        writer.WriteStartArray();
+                        for (int i = 0; i < prop.Value.GetArrayLength(); i++)
+                        {
+                            if (i == mySeatIndex)
+                                prop.Value[i].WriteTo(writer);
+                            else
+                            {
+                                writer.WriteStartArray();
+                                writer.WriteEndArray();
+                            }
+                        }
+                        writer.WriteEndArray();
+                    }
+                    else
+                        prop.Value.WriteTo(writer);
+                }
+                writer.WriteEndObject();
+                writer.Flush();
+            }
+            stream.Position = 0;
+            return new StreamReader(stream).ReadToEnd();
+        }
+        catch { return stateJson; }
+    }
+
+    /// <summary>Runs showdown with full hole cards (server has them) and returns correct winner seat index.</summary>
+    private static int? ResolveShowdown(JsonNode state)
+    {
+        var holeCards = state["holeCards"] as JsonArray;
+        var board = state["board"] as JsonArray;
+        var seats = state["seats"] as JsonArray;
+        var activeInHand = state["activeInHand"] as JsonArray;
+        if (holeCards == null || board == null || seats == null || activeInHand == null) return null;
+        if (board.Count < 5) return null;
+
+        var boardEl = JsonDocument.Parse(board.ToJsonString()).RootElement;
+        var folded = new HashSet<int>();
+        for (int i = 0; i < seats.Count; i++)
+        {
+            var s = seats[i] as JsonObject;
+            if (s?["folded"]?.GetValue<bool>() == true) folded.Add(i);
+        }
+
+        var active = activeInHand.Select(e => e?.GetValue<int>() ?? -1).Where(i => i >= 0 && !folded.Contains(i)).ToList();
+        if (active.Count == 0) return null;
+        if (active.Count == 1) return active[0];
+
+        int? bestIndex = null;
+        string? bestRank = null;
+        List<int>? bestValues = null;
+
+        foreach (var seatIdx in active)
+        {
+            if (seatIdx >= holeCards.Count) continue;
+            var hc = holeCards[seatIdx];
+            if (hc == null) continue;
+            var hcEl = hc as JsonArray;
+            JsonElement hcDoc;
+            try
+            {
+                hcDoc = JsonDocument.Parse(hc?.ToJsonString() ?? "[]").RootElement;
+            }
+            catch { continue; }
+            if (hcDoc.ValueKind != JsonValueKind.Array || hcDoc.GetArrayLength() < 2) continue;
+
+            var (rank, values) = TexasHoldemHandRanking.BestHand(hcDoc, boardEl);
+            if (bestIndex == null || TexasHoldemHandRanking.CompareHands(rank, values, bestRank!, bestValues!) > 0)
+            {
+                bestIndex = seatIdx;
+                bestRank = rank;
+                bestValues = values;
+            }
+        }
+        return bestIndex;
     }
 
     private static List<CardModel> CreateAndShuffleDeck()
