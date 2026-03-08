@@ -4,15 +4,17 @@ import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import type { Card } from "../types";
 import type { GameState } from "../game-state";
 import { sortHand } from "../deck";
-import { fetchFiveHundredState, sendFiveHundredAction, startFiveHundredNewRound, resetFiveHundredGame } from "../api/fiveHundredApi";
+import { fetchFiveHundredState, fetchGameSession, sendFiveHundredAction, startFiveHundredNewRound, resetFiveHundredGame } from "../api/fiveHundredApi";
 
 const POLL_INTERVAL_MS = 1000;
+const WAITING_POLL_MS = 2000;
 
 export function useGameStateMultiplayer(sessionId: string | undefined) {
   const [state, setState] = useState<GameState | null>(null);
   const [myPlayerId, setMyPlayerId] = useState<string>("p1");
   const [lastDrawnCard, setLastDrawnCard] = useState<Card | null>(null);
   const [loading, setLoading] = useState(!!sessionId);
+  const [waitingForStart, setWaitingForStart] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const loadState = useCallback(async () => {
@@ -22,6 +24,25 @@ export function useGameStateMultiplayer(sessionId: string | undefined) {
       setState(data.state);
       setMyPlayerId(data.myPlayerId);
       setLastDrawnCard(null);
+      setWaitingForStart(false);
+    } else {
+      const session = await fetchGameSession(sessionId);
+      const raw = typeof window !== "undefined" ? localStorage.getItem("user") : null;
+      let currentUserId: string | null = null;
+      if (raw) {
+        try {
+          const u = JSON.parse(raw) as { id?: string };
+          currentUserId = u?.id ?? null;
+        } catch { /* ignore */ }
+      }
+      const isInSession = session?.players?.some(
+        (p) => String(p.userId).toLowerCase() === String(currentUserId ?? "").toLowerCase()
+      );
+      if (session?.status === "Waiting" && isInSession) {
+        setWaitingForStart(true);
+      } else {
+        setWaitingForStart(false);
+      }
     }
     setLoading(false);
   }, [sessionId]);
@@ -29,8 +50,15 @@ export function useGameStateMultiplayer(sessionId: string | undefined) {
   useEffect(() => {
     if (!sessionId) return;
     setLoading(true);
+    setWaitingForStart(false);
     loadState();
   }, [sessionId, loadState]);
+
+  useEffect(() => {
+    if (!sessionId || !waitingForStart) return;
+    const interval = setInterval(loadState, WAITING_POLL_MS);
+    return () => clearInterval(interval);
+  }, [sessionId, waitingForStart, loadState]);
 
   useEffect(() => {
     if (!sessionId || !state) return;
@@ -128,6 +156,7 @@ export function useGameStateMultiplayer(sessionId: string | undefined) {
 
   return {
     state,
+    waitingForStart,
     isReady: state != null && !loading,
     humanHand,
     topDiscard,

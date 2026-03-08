@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
+import Link from "next/link";
 import { useGameState } from "../hooks/useGameState";
 import { useGameStateMultiplayer } from "../hooks/useGameStateMultiplayer";
 import {
@@ -33,6 +34,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
   const useMulti = !!sessionId;
   const {
     state,
+    waitingForStart,
     humanHand,
     isHumanTurn,
     stockEmpty,
@@ -114,9 +116,24 @@ export function GameBoard({ sessionId }: GameBoardProps) {
   }, [state?.melds, state?.playerHands]);
 
   if (!state) {
+    if (useMulti && waitingForStart) {
+      return (
+        <div className="flex min-h-[200px] flex-col items-center justify-center gap-4">
+          <p className="text-muted-foreground text-center">
+            Väntar på att partiledaren startar spelet.
+          </p>
+          <p className="text-muted-foreground text-sm text-center">
+            Spelet startar automatiskt när partiledaren klickar &quot;Starta spelet&quot; i Mina spel.
+          </p>
+          <Button asChild variant="outline">
+            <Link href="/spel">Gå till Mina spel</Link>
+          </Button>
+        </div>
+      );
+    }
     return (
       <div className="flex min-h-[200px] items-center justify-center">
-        <p className="text-muted-foreground">Laddar spel...</p>
+        <p className="text-muted-foreground">{loading ? "Laddar spel..." : "Kunde inte ladda spelet."}</p>
       </div>
     );
   }

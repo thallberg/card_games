@@ -81,6 +81,15 @@ export type FiveHundredStateResponse = { state: GameState; myPlayerId: string };
 
 export type FiveHundredActionResponse = { state: GameState; lastDrawnCard?: Card | null };
 
+export type SessionInfo = { id: string; status: string; players: { userId: string }[] };
+
+export async function fetchGameSession(sessionId: string): Promise<SessionInfo | null> {
+  const res = await apiFetch(`/api/gamesessions/${sessionId}`);
+  if (!res.ok) return null;
+  const data = await res.json().catch(() => null);
+  return data as SessionInfo;
+}
+
 export async function fetchFiveHundredState(sessionId: string): Promise<FiveHundredStateResponse | null> {
   const res = await apiFetch(`/api/gamesessions/${sessionId}/500/state`);
   if (!res.ok) return null;

@@ -158,7 +158,9 @@ public class FiveHundredService
         if (state == null) return (null, null);
         var playerOrder = JsonSerializer.Deserialize<List<string>>(row.PlayerOrderJson);
         if (playerOrder == null || playerOrder.Count < 2) return (null, null);
-        var myPlayerId = userId.ToString() == playerOrder[0] ? P1 : (userId.ToString() == playerOrder[1] ? P2 : null);
+        var p0 = Guid.TryParse(playerOrder[0], out var g0) ? g0 : (Guid?)null;
+        var p1 = Guid.TryParse(playerOrder[1], out var g1) ? g1 : (Guid?)null;
+        var myPlayerId = userId == p0 ? P1 : (userId == p1 ? P2 : null);
         if (myPlayerId == null) return (null, null);
         foreach (var key in state.PlayerHands.Keys.ToList())
         {
@@ -182,7 +184,9 @@ public class FiveHundredService
         if (state == null) return (false, "Ogiltig state.", null, null);
         var playerOrder = JsonSerializer.Deserialize<List<string>>(row.PlayerOrderJson);
         if (playerOrder == null || playerOrder.Count < 2) return (false, "Ogiltig spelarordning.", null, null);
-        var myPlayerId = userId.ToString() == playerOrder[0] ? P1 : (userId.ToString() == playerOrder[1] ? P2 : null);
+        var p0 = Guid.TryParse(playerOrder[0], out var g0) ? g0 : (Guid?)null;
+        var p1 = Guid.TryParse(playerOrder[1], out var g1) ? g1 : (Guid?)null;
+        var myPlayerId = userId == p0 ? P1 : (userId == p1 ? P2 : null);
         if (myPlayerId == null) return (false, "Du är inte med i detta spel.", null, null);
         if (state.CurrentPlayerId != myPlayerId) return (false, "Det är inte din tur.", null, null);
 
