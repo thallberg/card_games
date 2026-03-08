@@ -257,8 +257,9 @@ function getWildRepresentsAt(meld: Meld, index: number): Card | undefined {
 }
 
 /**
- * Kort att visa för en meld. 2:an visas alltid som 2:a; represents visas i parentes (t.ex. "Hjärter 6").
- * Stege med >3 kort: lägsta och högsta. Fyrtal: ett kort som hög.
+ * Kort att visa för en meld. Alla kort visas – inget slås ihop.
+ * 2:an visas alltid som 2:a; represents visas i parentes (t.ex. "Hjärter 6").
+ * Stege: kort sorterade efter valör. Tretal/fyrtal: alla kort.
  */
 export function getMeldDisplayCards(meld: Meld): MeldDisplayItem[] {
   const effective = getEffectiveMeldCards(meld);
@@ -271,16 +272,10 @@ export function getMeldDisplayCards(meld: Meld): MeldDisplayItem[] {
       effective: effective[i],
     }));
     pairs.sort((a, b) => (order[a.effective.rank] ?? 0) - (order[b.effective.rank] ?? 0));
-    const take = pairs.length > 3 ? [pairs[0], pairs[pairs.length - 1]] : pairs;
-    return take.map(({ physical, effective: eff }) => ({
+    return pairs.map(({ physical, effective: eff }) => ({
       card: physical,
       represents: isWild(physical) ? eff : undefined,
     }));
-  }
-  if (meld.cards.length >= 4) {
-    const idx = meld.cards.findIndex((c) => !isWild(c));
-    const c = idx >= 0 ? meld.cards[idx] : meld.cards[0];
-    return [{ card: c, represents: isWild(c) ? getWildRepresentsAt(meld, idx >= 0 ? idx : 0) : undefined }];
   }
   return meld.cards.map((card, i) => ({
     card,
@@ -298,41 +293,6 @@ export function getRunMinMax(meld: Meld): { suit: Card["suit"]; minVal: number; 
   const order = ordering === "low" ? RANK_ORDER_LOW : RANK_ORDER;
   const values = runValues(effective, ordering).sort((a, b) => a - b);
   return { suit: effective[0].suit, minVal: values[0], maxVal: values[values.length - 1] };
-}
-
-/** True om två stegar är samma färg och angränsande (kan slås ihop). */
-export function canMergeRuns(a: Meld, b: Meld): boolean {
-  const ra = getRunMinMax(a);
-  const rb = getRunMinMax(b);
-  if (!ra || !rb || ra.suit !== rb.suit) return false;
-  return ra.maxVal + 1 === rb.minVal || rb.maxVal + 1 === ra.minVal;
-}
-
-/** Slår ihop två angränsande stegar till en meld (kort sorterade efter valör). */
-export function mergeRunMelds(meldA: Meld, meldB: Meld): Meld {
-  const effectiveA = getEffectiveMeldCards(meldA);
-  const effectiveB = getEffectiveMeldCards(meldB);
-  const ordering = getRunOrdering([...effectiveA, ...effectiveB]);
-  const order = ordering === "low" ? RANK_ORDER_LOW : RANK_ORDER;
-  const getContrib = (m: Meld, i: number) => m.cardContributors?.[i] ?? m.ownerId;
-  const pairsA: [Card, Card, string][] = meldA.cards.map((c, i) => [c, effectiveA[i], getContrib(meldA, i) ?? ""]);
-  const pairsB: [Card, Card, string][] = meldB.cards.map((c, i) => [c, effectiveB[i], getContrib(meldB, i) ?? ""]);
-  const pairs = [...pairsA, ...pairsB].sort((pa, pb) => (order[pa[1].rank] ?? 0) - (order[pb[1].rank] ?? 0));
-  const cards = pairs.map((p) => p[0]);
-  const wildRepresents: Record<number, Card> = {};
-  const cardContributors: Record<number, string> = {};
-  pairs.forEach(([phys, eff, contrib], i) => {
-    if (isWild(phys)) wildRepresents[i] = eff;
-    if (contrib) cardContributors[i] = contrib;
-  });
-  return {
-    id: meldA.id,
-    cards,
-    type: "run",
-    ownerId: meldA.ownerId,
-    ...(Object.keys(wildRepresents).length > 0 ? { wildRepresents } : undefined),
-    ...(Object.keys(cardContributors).length > 0 ? { cardContributors } : undefined),
-  };
 }
 
 /**

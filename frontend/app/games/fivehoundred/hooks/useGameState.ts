@@ -11,7 +11,7 @@ import {
   checkGameOver,
 } from "../game-state";
 import { sortHand } from "../deck";
-import { getMeldType, canAddCardToMeld, canMergeRuns, mergeRunMelds } from "../melds";
+import { getMeldType, canAddCardToMeld } from "../melds";
 import { findFirstPossibleMeld } from "../ai-melds";
 import { getHandPenalty, getMeldPointsByPlayer } from "../scoring";
 import { PICKUP_PENALTY } from "../constants";
@@ -352,23 +352,13 @@ export function useGameState() {
         ownerId: HUMAN_PLAYER,
         ...(wildRepresents && Object.keys(wildRepresents).length > 0 ? { wildRepresents } : undefined),
       };
-      let newMelds = [...s.melds, newMeld];
-      let laidId = newMeld.id;
-      if (type === "run") {
-        const otherRun = s.melds.find((m) => canMergeRuns(newMeld, m));
-        if (otherRun) {
-          const merged = mergeRunMelds(newMeld, otherRun);
-          laidId = merged.id;
-          newMelds = s.melds.filter((m) => m.id !== otherRun.id);
-          newMelds = [...newMelds, merged];
-        }
-      }
+      const newMelds = [...s.melds, newMeld];
       const next = {
         ...s,
         playerHands: { ...s.playerHands, [HUMAN_PLAYER]: newHand },
         melds: newMelds,
         cardsLaidThisTurn: (s.cardsLaidThisTurn ?? 0) + cards.length,
-        lastLaidMeldIds: [laidId],
+        lastLaidMeldIds: [newMeld.id],
       };
       if (newHand.length === 0) {
         const ids = getPlayerIds();
@@ -417,23 +407,15 @@ export function useGameState() {
         : meld.wildRepresents;
       const newCardContributors = { ...meld.cardContributors, [newIndex]: HUMAN_PLAYER };
       const updatedMeld = { ...meld, cards: newCards, wildRepresents: newWildRepresents, cardContributors: newCardContributors };
-      let newMelds = s.melds.map((m) =>
+      const newMelds = s.melds.map((m) =>
         m.id === meldId ? updatedMeld : m
       );
-      const otherRun = newMelds.find((m) => m.id !== meldId && canMergeRuns(updatedMeld, m));
-      let laidId = meldId;
-      if (otherRun) {
-        const merged = mergeRunMelds(updatedMeld, otherRun);
-        laidId = merged.id;
-        newMelds = newMelds.filter((m) => m.id !== meldId && m.id !== otherRun.id);
-        newMelds = [...newMelds, merged];
-      }
       const next = {
         ...s,
         playerHands: { ...s.playerHands, [HUMAN_PLAYER]: newHand },
         melds: newMelds,
         cardsLaidThisTurn: (s.cardsLaidThisTurn ?? 0) + 1,
-        lastLaidMeldIds: [laidId],
+        lastLaidMeldIds: [meldId],
       };
       if (newHand.length === 0) {
         const ids = getPlayerIds();

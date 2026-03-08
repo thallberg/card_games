@@ -59,7 +59,7 @@ export function TableMelds({ melds, lastLaidMeldIds = [] }: TableMeldsProps) {
                 {getMeldDisplayCards(meld).map((item, i) => (
                   <div
                     key={`${meld.id}-${i}`}
-                    className="flex flex-col items-center shrink-0 first:ml-0 -ml-[52px]"
+                    className="flex flex-col items-center shrink-0 first:ml-0 -ml-[65.8px]"
                     style={{ zIndex: i }}
                   >
                     <PlayingCard
