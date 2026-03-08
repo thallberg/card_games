@@ -26,6 +26,41 @@ function isValidStege(cards: Card[]): boolean {
   return true;
 }
 
+/** Kontrollera om kort bildar giltigt set (samma valör, 2–3 kort). */
+function isValidSet(cards: Card[]): boolean {
+  if (cards.length < 2 || cards.length > 3) return false;
+  const rank = cards[0].rank;
+  return cards.every((c) => c.rank === rank);
+}
+
+/** Hitta största spelbara ledkort (stegar/set 3→2→1). */
+function findBestLead(hand: Card[]): { cards: Card[]; indices: number[] } {
+  for (const len of [3, 2]) {
+    for (let i = 0; i <= hand.length - len; i++) {
+      const slice = hand.slice(i, i + len);
+      if (isValidStege(slice)) {
+        const indices = slice.map((c) => hand.indexOf(c));
+        return { cards: slice, indices };
+      }
+    }
+    const byRank = new Map<string, Card[]>();
+    for (const c of hand) {
+      const k = c.rank;
+      if (!byRank.has(k)) byRank.set(k, []);
+      byRank.get(k)!.push(c);
+    }
+    for (const [, cards] of byRank) {
+      if (cards.length >= len) {
+        const slice = cards.slice(0, len);
+        const indices = slice.map((c) => hand.indexOf(c));
+        return { cards: slice, indices };
+      }
+    }
+  }
+  const i = Math.floor(Math.random() * hand.length);
+  return { cards: [hand[i]], indices: [i] };
+}
+
 /** Högsta valör i en uppsättning kort. */
 function highestRank(cards: Card[]): Rank {
   return cards.reduce((best, c) =>
@@ -33,8 +68,8 @@ function highestRank(cards: Card[]): Rank {
   , cards[0].rank);
 }
 
-/** Kontrollera om stege slår ledet (färg/trumf + valör). */
-function isStegeLegalToPlay(s: GameState, cards: Card[]): boolean {
+/** Kontrollera om stege/set slår ledet (färg/trumf + valör). */
+function isMultiLegalToPlay(s: GameState, cards: Card[]): boolean {
   const leadSuit = s.trickLeadSuit!;
   const toBeat = s.trickHighRank!;
   const trumpSuit = s.trumpSuit;
@@ -44,12 +79,13 @@ function isStegeLegalToPlay(s: GameState, cards: Card[]): boolean {
     .reduce<Rank | null>((b, tc) =>
       !b || RANK_VALUE[tc.card.rank] > RANK_VALUE[b] ? tc.card.rank : b
     , null);
-  const mySuit = cards[0].suit;
   const myHigh = highestRank(cards);
-  if (mySuit === trumpSuit && leadSuit !== trumpSuit) return true;
-  if (mySuit === trumpSuit && leadSuit === trumpSuit)
+  const myTrumps = cards.filter((c) => c.suit === trumpSuit);
+  const myLeadSuit = cards.filter((c) => c.suit === leadSuit);
+  if (myTrumps.length > 0 && leadSuit !== trumpSuit) return true;
+  if (myTrumps.length > 0 && leadSuit === trumpSuit)
     return !highestTrump || RANK_VALUE[myHigh] > RANK_VALUE[highestTrump];
-  if (mySuit === leadSuit) return RANK_VALUE[myHigh] > RANK_VALUE[toBeat];
+  if (myLeadSuit.length > 0) return RANK_VALUE[myHigh] > RANK_VALUE[toBeat];
   return false;
 }
 
@@ -130,6 +166,9 @@ export function useSkitgubbeGame() {
     if (hand.length === 0) return new Set<number>();
     if (state.trickLeadSuit === null) return new Set(hand.map((_, i) => i));
 
+    const leadCount = state.tableTrick?.filter((tc) => tc.playerId === state.trickLeader).length ?? 1;
+    if (leadCount > 1) return new Set(hand.map((_, i) => i));
+
     const toBeat = state.trickHighRank ?? null;
     const leadSuit = state.trickLeadSuit;
     const trumpSuit = state.trumpSuit;
@@ -193,14 +232,25 @@ export function useSkitgubbeGame() {
     if (cards.length !== selectedTrickIndices.size) return false;
     if (state.trickLeadSuit === null) {
       if (cards.length === 1) return true;
-      return isValidStege(cards);
+      return isValidStege(cards) || isValidSet(cards);
     }
     const leadCount = state.tableTrick?.filter((tc) => tc.playerId === state.trickLeader).length ?? 1;
-    if (cards.length !== leadCount) return false;
+    const leadSuit = state.trickLeadSuit;
     if (leadCount === 1) {
       return playableTrickIndices.has([...selectedTrickIndices][0]);
     }
-    return isValidStege(cards) && isStegeLegalToPlay(state, cards);
+    // Vid flerkortsutspel: samma antal KORTELLER kortare stege i samma färg som slår
+    if (cards.length > leadCount) return false;
+    if (cards.length === leadCount) {
+      return (isValidStege(cards) || isValidSet(cards)) && isMultiLegalToPlay(state, cards);
+    }
+    // Kortare stege: giltigt om samma färg som ledet och högsta kortet slår
+    if (leadSuit && isValidStege(cards) && cards.every((c) => c.suit === leadSuit)) {
+      const toBeat = state.trickHighRank;
+      if (toBeat && RANK_VALUE[highestRank(cards)] > RANK_VALUE[toBeat]) return true;
+    }
+    // Trumf eller set med samma antal
+    return (isValidStege(cards) || isValidSet(cards)) && isMultiLegalToPlay(state, cards);
   })();
 
   const confirmTrickPlay = useCallback(() => {
@@ -312,9 +362,15 @@ export function useSkitgubbeGame() {
         const drawOrder = getDrawOrder(s.playerIds, w);
         let newHands = { ...s.playerHands };
         for (const id of drawOrder) {
-          while (drawStock.length > 1 && (newHands[id]?.length ?? 0) < 3) {
+          while (drawStock.length > 0 && (newHands[id]?.length ?? 0) < 3) {
             const c = drawStock.pop()!;
-            newHands = { ...newHands, [id]: sortHand([...(newHands[id] ?? []), c]) };
+            if (drawStock.length === 0) {
+              lastRevealed = c;
+              trumpSuit = c.suit;
+              lastStickWinner = id;
+            } else {
+              newHands = { ...newHands, [id]: sortHand([...(newHands[id] ?? []), c]) };
+            }
           }
         }
         if (drawStock.length === 1) {
@@ -322,6 +378,10 @@ export function useSkitgubbeGame() {
           trumpSuit = lastRevealed.suit;
           lastStickWinner = w;
           drawStock = [];
+        }
+        // Säkerställ att trumf alltid sätts från sista kortet när leken är tom
+        if (drawStock.length === 0 && lastRevealed && !trumpSuit) {
+          trumpSuit = lastRevealed.suit;
         }
         const phase: GameState["phase"] = drawStock.length === 0 ? "skitgubbe" : "sticks";
         const finalHands =
@@ -446,12 +506,39 @@ export function useSkitgubbeGame() {
             !b || RANK_VALUE[tc.card.rank] > RANK_VALUE[b] ? tc.card.rank : b
           , null);
 
-        let playIndex = -1;
-
         if (leadSuit !== null) {
+          const leadCount = tableTrick.filter((tc) => tc.playerId === s.trickLeader).length;
+          if (leadCount > 1) {
+            // Försök matcha med samma antal, sedan kortare stege (t.ex. J-Q mot 5-6-7)
+            for (let len = Math.min(3, leadCount, hand.length); len >= 1; len--) {
+              for (let start = 0; start <= hand.length - len; start++) {
+                const slice = hand.slice(start, start + len);
+                if ((isValidStege(slice) || isValidSet(slice)) && isMultiLegalToPlay(s, slice)) {
+                  const indices = slice.map((c) => hand.indexOf(c));
+                  return applyTrickCards(s, aiId, slice, indices);
+                }
+              }
+              const byRank = new Map<string, Card[]>();
+              for (const c of hand) {
+                const k = c.rank;
+                if (!byRank.has(k)) byRank.set(k, []);
+                byRank.get(k)!.push(c);
+              }
+              for (const [, cards] of byRank) {
+                if (cards.length >= len) {
+                  const slice = cards.slice(0, len);
+                  if (isMultiLegalToPlay(s, slice)) {
+                    const indices = slice.map((c) => hand.indexOf(c));
+                    return applyTrickCards(s, aiId, slice, indices);
+                  }
+                }
+              }
+            }
+            return applyPickUpTrick(s, aiId);
+          }
           const leadSuitCards = hand.filter((c) => c.suit === leadSuit);
           const trumpCards = hand.filter((c) => c.suit === s.trumpSuit);
-
+          let playIndex = -1;
           if (leadSuitCards.length > 0) {
             const canBeat = toBeat
               ? leadSuitCards.filter((c) => RANK_VALUE[c.rank] > RANK_VALUE[toBeat])
@@ -474,15 +561,12 @@ export function useSkitgubbeGame() {
               playIndex = hand.indexOf(best);
             }
           }
-          if (playIndex < 0) {
-            return applyPickUpTrick(s, aiId);
-          }
-        } else {
-          playIndex = Math.floor(Math.random() * hand.length);
+          if (playIndex < 0) return applyPickUpTrick(s, aiId);
+          return applyTrickCard(s, aiId, hand[playIndex], playIndex);
         }
 
-        const card = hand[playIndex];
-        return applyTrickCard(s, aiId, card, playIndex);
+        const bestLead = findBestLead(hand);
+        return applyTrickCards(s, aiId, bestLead.cards, bestLead.indices);
       });
       aiTurnRef.current = false;
     }, 2000);
@@ -798,8 +882,36 @@ function applyPlayCard(
     originalLedRank &&
     tableStick.some((sc) => RANK_VALUE[sc.card.rank] > RANK_VALUE[originalLedRank]);
 
+  // Fight: första fightkortet blir ny led – ge andra fighten tur (behåll stickFighters)
+  if (
+    isFighterPlaying &&
+    s.stickFighters.length > 1 &&
+    othersWithRank.length === 0
+  ) {
+    const otherFighter = s.stickFighters.find(
+      (id) =>
+        id !== playerId &&
+        tableStick.filter((sc) => sc.playerId === id).length === 1
+    );
+    if (otherFighter) {
+      const { finalStock, finalHands } = doDrawForHuman();
+      return {
+        ...s,
+        stock: finalStock,
+        playerHands: finalHands,
+        tableStick,
+        stickLedRank: ledRank,
+        playersMustPlay: [],
+        stickFighters: s.stickFighters,
+        currentPlayerId: otherFighter,
+        humanPendingKlar: false,
+        nextPlayerIdAfterKlar: null,
+      };
+    }
+  }
+
   // When everyone has played and 2+ have the lead rank → fight continues
-  // BUT only if no one played higher (playing higher wins immediately)
+  // (båda måste spela fightkort – första sätter ny led, vi jämför bara fightkorten)
   if (
     playersWhoHaventPlayed.length === 0 &&
     fightersFromTable.length > 1 &&
@@ -886,33 +998,6 @@ function applyPlayCard(
       humanPendingKlar: false,
       nextPlayerIdAfterKlar: null,
     };
-  }
-
-  if (
-    isFighterPlaying &&
-    s.stickFighters.length > 1 &&
-    othersWithRank.length === 0
-  ) {
-    const otherFighter = s.stickFighters.find(
-      (id) =>
-        id !== playerId &&
-        tableStick.filter((sc) => sc.playerId === id).length === 1
-    );
-    if (otherFighter) {
-      const { finalStock, finalHands } = doDrawForHuman();
-      return {
-        ...s,
-        stock: finalStock,
-        playerHands: finalHands,
-        tableStick,
-        stickLedRank: ledRank,
-        playersMustPlay: [],
-        stickFighters: s.stickFighters,
-        currentPlayerId: otherFighter,
-        humanPendingKlar: false,
-        nextPlayerIdAfterKlar: null,
-      };
-    }
   }
 
   const fighters = fightersFromTable;

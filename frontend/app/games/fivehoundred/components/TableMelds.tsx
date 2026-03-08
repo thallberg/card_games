@@ -55,20 +55,26 @@ export function TableMelds({ melds, lastLaidMeldIds = [] }: TableMeldsProps) {
                   : "border-border bg-card"
               )}
             >
-              {getMeldDisplayCards(meld).map((item, i) => (
-                <div key={`${meld.id}-${i}`} className="flex flex-col items-center">
-                  <PlayingCard
-                    card={item.card}
-                    faceUp
-                    className="h-[100px] w-[70px] shrink-0"
-                  />
-                  {item.represents != null && (
-                    <span className="text-[10px] text-muted-foreground mt-0.5">
-                      ({cardLabel(item.represents)})
-                    </span>
-                  )}
-                </div>
-              ))}
+              <div className="flex items-end">
+                {getMeldDisplayCards(meld).map((item, i) => (
+                  <div
+                    key={`${meld.id}-${i}`}
+                    className="flex flex-col items-center shrink-0 first:ml-0 -ml-[52px]"
+                    style={{ zIndex: i }}
+                  >
+                    <PlayingCard
+                      card={item.card}
+                      faceUp
+                      className="h-[100px] w-[70px] shrink-0 shadow-md"
+                    />
+                    {item.represents != null && (
+                      <span className="text-[10px] text-muted-foreground mt-0.5 whitespace-nowrap">
+                        ({cardLabel(item.represents)})
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           ))
         )}

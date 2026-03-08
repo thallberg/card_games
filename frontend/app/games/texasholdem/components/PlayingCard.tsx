@@ -28,12 +28,18 @@ export function PlayingCard({
     return (
       <div
         className={cn(
-          "flex shrink-0 items-center justify-center rounded-md border-2 border-border bg-muted/80 text-muted-foreground text-xs",
+          "relative shrink-0 overflow-hidden rounded-md border border-border shadow-sm",
           sizeClass,
           className
         )}
       >
-        ?
+        <Image
+          src="/cardback.png"
+          alt=""
+          fill
+          className="object-cover"
+          unoptimized
+        />
       </div>
     );
   }
