@@ -487,6 +487,8 @@ export function useGameState() {
 
   return {
     state,
+    loading: false,
+    waitingForStart: false,
     isReady: state != null,
     humanHand,
     topDiscard,

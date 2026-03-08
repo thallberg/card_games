@@ -34,6 +34,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
   const useMulti = !!sessionId;
   const {
     state,
+    loading,
     waitingForStart,
     humanHand,
     isHumanTurn,

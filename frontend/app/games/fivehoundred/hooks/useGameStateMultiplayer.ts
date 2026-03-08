@@ -156,6 +156,7 @@ export function useGameStateMultiplayer(sessionId: string | undefined) {
 
   return {
     state,
+    loading,
     waitingForStart,
     isReady: state != null && !loading,
     humanHand,
