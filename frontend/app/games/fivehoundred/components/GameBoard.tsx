@@ -257,19 +257,6 @@ export function GameBoard({ sessionId }: GameBoardProps) {
                         Kasta
                       </Button>
                     )}
-                    {!stockEmpty && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="min-h-11 flex-1 border-[var(--btn-nöjd)] bg-[var(--btn-nöjd)]/10 text-[var(--btn-nöjd-foreground)] hover:bg-[var(--btn-nöjd)]/25"
-                        onClick={() => {
-                          passWithoutDiscard();
-                          clearSelection();
-                        }}
-                      >
-                        Nöjd
-                      </Button>
-                    )}
                     <Button type="button" onClick={handleLayMeldOpen} className="min-h-11 flex-1">
                       Lägg ut
                     </Button>
