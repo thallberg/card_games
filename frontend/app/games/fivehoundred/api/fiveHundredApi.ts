@@ -125,3 +125,13 @@ export async function startFiveHundredNewRound(sessionId: string): Promise<FiveH
   if (!state) return null;
   return { state, myPlayerId };
 }
+
+export async function resetFiveHundredGame(sessionId: string): Promise<FiveHundredStateResponse | null> {
+  const res = await apiFetch(`/api/gamesessions/${sessionId}/500/reset`, { method: "POST" });
+  if (!res.ok) return null;
+  const data = await res.json();
+  const state = data.state ? apiStateToGameState(data.state as Record<string, unknown>) : null;
+  const myPlayerId = data.myPlayerId ?? "p1";
+  if (!state) return null;
+  return { state, myPlayerId };
+}

@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import type { Card } from "../types";
 import type { GameState } from "../game-state";
 import { sortHand } from "../deck";
-import { fetchFiveHundredState, sendFiveHundredAction, startFiveHundredNewRound } from "../api/fiveHundredApi";
+import { fetchFiveHundredState, sendFiveHundredAction, startFiveHundredNewRound, resetFiveHundredGame } from "../api/fiveHundredApi";
 
 const POLL_INTERVAL_MS = 1000;
 
@@ -39,7 +39,11 @@ export function useGameStateMultiplayer(sessionId: string | undefined) {
         clearInterval(pollRef.current);
         pollRef.current = null;
       }
-      return;
+      loadState();
+      pollRef.current = setInterval(loadState, 3000);
+      return () => {
+        if (pollRef.current) clearInterval(pollRef.current);
+      };
     }
     const isMyTurn = state.currentPlayerId === myPlayerId;
     if (isMyTurn && state.phase !== "roundEnd") {
@@ -93,7 +97,16 @@ export function useGameStateMultiplayer(sessionId: string | undefined) {
     [runAction]
   );
   const advanceToNextTurn = useCallback(() => {}, []);
-  const resetGame = useCallback(() => {}, []);
+
+  const resetGame = useCallback(async () => {
+    if (!sessionId) return;
+    const data = await resetFiveHundredGame(sessionId);
+    if (data) {
+      setState(data.state);
+      setMyPlayerId(data.myPlayerId);
+      setLastDrawnCard(null);
+    }
+  }, [sessionId]);
 
   const startNewRound = useCallback(async () => {
     if (!sessionId) return;

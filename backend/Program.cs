@@ -330,6 +330,16 @@ app.MapPost("/api/gamesessions/{id:guid}/500/start-round", async (Guid id, HttpC
     return state != null ? Results.Json(new { state, myPlayerId }) : Results.NotFound();
 }).RequireAuthorization();
 
+app.MapPost("/api/gamesessions/{id:guid}/500/reset", async (Guid id, HttpContext ctx, FiveHundredService fiveHundredService) =>
+{
+    var userId = GetUserId(ctx.User);
+    if (userId == null) return Results.Unauthorized();
+    var (ok, err) = await fiveHundredService.ResetGameAsync(id);
+    if (!ok) return Results.BadRequest(new { error = err });
+    var (state, myPlayerId) = await fiveHundredService.GetStateForUserAsync(id, userId.Value);
+    return state != null ? Results.Json(new { state, myPlayerId }) : Results.NotFound();
+}).RequireAuthorization();
+
 app.MapGet("/api/gamesessions/{id:guid}/chicago/state", async (Guid id, HttpContext ctx, ChicagoService chicagoService) =>
 {
     var userId = GetUserId(ctx.User);

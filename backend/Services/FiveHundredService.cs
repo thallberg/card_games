@@ -111,6 +111,44 @@ public class FiveHundredService
         return (true, null);
     }
 
+    /// <summary>Startar nytt spel när phase är gameOver. Samma spelare följer med – nollställda poäng, rond 1.</summary>
+    public async Task<(bool Ok, string? Error)> ResetGameAsync(Guid sessionId)
+    {
+        var row = await _db.FiveHundredStates.FirstOrDefaultAsync(f => f.GameSessionId == sessionId);
+        if (row == null) return (false, "Spelet hittades inte.");
+        var state = JsonSerializer.Deserialize<FiveHundredStateDto>(row.StateJson, JsonOptions);
+        if (state == null) return (false, "Ogiltig state.");
+        if (state.Phase != "gameOver") return (false, "Spelet är inte över.");
+
+        var deck = CreateAndShuffleDeck();
+        var hands = new Dictionary<string, List<CardDto>>
+        {
+            [P1] = deck.Take(HandSize).ToList(),
+            [P2] = deck.Skip(HandSize).Take(HandSize).ToList(),
+        };
+        SortHand(hands[P1]);
+        SortHand(hands[P2]);
+        var stock = deck.Skip(HandSize * 2).ToList();
+        var discard = stock.Count > 0 ? new List<CardDto> { stock[^1] } : new List<CardDto>();
+        if (stock.Count > 0) stock.RemoveAt(stock.Count - 1);
+
+        state.Stock = stock;
+        state.Discard = discard;
+        state.Melds = new List<MeldDto>();
+        state.RoundNumber = 1;
+        state.CurrentPlayerId = P1;
+        state.PlayerHands = hands;
+        state.PlayerScores = new Dictionary<string, int> { [P1] = 0, [P2] = 0 };
+        state.Phase = "draw";
+        state.LastDraw = null;
+        state.WinnerId = null;
+
+        row.StateJson = JsonSerializer.Serialize(state, JsonOptions);
+        row.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        return (true, null);
+    }
+
     /// <summary>Returns state with other players' hands masked. Response includes _myPlayerId for frontend.</summary>
     public async Task<(FiveHundredStateDto? State, string? MyPlayerId)> GetStateForUserAsync(Guid sessionId, Guid userId)
     {
