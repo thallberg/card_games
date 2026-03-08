@@ -239,12 +239,12 @@ export function MeldBuilderModal({
                     <div className="flex gap-0.5 items-end">
                       {getMeldDisplayCards(meld).map((item, j) => (
                         <div key={j} className="flex flex-col items-center">
-                          <PlayingCard card={item.card} faceUp className="h-[56px] w-[40px]" />
                           {item.represents != null && (
-                            <span className="text-[10px] text-muted-foreground mt-0.5">
+                            <span className="text-[10px] text-muted-foreground mb-0.5">
                               ({cardLabel(item.represents)})
                             </span>
                           )}
+                          <PlayingCard card={item.card} faceUp className="h-[56px] w-[40px]" />
                         </div>
                       ))}
                     </div>

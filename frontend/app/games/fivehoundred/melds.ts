@@ -257,6 +257,31 @@ function getWildRepresentsAt(meld: Meld, index: number): Card | undefined {
 }
 
 /**
+ * Alla kort i en meld (för popup) – ingen ihopslagning.
+ */
+export function getFullMeldDisplayCards(meld: Meld): MeldDisplayItem[] {
+  const effective = getEffectiveMeldCards(meld);
+  const asRun = meld.type === "run" || isEffectiveRun(meld);
+  if (asRun) {
+    const ordering = getRunOrdering(effective);
+    const order = ordering === "low" ? RANK_ORDER_LOW : RANK_ORDER;
+    const pairs: { physical: Card; effective: Card }[] = meld.cards.map((c, i) => ({
+      physical: c,
+      effective: effective[i],
+    }));
+    pairs.sort((a, b) => (order[a.effective.rank] ?? 0) - (order[b.effective.rank] ?? 0));
+    return pairs.map(({ physical, effective: eff }) => ({
+      card: physical,
+      represents: isWild(physical) ? eff : undefined,
+    }));
+  }
+  return meld.cards.map((card, i) => ({
+    card,
+    represents: isWild(card) ? getWildRepresentsAt(meld, i) : undefined,
+  }));
+}
+
+/**
  * Kort att visa för en meld. 2:an visas alltid som 2:a; represents visas i parentes (t.ex. "Hjärter 6").
  * Stege med >3 kort: lägsta och högsta. Fyrtal: ett kort som hög.
  */

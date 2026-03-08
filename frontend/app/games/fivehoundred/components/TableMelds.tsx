@@ -1,7 +1,14 @@
 "use client";
 
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import type { Card, Meld } from "../types";
-import { getMeldDisplayCards } from "../melds";
+import { getMeldDisplayCards, getFullMeldDisplayCards } from "../melds";
 import { PlayingCard } from "./PlayingCard";
 import { cn } from "@/lib/utils";
 
@@ -28,6 +35,7 @@ function isCompletedSet(meld: Meld): boolean {
 }
 
 export function TableMelds({ melds, lastLaidMeldIds = [] }: TableMeldsProps) {
+  const [popupMeld, setPopupMeld] = useState<Meld | null>(null);
   const recentSet = new Set(lastLaidMeldIds);
   const sortedMelds = [...melds].sort((a, b) => {
     const aRecent = recentSet.has(a.id) ? 1 : 0;
@@ -48,8 +56,12 @@ export function TableMelds({ melds, lastLaidMeldIds = [] }: TableMeldsProps) {
           sortedMelds.map((meld) => (
             <div
               key={meld.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => setPopupMeld(meld)}
+              onKeyDown={(e) => e.key === "Enter" && setPopupMeld(meld)}
               className={cn(
-                "flex flex-wrap items-center justify-center gap-0.5 rounded-md border-2 p-2 transition-colors",
+                "flex flex-wrap items-center justify-center gap-0.5 rounded-md border-2 p-2 transition-colors text-left cursor-pointer hover:ring-2 hover:ring-primary/50 focus:outline-none focus:ring-2 focus:ring-primary",
                 recentSet.has(meld.id)
                   ? "border-green-500 bg-green-500/10"
                   : "border-border bg-card"
@@ -62,16 +74,16 @@ export function TableMelds({ melds, lastLaidMeldIds = [] }: TableMeldsProps) {
                     className="flex flex-col items-center shrink-0 first:ml-0 -ml-[52px]"
                     style={{ zIndex: i }}
                   >
+                    {item.represents != null && (
+                      <span className="text-[10px] text-muted-foreground mb-0.5 whitespace-nowrap">
+                        ({cardLabel(item.represents)})
+                      </span>
+                    )}
                     <PlayingCard
                       card={item.card}
                       faceUp
                       className="h-[100px] w-[70px] shrink-0 shadow-md"
                     />
-                    {item.represents != null && (
-                      <span className="text-[10px] text-muted-foreground mt-0.5 whitespace-nowrap">
-                        ({cardLabel(item.represents)})
-                      </span>
-                    )}
                   </div>
                 ))}
               </div>
@@ -79,6 +91,31 @@ export function TableMelds({ melds, lastLaidMeldIds = [] }: TableMeldsProps) {
           ))
         )}
       </div>
+      <Dialog open={!!popupMeld} onOpenChange={(open) => !open && setPopupMeld(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Alla kort i kombinationen</DialogTitle>
+          </DialogHeader>
+          {popupMeld && (
+            <div className="flex flex-wrap gap-2 justify-center items-end p-2">
+              {getFullMeldDisplayCards(popupMeld).map((item, i) => (
+                <div key={i} className="flex flex-col items-center">
+                  {item.represents != null && (
+                    <span className="text-[10px] text-muted-foreground mb-0.5">
+                      ({cardLabel(item.represents)})
+                    </span>
+                  )}
+                  <PlayingCard
+                    card={item.card}
+                    faceUp
+                    className="h-[100px] w-[70px] shrink-0 shadow-md"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
