@@ -325,41 +325,6 @@ export function getRunMinMax(meld: Meld): { suit: Card["suit"]; minVal: number; 
   return { suit: effective[0].suit, minVal: values[0], maxVal: values[values.length - 1] };
 }
 
-/** True om två stegar är samma färg och angränsande (kan slås ihop). */
-export function canMergeRuns(a: Meld, b: Meld): boolean {
-  const ra = getRunMinMax(a);
-  const rb = getRunMinMax(b);
-  if (!ra || !rb || ra.suit !== rb.suit) return false;
-  return ra.maxVal + 1 === rb.minVal || rb.maxVal + 1 === ra.minVal;
-}
-
-/** Slår ihop två angränsande stegar till en meld (kort sorterade efter valör). */
-export function mergeRunMelds(meldA: Meld, meldB: Meld): Meld {
-  const effectiveA = getEffectiveMeldCards(meldA);
-  const effectiveB = getEffectiveMeldCards(meldB);
-  const ordering = getRunOrdering([...effectiveA, ...effectiveB]);
-  const order = ordering === "low" ? RANK_ORDER_LOW : RANK_ORDER;
-  const getContrib = (m: Meld, i: number) => m.cardContributors?.[i] ?? m.ownerId;
-  const pairsA: [Card, Card, string][] = meldA.cards.map((c, i) => [c, effectiveA[i], getContrib(meldA, i) ?? ""]);
-  const pairsB: [Card, Card, string][] = meldB.cards.map((c, i) => [c, effectiveB[i], getContrib(meldB, i) ?? ""]);
-  const pairs = [...pairsA, ...pairsB].sort((pa, pb) => (order[pa[1].rank] ?? 0) - (order[pb[1].rank] ?? 0));
-  const cards = pairs.map((p) => p[0]);
-  const wildRepresents: Record<number, Card> = {};
-  const cardContributors: Record<number, string> = {};
-  pairs.forEach(([phys, eff, contrib], i) => {
-    if (isWild(phys)) wildRepresents[i] = eff;
-    if (contrib) cardContributors[i] = contrib;
-  });
-  return {
-    id: meldA.id,
-    cards,
-    type: "run",
-    ownerId: meldA.ownerId,
-    ...(Object.keys(wildRepresents).length > 0 ? { wildRepresents } : undefined),
-    ...(Object.keys(cardContributors).length > 0 ? { cardContributors } : undefined),
-  };
-}
-
 /**
  * Kan kort läggas till på melden?
  * Stege: låg (ess–2–3→4) eller hög (…kung–ess). 2:an ger fortfarande 25 poäng.
