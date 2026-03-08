@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -10,11 +10,13 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { apiFetch } from "@/lib/api";
 
+type Friend = { id: string; displayName: string; email: string; friendsSince: string };
 type Player = { userId: string; displayName: string; seatOrder: number; joinedAt: string };
 type Session = {
   id: string;
@@ -40,6 +42,16 @@ export default function SpelPage() {
     buyIn: number;
     bigBlind: number;
   } | null>(null);
+  const [inviteMoreFor, setInviteMoreFor] = useState<Session | null>(null);
+  const [friends, setFriends] = useState<Friend[]>([]);
+  const [inviting, setInviting] = useState<string | null>(null);
+
+  const loadFriends = useCallback(async () => {
+    const res = await apiFetch("/api/friends");
+    if (!res.ok) return;
+    const data = await res.json().catch(() => []);
+    setFriends(Array.isArray(data) ? data : []);
+  }, []);
 
   useEffect(() => {
     const raw = typeof window !== "undefined" ? localStorage.getItem("user") : null;
@@ -93,6 +105,33 @@ export default function SpelPage() {
       }
     } finally {
       setStarting(null);
+    }
+  };
+
+  useEffect(() => {
+    if (inviteMoreFor) loadFriends();
+  }, [inviteMoreFor, loadFriends]);
+
+  const handleInviteToSession = async (sessionId: string, friendId: string) => {
+    setInviting(friendId);
+    try {
+      const res = await apiFetch(`/api/gamesessions/${sessionId}/invite`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: friendId }),
+      });
+      if (res.ok) {
+        const listRes = await apiFetch("/api/gamesessions");
+        const data = await listRes.json().catch(() => []);
+        const updatedList = Array.isArray(data) ? data : [];
+        setSessions(updatedList);
+        setInviteMoreFor((prev) => {
+          if (!prev || prev.id !== sessionId) return prev;
+          return updatedList.find((s: Session) => s.id === sessionId) ?? prev;
+        });
+      }
+    } finally {
+      setInviting(null);
     }
   };
 
@@ -152,33 +191,42 @@ export default function SpelPage() {
                         </div>
                         <div className="flex flex-wrap items-center gap-2 shrink-0">
                           {isLeader && (
-                            s.currentPlayerCount >= 2 ? (
-                              s.gameType === "TexasHoldem" ? (
-                                <Button
-                                  size="sm"
-                                  onClick={() =>
-                                    setTexasSetup({
-                                      sessionId: s.id,
-                                      buyIn: 2000,
-                                      bigBlind: 20,
-                                    })
-                                  }
-                                  disabled={starting === s.id}
-                                >
-                                  Starta spelet
-                                </Button>
+                            <>
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => setInviteMoreFor(s)}
+                              >
+                                Bjud in flera
+                              </Button>
+                              {s.currentPlayerCount >= 2 ? (
+                                s.gameType === "TexasHoldem" ? (
+                                  <Button
+                                    size="sm"
+                                    onClick={() =>
+                                      setTexasSetup({
+                                        sessionId: s.id,
+                                        buyIn: 2000,
+                                        bigBlind: 20,
+                                      })
+                                    }
+                                    disabled={starting === s.id}
+                                  >
+                                    Starta spelet
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleStart(s.id)}
+                                    disabled={starting === s.id}
+                                  >
+                                    {starting === s.id ? "Startar..." : "Starta spelet"}
+                                  </Button>
+                                )
                               ) : (
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleStart(s.id)}
-                                  disabled={starting === s.id}
-                                >
-                                  {starting === s.id ? "Startar..." : "Starta spelet"}
-                                </Button>
-                              )
-                            ) : (
-                              <span className="text-muted-foreground text-sm">Väntar på spelare</span>
-                            )
+                                <span className="text-muted-foreground text-sm">Väntar på spelare</span>
+                              )}
+                            </>
                           )}
                           {!isLeader && (
                             <span className="text-muted-foreground text-sm">Väntar på att {s.leaderDisplayName} startar</span>
@@ -241,6 +289,50 @@ export default function SpelPage() {
           </div>
         )}
       </section>
+
+      <Dialog open={!!inviteMoreFor} onOpenChange={(open) => !open && setInviteMoreFor(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Bjud in fler vänner</DialogTitle>
+            <DialogDescription>
+              {inviteMoreFor && (
+                <>Välj vänner att bjuda in till {inviteMoreFor.gameType === "FiveHundred" ? "500" : inviteMoreFor.gameType === "Chicago" ? "Chicago" : inviteMoreFor.gameType === "TexasHoldem" ? "Texas Hold'em" : inviteMoreFor.gameType}.</>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          {inviteMoreFor && (
+            <div className="space-y-2 max-h-[50vh] overflow-y-auto">
+              {friends
+                .filter((f) => !inviteMoreFor.players.some((p) => p.userId === f.id))
+                .map((f) => (
+                  <div
+                    key={f.id}
+                    className="flex items-center justify-between gap-2 rounded border border-[var(--border)] p-2"
+                  >
+                    <span className="font-medium truncate">{f.displayName}</span>
+                    <Button
+                      size="sm"
+                      onClick={() => handleInviteToSession(inviteMoreFor.id, f.id)}
+                      disabled={inviting === f.id}
+                    >
+                      {inviting === f.id ? "Skickar..." : "Bjud in till spel"}
+                    </Button>
+                  </div>
+                ))}
+              {friends.filter((f) => !inviteMoreFor.players.some((p) => p.userId === f.id)).length === 0 && (
+                <p className="text-muted-foreground text-sm">
+                  Alla dina vänner är redan inbjudna till detta spel.
+                </p>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setInviteMoreFor(null)}>
+              Stäng
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!texasSetup} onOpenChange={(open) => !open && setTexasSetup(null)}>
         <DialogContent>

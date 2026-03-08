@@ -222,7 +222,7 @@ export default function VannerPage() {
               <Button onClick={handleCreateGame} disabled={creating} className="min-h-10">
                 {creating
                   ? "Skapar..."
-                  : `Skapa ${createGameType === 2 ? "500" : createGameType === 3 ? "Chicago" : "Texas Hold'em"} och skicka inbjudan`}
+                  : "Skicka inbjudan"}
               </Button>
             </div>
           </div>
