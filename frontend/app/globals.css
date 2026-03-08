@@ -51,6 +51,8 @@
   --color-warm-sand: var(--warm-sand);
   --color-warm-rose: var(--warm-rose);
   --color-warm-teal: var(--warm-teal);
+  --color-btn-kasta: var(--btn-kasta);
+  --color-btn-nöjd: var(--btn-nöjd);
 }
 
 :root {
@@ -64,6 +66,11 @@
   --warm-sand: oklch(0.90 0.04 75);
   --warm-rose: oklch(0.88 0.06 10);
   --warm-teal: oklch(0.70 0.08 195);
+  /* Knappfärger 500-spelet */
+  --btn-kasta: oklch(0.78 0.10 18);
+  --btn-kasta-foreground: oklch(0.38 0.08 18);
+  --btn-nöjd: oklch(0.72 0.08 155);
+  --btn-nöjd-foreground: oklch(0.32 0.06 155);
   /* Tema färger – använder våra varma färger */
   --background: oklch(0.98 0.015 90);
   --foreground: oklch(0.28 0.03 45);
@@ -107,6 +114,10 @@
   --warm-sand: oklch(0.32 0.04 65);
   --warm-rose: oklch(0.55 0.08 15);
   --warm-teal: oklch(0.58 0.08 200);
+  --btn-kasta: oklch(0.65 0.12 18);
+  --btn-kasta-foreground: oklch(0.92 0.02 85);
+  --btn-nöjd: oklch(0.58 0.08 165);
+  --btn-nöjd-foreground: oklch(0.92 0.02 85);
   --background: oklch(0.18 0.02 50);
   --foreground: oklch(0.95 0.02 85);
   --card: oklch(0.22 0.03 50);

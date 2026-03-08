@@ -72,23 +72,29 @@ export function GameBoard() {
       <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6 px-1 sm:px-0">
         <h1 className="text-lg sm:text-xl font-semibold">Skitgubbe – Trumf</h1>
         <section className="rounded-lg border border-[var(--border)] bg-[var(--warm-peach)]/30 p-4">
-          {state.lastRevealedCard && (
-            <div className="flex flex-col items-center gap-4">
-              <p className="text-muted-foreground">
-                Sista kortet var {state.lastRevealedCard.rank}{" "}
-                {SUIT_LABELS[state.lastRevealedCard.suit]}. Trumf är{" "}
-                {SUIT_LABELS[state.trumpSuit ?? ""]}.
-              </p>
-              <PlayingCard card={state.lastRevealedCard} faceUp />
-              {skitgubbeId && (
-                <p className="text-muted-foreground text-sm">
-                  {skitgubbeId === "p1" ? "Du" : "Spelare " + skitgubbeId} har bara kort under trumf
-                  – får 2–5 och trumf 6 från andra.
+          <div className="flex flex-col items-center gap-4">
+            {state.lastRevealedCard ? (
+              <>
+                <p className="text-muted-foreground">
+                  Sista kortet var {state.lastRevealedCard.rank}{" "}
+                  {SUIT_LABELS[state.lastRevealedCard.suit]}. Trumf är{" "}
+                  {SUIT_LABELS[state.trumpSuit ?? ""]}.
                 </p>
-              )}
-              <Button onClick={continueToPlay}>Fortsätt till utspelet</Button>
-            </div>
-          )}
+                <PlayingCard card={state.lastRevealedCard} faceUp />
+              </>
+            ) : (
+              <p className="text-muted-foreground">
+                Trumf: {state.trumpSuit ? SUIT_LABELS[state.trumpSuit] : "—"}
+              </p>
+            )}
+            {skitgubbeId && (
+              <p className="text-muted-foreground text-sm">
+                {skitgubbeId === "p1" ? "Du" : "Spelare " + skitgubbeId} har bara kort under trumf
+                – får 2–5 och trumf 6 från andra.
+              </p>
+            )}
+            <Button onClick={continueToPlay}>Fortsätt till utspelet</Button>
+          </div>
         </section>
       </div>
     );

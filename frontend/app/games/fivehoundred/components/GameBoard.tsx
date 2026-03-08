@@ -11,6 +11,14 @@ import {
   MeldBuilderModal,
 } from "./index";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { getCardPoints } from "../scoring";
 
 type GameBoardProps = { sessionId?: string };
@@ -18,6 +26,7 @@ type GameBoardProps = { sessionId?: string };
 export function GameBoard({ sessionId }: GameBoardProps) {
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
   const [meldBuilderOpen, setMeldBuilderOpen] = useState(false);
+  const [takeDiscardDialogOpen, setTakeDiscardDialogOpen] = useState(false);
 
   const single = useGameState();
   const multi = useGameStateMultiplayer(sessionId);
@@ -25,7 +34,6 @@ export function GameBoard({ sessionId }: GameBoardProps) {
   const {
     state,
     humanHand,
-    topDiscard,
     isHumanTurn,
     stockEmpty,
     drawFromStock,
@@ -75,6 +83,19 @@ export function GameBoard({ sessionId }: GameBoardProps) {
     setMeldBuilderOpen(open);
     if (!open) clearSelection();
   };
+
+  const handleTakeDiscardClick = useCallback(() => {
+    setTakeDiscardDialogOpen(true);
+  }, []);
+
+  const handleTakeDiscardConfirm = useCallback(() => {
+    takeDiscardPile();
+    setTakeDiscardDialogOpen(false);
+  }, [takeDiscardPile]);
+
+  const handleTakeDiscardCancel = useCallback(() => {
+    setTakeDiscardDialogOpen(false);
+  }, []);
 
   const roundMeldPoints = useMemo(() => {
     const byPlayer: Record<string, number> = {};
@@ -167,8 +188,8 @@ export function GameBoard({ sessionId }: GameBoardProps) {
               isMyTurn={isHumanTurn}
             />
             <DiscardPile
-              topCard={topDiscard}
-              onTakePile={takeDiscardPile}
+              discard={state.discard ?? []}
+              onTakePile={handleTakeDiscardClick}
               disabled={!canDraw}
             />
             {stockEmpty && isHumanTurn && state.phase === "draw" && (
@@ -209,29 +230,50 @@ export function GameBoard({ sessionId }: GameBoardProps) {
               )}
             </h2>
             {state.phase === "meldOrDiscard" && isHumanTurn && (
-              <div className="mb-3 flex w-full flex-wrap gap-2">
-                {selectedArr.length === 1 && (
-                  <Button type="button" variant="outline" onClick={handleKasta} className="min-h-11 flex-1">
-                    Kasta
-                  </Button>
-                )}
-                {selectedArr.length >= 1 && (
-                  <Button type="button" onClick={handleLayMeldOpen} className="min-h-11 flex-1">
-                    Lägg ut
-                  </Button>
-                )}
-                {!stockEmpty && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="min-h-11 flex-1"
-                    onClick={() => {
-                      passWithoutDiscard();
-                      clearSelection();
-                    }}
-                  >
-                    Nöjd
-                  </Button>
+              <div className="mb-3 flex w-full gap-2">
+                {selectedArr.length === 0 ? (
+                  !stockEmpty && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="min-h-11 w-full border-[var(--btn-nöjd)] bg-[var(--btn-nöjd)]/10 text-[var(--btn-nöjd-foreground)] hover:bg-[var(--btn-nöjd)]/25"
+                      onClick={() => {
+                        passWithoutDiscard();
+                        clearSelection();
+                      }}
+                    >
+                      Nöjd
+                    </Button>
+                  )
+                ) : (
+                  <>
+                    {selectedArr.length === 1 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleKasta}
+                        className="min-h-11 flex-1 border-[var(--btn-kasta)] bg-[var(--btn-kasta)]/10 text-[var(--btn-kasta-foreground)] hover:bg-[var(--btn-kasta)]/25"
+                      >
+                        Kasta
+                      </Button>
+                    )}
+                    {!stockEmpty && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="min-h-11 flex-1 border-[var(--btn-nöjd)] bg-[var(--btn-nöjd)]/10 text-[var(--btn-nöjd-foreground)] hover:bg-[var(--btn-nöjd)]/25"
+                        onClick={() => {
+                          passWithoutDiscard();
+                          clearSelection();
+                        }}
+                      >
+                        Nöjd
+                      </Button>
+                    )}
+                    <Button type="button" onClick={handleLayMeldOpen} className="min-h-11 flex-1">
+                      Lägg ut
+                    </Button>
+                  </>
                 )}
               </div>
             )}
@@ -272,6 +314,26 @@ export function GameBoard({ sessionId }: GameBoardProps) {
               handleLayMeldClose(false);
             }}
           />
+
+          <Dialog open={takeDiscardDialogOpen} onOpenChange={setTakeDiscardDialogOpen}>
+            <DialogContent showCloseButton={false}>
+              <DialogHeader>
+                <DialogTitle>Plocka kast högen</DialogTitle>
+                <DialogDescription>
+                  Vill du plocka hela kast högen? Du får alla {(state.discard ?? []).length} kort på handen.
+                  Kom ihåg att du måste lägga ut minst 3 kort denna tur, annars får du −50 poäng.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button variant="outline" onClick={handleTakeDiscardCancel}>
+                  Avbryt
+                </Button>
+                <Button onClick={handleTakeDiscardConfirm}>
+                  Okej
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </>
       )}
     </div>

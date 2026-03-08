@@ -29,11 +29,17 @@ export function PlayingCard({
     return (
       <div
         className={cn(
-          "flex h-[72px] w-[50px] sm:h-[88px] sm:w-[62px] md:h-[100px] md:w-[70px] shrink-0 items-center justify-center rounded-md border-2 border-border bg-muted/80 text-muted-foreground text-xs",
+          "relative h-[72px] w-[50px] sm:h-[88px] sm:w-[62px] md:h-[100px] md:w-[70px] shrink-0 overflow-hidden rounded-md border border-border shadow-sm",
           className
         )}
       >
-        ?
+        <Image
+          src="/cardback.png"
+          alt=""
+          fill
+          className="object-cover"
+          unoptimized
+        />
       </div>
     );
   }

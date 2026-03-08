@@ -134,34 +134,35 @@ export function getPrevPlayerId(state: GameState, current: PlayerId): PlayerId {
 /**
  * Hitta vinnare av sticket.
  * Vanligt fall: den med högst valör vinner.
- * Fight avbryts om någon lägger högre – då vinner högst kort.
- * Fight sker endast om alla har lagt ledvalör (ingen lägger över).
+ * Fight (2+ spelade samma valör): de utlagda korten är döda. Det är ett NYTT stick –
+ * vi jämför ENDAST de nya korten (fightkorten), inte de döda.
  */
 export function getStickWinner(stick: StickCard[], leadRank: Rank | null): PlayerId {
   if (stick.length === 0) return "p1";
-  const ledVal = leadRank ? RANK_VALUE[leadRank] : -1;
-  const someonePlayedHigher = stick.some((sc) => RANK_VALUE[sc.card.rank] > ledVal);
-  const hasFight =
-    leadRank &&
-    !someonePlayedHigher &&
-    stick.filter((sc) => sc.card.rank === leadRank).length >= 2;
-  if (!hasFight) {
-    let best = stick[0];
-    for (const sc of stick) {
+  const numWithLeadRank = leadRank ? stick.filter((sc) => sc.card.rank === leadRank).length : 0;
+  const hasFight = leadRank != null && numWithLeadRank >= 2;
+
+  if (hasFight) {
+    const fighterIds = [...new Set(
+      stick.filter((sc) => sc.card.rank === leadRank).map((sc) => sc.playerId)
+    )];
+    const fightCards = fighterIds
+      .map((fid) => {
+        const cards = stick.filter((sc) => sc.playerId === fid);
+        const fightOnly = cards.filter((sc) => sc.card.rank !== leadRank);
+        return fightOnly.length > 0 ? fightOnly[fightOnly.length - 1] : null;
+      })
+      .filter((sc): sc is StickCard => sc != null);
+    if (fightCards.length === 0) return stick[0].playerId;
+    let best = fightCards[0];
+    for (const sc of fightCards) {
       if (RANK_VALUE[sc.card.rank] > RANK_VALUE[best.card.rank]) best = sc;
     }
     return best.playerId;
   }
-  const fighterIds = [...new Set(
-    stick.filter((sc) => sc.card.rank === leadRank).map((sc) => sc.playerId)
-  )];
-  const fightCards = fighterIds.map((fid) => {
-    const cards = stick.filter((sc) => sc.playerId === fid);
-    return cards[cards.length - 1];
-  });
-  if (fightCards.length === 0) return stick[0].playerId;
-  let best = fightCards[0];
-  for (const sc of fightCards) {
+
+  let best = stick[0];
+  for (const sc of stick) {
     if (RANK_VALUE[sc.card.rank] > RANK_VALUE[best.card.rank]) best = sc;
   }
   return best.playerId;
