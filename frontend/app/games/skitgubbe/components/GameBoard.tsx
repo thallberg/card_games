@@ -152,7 +152,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
         <h1 className="text-lg sm:text-xl font-semibold">Skitgubbe</h1>
         <section className="rounded-lg border border-[var(--border)] bg-[var(--warm-peach)]/50 p-6 text-center">
           <p className="font-medium">
-            {state.winnerId === myPlayerId ? "Du" : playerLabel(state.winnerId)} vann!
+            {state.winnerId === myPlayerId ? "Du" : state.winnerId ? playerLabel(state.winnerId) : ""} vann!
           </p>
           <Button onClick={resetGame} className="mt-4">
             Spela igen
