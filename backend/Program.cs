@@ -127,6 +127,25 @@ app.MapPost("/api/auth/login", async (LoginRequest req, AuthService auth, ILogge
     }
 });
 
+// ---- Profil (kräver inloggning)
+app.MapPatch("/api/auth/me/displayname", async (UpdateDisplayNameRequest req, HttpContext ctx, AuthService auth) =>
+{
+    var userId = GetUserId(ctx.User);
+    if (userId == null) return Results.Unauthorized();
+    var (ok, err) = await auth.UpdateDisplayNameAsync(userId.Value, req.DisplayName);
+    if (!ok) return Results.BadRequest(new { error = err });
+    return Results.Ok();
+}).RequireAuthorization();
+
+app.MapPatch("/api/auth/me/password", async (ChangePasswordRequest req, HttpContext ctx, AuthService auth) =>
+{
+    var userId = GetUserId(ctx.User);
+    if (userId == null) return Results.Unauthorized();
+    var (ok, err) = await auth.ChangePasswordAsync(userId.Value, req.CurrentPassword, req.NewPassword);
+    if (!ok) return Results.BadRequest(new { error = err });
+    return Results.Ok();
+}).RequireAuthorization();
+
 // ---- Vänner (kräver inloggning)
 app.MapPost("/api/friends/request", async (SendFriendRequestRequest req, HttpContext ctx, FriendService friendService) =>
 {

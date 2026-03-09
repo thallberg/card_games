@@ -52,6 +52,31 @@ public class AuthService
         return (true, null, user);
     }
 
+    public async Task<(bool Ok, string? Error)> UpdateDisplayNameAsync(Guid userId, string newDisplayName)
+    {
+        newDisplayName = (newDisplayName ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(newDisplayName))
+            return (false, "Visningsnamn får inte vara tomt.");
+        var user = await _db.Users.FindAsync(userId);
+        if (user == null) return (false, "Användaren hittades inte.");
+        user.DisplayName = newDisplayName;
+        await _db.SaveChangesAsync();
+        return (true, null);
+    }
+
+    public async Task<(bool Ok, string? Error)> ChangePasswordAsync(Guid userId, string currentPassword, string newPassword)
+    {
+        if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 6)
+            return (false, "Nytt lösenord måste vara minst 6 tecken.");
+        var user = await _db.Users.FindAsync(userId);
+        if (user == null) return (false, "Användaren hittades inte.");
+        if (!BCrypt.Net.BCrypt.Verify(currentPassword, user.PasswordHash))
+            return (false, "Nuvarande lösenord är fel.");
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+        await _db.SaveChangesAsync();
+        return (true, null);
+    }
+
     public string GenerateJwt(User user)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"] ?? throw new InvalidOperationException("Jwt:Key saknas i konfiguration.")));

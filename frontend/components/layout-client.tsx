@@ -36,6 +36,12 @@ export function LayoutClient({
     setUser(getUserFromStorage());
   }, []);
 
+  useEffect(() => {
+    const onUserUpdated = () => setUser(getUserFromStorage());
+    window.addEventListener("user-updated", onUserUpdated);
+    return () => window.removeEventListener("user-updated", onUserUpdated);
+  }, []);
+
   const POLL_MS = 60_000;
   const PAUSE_AFTER_ERROR_MS = 5 * 60 * 1000; // 5 min paus vid t.ex. 500 så vi inte spammer konsolen lokalt
 

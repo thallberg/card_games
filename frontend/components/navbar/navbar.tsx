@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Menu, X, User, UserPlus, Users, Gamepad2, LogOut, LogIn, UserPlus as RegisterIcon } from "lucide-react";
+import { Menu, X, User, UserPlus, Users, Gamepad2, LogOut, LogIn, UserPlus as RegisterIcon, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -26,9 +26,14 @@ export function Navbar({ user, onRegisterClick, onLoginClick, onLogout, onInvite
 
   const navContent = user ? (
     <>
-      <span className="hidden md:inline text-muted-foreground text-sm">
-        Hej, {user.displayName}
-      </span>
+      <Link
+        href="/min-meny"
+        className="hidden md:inline-flex items-center gap-0.5 text-muted-foreground text-sm hover:text-foreground transition-colors"
+        onClick={closeMobile}
+      >
+        Hej, <span className="font-medium text-foreground">{user.displayName}</span>
+        <ChevronRight className="size-3.5 shrink-0 opacity-70" aria-hidden />
+      </Link>
       {onInviteFriendClick && (
         <Button variant="ghost" type="button" onClick={() => { onInviteFriendClick(); closeMobile(); }} className="min-h-11 justify-start md:justify-center w-full md:w-auto">
           <UserPlus className="size-4 md:mr-2 shrink-0" />
@@ -127,10 +132,15 @@ export function Navbar({ user, onRegisterClick, onLoginClick, onLogout, onInvite
       >
         <nav className="flex flex-col gap-1 p-3 pb-4">
           {user && (
-            <p className="px-3 py-2 text-muted-foreground text-sm flex items-center gap-2">
-              <User className="size-4" />
-              Hej, {user.displayName}
-            </p>
+            <Link
+              href="/min-meny"
+              onClick={closeMobile}
+              className="px-3 py-2 text-muted-foreground text-sm flex items-center gap-2 hover:text-foreground transition-colors"
+            >
+              <User className="size-4 shrink-0" />
+              Hej, <span className="font-medium text-foreground">{user.displayName}</span>
+              <ChevronRight className="size-3.5 shrink-0 opacity-70 ml-auto" aria-hidden />
+            </Link>
           )}
           {navContent}
         </nav>
