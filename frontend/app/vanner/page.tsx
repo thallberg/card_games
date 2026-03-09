@@ -69,7 +69,7 @@ export default function VannerPage() {
     if (!createGameFor) return;
     setCreating(true);
     try {
-      const maxPlayers = createGameType === 3 ? 2 : createGameType === 4 ? 6 : 4;
+      const maxPlayers = createGameType === 3 ? 2 : createGameType === 4 ? 6 : 6; // 500: upp till 6, Chicago: 2, Texas: 6
       const createRes = await apiFetch("/api/gamesessions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

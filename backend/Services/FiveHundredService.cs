@@ -17,7 +17,11 @@ public class FiveHundredService
     private const int HandSize = 7;
     private const string P1 = "p1";
     private const string P2 = "p2";
-    private static readonly string[] PlayerIds = { P1, P2 };
+    private const string P3 = "p3";
+    private const string P4 = "p4";
+    private const string P5 = "p5";
+    private const string P6 = "p6";
+    private static readonly string[] AllPlayerIds = { P1, P2, P3, P4, P5, P6 };
 
     private readonly ApplicationDbContext _db;
 
@@ -32,22 +36,24 @@ public class FiveHundredService
         if (session == null) return (false, "Sessionen hittades inte.");
         if (session.GameType != GameType.FiveHundred) return (false, "Inte ett 500-spel.");
         if (session.Players.Count < 2) return (false, "Minst 2 spelare krävs.");
+        if (session.Players.Count > 6) return (false, "500 stöder max 6 spelare.");
 
-        var ordered = session.Players.OrderBy(p => p.SeatOrder).Select(p => p.UserId).Take(2).ToList();
-        if (ordered.Count < 2) return (false, "Behöver exakt 2 spelare för 500.");
+        var numPlayers = Math.Min(session.Players.Count, 6);
+        var ordered = session.Players.OrderBy(p => p.SeatOrder).Select(p => p.UserId).Take(numPlayers).ToList();
+        var playerIds = AllPlayerIds.Take(numPlayers).ToArray();
 
         var deck = CreateAndShuffleDeck();
-        var hands = new Dictionary<string, List<CardDto>>
+        var hands = new Dictionary<string, List<CardDto>>();
+        for (int i = 0; i < numPlayers; i++)
         {
-            [P1] = deck.Take(HandSize).ToList(),
-            [P2] = deck.Skip(HandSize).Take(HandSize).ToList(),
-        };
-        SortHand(hands[P1]);
-        SortHand(hands[P2]);
-        var stock = deck.Skip(HandSize * 2).ToList();
+            hands[playerIds[i]] = deck.Skip(HandSize * i).Take(HandSize).ToList();
+            SortHand(hands[playerIds[i]]);
+        }
+        var stock = deck.Skip(HandSize * numPlayers).ToList();
         var discard = stock.Count > 0 ? new List<CardDto> { stock[^1] } : new List<CardDto>();
         if (stock.Count > 0) stock.RemoveAt(stock.Count - 1);
 
+        var playerScores = playerIds.ToDictionary(p => p, _ => 0);
         var state = new FiveHundredStateDto
         {
             Stock = stock,
@@ -55,7 +61,7 @@ public class FiveHundredService
             Melds = new List<MeldDto>(),
             CurrentPlayerId = P1,
             PlayerHands = hands,
-            PlayerScores = new Dictionary<string, int> { [P1] = 0, [P2] = 0 },
+            PlayerScores = playerScores,
             Phase = "draw",
             LastDraw = null,
             RoundNumber = 1,
@@ -83,15 +89,16 @@ public class FiveHundredService
         if (state == null) return (false, "Ogiltig state.");
         if (state.Phase != "roundEnd") return (false, "Runden är inte avslutad.");
 
+        var playerIds = state.PlayerHands.Keys.OrderBy(x => x).ToList();
+        var numPlayers = playerIds.Count;
         var deck = CreateAndShuffleDeck();
-        var hands = new Dictionary<string, List<CardDto>>
+        var hands = new Dictionary<string, List<CardDto>>();
+        for (int i = 0; i < numPlayers; i++)
         {
-            [P1] = deck.Take(HandSize).ToList(),
-            [P2] = deck.Skip(HandSize).Take(HandSize).ToList(),
-        };
-        SortHand(hands[P1]);
-        SortHand(hands[P2]);
-        var stock = deck.Skip(HandSize * 2).ToList();
+            hands[playerIds[i]] = deck.Skip(HandSize * i).Take(HandSize).ToList();
+            SortHand(hands[playerIds[i]]);
+        }
+        var stock = deck.Skip(HandSize * numPlayers).ToList();
         var discard = stock.Count > 0 ? new List<CardDto> { stock[^1] } : new List<CardDto>();
         if (stock.Count > 0) stock.RemoveAt(stock.Count - 1);
 
@@ -99,7 +106,7 @@ public class FiveHundredService
         state.Discard = discard;
         state.Melds = new List<MeldDto>();
         state.RoundNumber = state.RoundNumber + 1;
-        state.CurrentPlayerId = state.RoundNumber % 2 == 1 ? P1 : P2;
+        state.CurrentPlayerId = playerIds[(state.RoundNumber - 1) % numPlayers];
         state.PlayerHands = hands;
         state.Phase = "draw";
         state.LastDraw = null;
@@ -120,15 +127,16 @@ public class FiveHundredService
         if (state == null) return (false, "Ogiltig state.");
         if (state.Phase != "gameOver") return (false, "Spelet är inte över.");
 
+        var playerIds = state.PlayerHands.Keys.OrderBy(x => x).ToList();
+        var numPlayers = playerIds.Count;
         var deck = CreateAndShuffleDeck();
-        var hands = new Dictionary<string, List<CardDto>>
+        var hands = new Dictionary<string, List<CardDto>>();
+        for (int i = 0; i < numPlayers; i++)
         {
-            [P1] = deck.Take(HandSize).ToList(),
-            [P2] = deck.Skip(HandSize).Take(HandSize).ToList(),
-        };
-        SortHand(hands[P1]);
-        SortHand(hands[P2]);
-        var stock = deck.Skip(HandSize * 2).ToList();
+            hands[playerIds[i]] = deck.Skip(HandSize * i).Take(HandSize).ToList();
+            SortHand(hands[playerIds[i]]);
+        }
+        var stock = deck.Skip(HandSize * numPlayers).ToList();
         var discard = stock.Count > 0 ? new List<CardDto> { stock[^1] } : new List<CardDto>();
         if (stock.Count > 0) stock.RemoveAt(stock.Count - 1);
 
@@ -138,7 +146,7 @@ public class FiveHundredService
         state.RoundNumber = 1;
         state.CurrentPlayerId = P1;
         state.PlayerHands = hands;
-        state.PlayerScores = new Dictionary<string, int> { [P1] = 0, [P2] = 0 };
+        state.PlayerScores = playerIds.ToDictionary(p => p, _ => 0);
         state.Phase = "draw";
         state.LastDraw = null;
         state.WinnerId = null;
@@ -158,9 +166,12 @@ public class FiveHundredService
         if (state == null) return (null, null);
         var playerOrder = JsonSerializer.Deserialize<List<string>>(row.PlayerOrderJson);
         if (playerOrder == null || playerOrder.Count < 2) return (null, null);
-        var p0 = Guid.TryParse(playerOrder[0], out var g0) ? g0 : (Guid?)null;
-        var p1 = Guid.TryParse(playerOrder[1], out var g1) ? g1 : (Guid?)null;
-        var myPlayerId = userId == p0 ? P1 : (userId == p1 ? P2 : null);
+        string? myPlayerId = null;
+        for (int i = 0; i < Math.Min(playerOrder.Count, 6); i++)
+        {
+            if (Guid.TryParse(playerOrder[i], out var g) && userId == g)
+            { myPlayerId = i < AllPlayerIds.Length ? AllPlayerIds[i] : $"p{i + 1}"; break; }
+        }
         if (myPlayerId == null) return (null, null);
         foreach (var key in state.PlayerHands.Keys.ToList())
         {
@@ -184,9 +195,12 @@ public class FiveHundredService
         if (state == null) return (false, "Ogiltig state.", null, null);
         var playerOrder = JsonSerializer.Deserialize<List<string>>(row.PlayerOrderJson);
         if (playerOrder == null || playerOrder.Count < 2) return (false, "Ogiltig spelarordning.", null, null);
-        var p0 = Guid.TryParse(playerOrder[0], out var g0) ? g0 : (Guid?)null;
-        var p1 = Guid.TryParse(playerOrder[1], out var g1) ? g1 : (Guid?)null;
-        var myPlayerId = userId == p0 ? P1 : (userId == p1 ? P2 : null);
+        string? myPlayerId = null;
+        for (int i = 0; i < Math.Min(playerOrder.Count, 6); i++)
+        {
+            if (Guid.TryParse(playerOrder[i], out var g) && userId == g)
+            { myPlayerId = i < AllPlayerIds.Length ? AllPlayerIds[i] : $"p{i + 1}"; break; }
+        }
         if (myPlayerId == null) return (false, "Du är inte med i detta spel.", null, null);
         if (state.CurrentPlayerId != myPlayerId) return (false, "Det är inte din tur.", null, null);
 
@@ -300,14 +314,17 @@ public class FiveHundredService
 
     private static void AdvanceTurn(FiveHundredStateDto s)
     {
-        var whoJustPlayed = s.CurrentPlayerId;
+        var whoJustPlayed = s.CurrentPlayerId ?? P1;
         if (s.LastLaidMeldIds != null && s.LastLaidMeldIds.Count > 0)
         {
             var ownerOfLaid = s.Melds.FirstOrDefault(m => s.LastLaidMeldIds.Contains(m.Id))?.OwnerId;
             if (ownerOfLaid == whoJustPlayed)
                 s.LastLaidMeldIds = new List<string>();
         }
-        s.CurrentPlayerId = whoJustPlayed == P1 ? P2 : P1;
+        var order = s.PlayerHands.Keys.OrderBy(x => x).ToList();
+        var idx = order.IndexOf(whoJustPlayed);
+        if (idx < 0) idx = 0;
+        s.CurrentPlayerId = order[(idx + 1) % order.Count];
         s.Phase = "draw";
         s.LastDraw = null;
         s.CardsLaidThisTurn = 0;
@@ -385,7 +402,7 @@ public class FiveHundredService
     private static void EndRound(FiveHundredStateDto s, string winnerId)
     {
         var meldPointsByPlayer = new Dictionary<string, int>();
-        foreach (var pid in PlayerIds) meldPointsByPlayer[pid] = 0;
+        foreach (var pid in s.PlayerHands.Keys) meldPointsByPlayer[pid] = 0;
         foreach (var m in s.Melds)
         {
             for (int i = 0; i < m.Cards.Count; i++)
@@ -398,7 +415,7 @@ public class FiveHundredService
         }
         var winnerScore = (s.PlayerScores.TryGetValue(winnerId, out var ws) ? ws : 0) + meldPointsByPlayer[winnerId];
         s.PlayerScores[winnerId] = winnerScore;
-        foreach (var pid in PlayerIds)
+        foreach (var pid in s.PlayerHands.Keys)
         {
             if (pid == winnerId) continue;
             var oppHand = s.PlayerHands.TryGetValue(pid, out var oh) ? oh : new List<CardDto>();
