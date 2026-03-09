@@ -240,28 +240,31 @@ export function GameBoard({ sessionId }: GameBoardProps) {
               </p>
             </div>
           )}
-          <div className="mb-4 min-h-[120px]">
-          {state.tableStick.length > 0 && (
-            <div className="flex flex-wrap items-end gap-2">
-              {state.tableStick.map((sc, i) => (
-                <div key={i} className="flex flex-col items-center">
-                  <PlayingCard card={sc.card} faceUp />
-                  <span className="text-xs text-muted-foreground">
-                    {playerLabel(sc.playerId)}
-                  </span>
-                </div>
-              ))}
+          <div className="mb-4 min-h-[152px]">
+            <div className="min-h-[120px]">
+            {state.tableStick.length > 0 && (
+              <div className="flex flex-wrap items-end gap-2">
+                {state.tableStick.map((sc, i) => (
+                  <div key={i} className="flex flex-col items-center">
+                    <PlayingCard card={sc.card} faceUp />
+                    <span className="text-xs text-muted-foreground">
+                      {playerLabel(sc.playerId)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
             </div>
-          )}
+            {state.stickShowingWinner ? (
+              <p className="text-sm font-medium text-primary mb-0 min-h-[1.5rem]">
+                {playerLabel(state.stickShowingWinner)} vann sticket!
+              </p>
+            ) : !isHumanTurn ? (
+              <p className="text-muted-foreground text-sm min-h-[1.5rem]">Andra spelares tur…</p>
+            ) : (
+              <p className="text-sm min-h-[1.5rem] invisible" aria-hidden>placeholder</p>
+            )}
           </div>
-          {state.stickShowingWinner && (
-            <p className="text-sm font-medium text-primary mb-2">
-              {state.stickShowingWinner ? playerLabel(state.stickShowingWinner) + " vann sticket!" : ""}
-            </p>
-          )}
-          {!isHumanTurn && !state.stickShowingWinner && (
-            <p className="text-muted-foreground text-sm">Andra spelares tur…</p>
-          )}
           </section>
         </>
       )}
@@ -272,28 +275,31 @@ export function GameBoard({ sessionId }: GameBoardProps) {
           {state.trumpSuit && (
             <p className="text-muted-foreground text-xs mb-2">Trumf: {SUIT_LABELS[state.trumpSuit]}</p>
           )}
-          <div className="mb-4 min-h-[120px]">
-          {(state.tableTrick.length > 0 || state.trickShowingWinner) && (
-            <div className="flex flex-wrap items-end gap-2">
-              {state.tableTrick.map((tc, i) => (
-                <div key={i} className="flex flex-col items-center">
-                  <PlayingCard card={tc.card} faceUp />
-                  <span className="text-xs text-muted-foreground">
-                    {playerLabel(tc.playerId)}
-                  </span>
-                </div>
-              ))}
+          <div className="mb-4 min-h-[152px]">
+            <div className="min-h-[120px]">
+            {(state.tableTrick.length > 0 || state.trickShowingWinner) && (
+              <div className="flex flex-wrap items-end gap-2">
+                {state.tableTrick.map((tc, i) => (
+                  <div key={i} className="flex flex-col items-center">
+                    <PlayingCard card={tc.card} faceUp />
+                    <span className="text-xs text-muted-foreground">
+                      {playerLabel(tc.playerId)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
             </div>
-          )}
+            {state.trickPickUpBy ? (
+              <p className="text-sm font-medium text-primary mb-0 min-h-[1.5rem]">
+                {playerLabel(state.trickPickUpBy)} plockade sticket
+              </p>
+            ) : !isHumanTurn && !state.trickShowingWinner ? (
+              <p className="text-muted-foreground text-sm min-h-[1.5rem]">Andra spelares tur…</p>
+            ) : (
+              <p className="text-sm min-h-[1.5rem] invisible" aria-hidden>placeholder</p>
+            )}
           </div>
-          {state.trickPickUpBy && (
-            <p className="text-sm font-medium text-primary mb-2">
-              {playerLabel(state.trickPickUpBy)} plockade sticket
-            </p>
-          )}
-          {!isHumanTurn && !state.trickShowingWinner && !state.trickPickUpBy && (
-            <p className="text-muted-foreground text-sm">Andra spelares tur…</p>
-          )}
         </section>
       )}
 
