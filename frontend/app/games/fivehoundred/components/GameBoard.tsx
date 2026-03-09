@@ -151,7 +151,15 @@ export function GameBoard({ sessionId }: GameBoardProps) {
             const handSize = state.playerHands[id]?.length ?? 0;
             return (
               <div key={id} className="flex flex-col gap-0.5">
-                <span className="font-medium">{id === myPlayerId ? "Du" : "Motståndare"}</span>
+                <div className="flex items-center gap-1.5">
+                  {state.currentPlayerId === id && (
+                    <span
+                      className="h-2 w-2 shrink-0 rounded-full bg-green-500 ring-2 ring-green-500/40"
+                      aria-hidden
+                    />
+                  )}
+                  <span className="font-medium">{id === myPlayerId ? "Du" : "Motståndare"}</span>
+                </div>
                 {id !== myPlayerId && state.phase !== "roundEnd" && state.phase !== "gameOver" && (
                   <span className="text-muted-foreground">
                     {handSize} kort på handen
