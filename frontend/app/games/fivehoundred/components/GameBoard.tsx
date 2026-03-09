@@ -57,8 +57,6 @@ export function GameBoard({ sessionId }: GameBoardProps) {
     hasLaidFirstMeld,
   } = useMulti ? multi : single;
 
-  const playerAvatarEmojis = useMulti ? multi.playerAvatarEmojis : ({} as Record<string, string | null>);
-
   const playerLabel = (id: string) => {
     if (id === myPlayerId) return (useMulti && playerDisplayNames?.[id]) ? `${playerDisplayNames[id]} (Du)` : "Du";
     if (useMulti && playerDisplayNames?.[id]) return playerDisplayNames[id];
