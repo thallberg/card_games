@@ -70,6 +70,8 @@ export type GameState = {
   skitgubbePlayerId: PlayerId | null;
   /** Trick just avgjordes – visa 2 sec innan vi rensar. */
   trickShowingWinner: PlayerId | null;
+  /** Spelare som just plockade sticket – visa text i 1,5 sek. */
+  trickPickUpBy: PlayerId | null;
 };
 
 function createPlayerIds(count: number): PlayerId[] {
@@ -124,6 +126,7 @@ export function createInitialState(numPlayers: number): GameState {
     winnerId: null,
     skitgubbePlayerId: null,
     trickShowingWinner: null,
+    trickPickUpBy: null,
   };
 }
 

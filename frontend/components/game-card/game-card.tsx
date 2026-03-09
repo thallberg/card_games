@@ -24,9 +24,9 @@ export function GameCard({ game }: GameCardProps) {
   return (
     <Link
       href={game.path}
-      className="block text-foreground no-underline outline-none transition-opacity hover:opacity-90"
+      className="block text-foreground no-underline outline-none transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-0"
     >
-      <Card className="h-full cursor-pointer border-[var(--border)] outline-none transition-[box-shadow,border-color,background-color] duration-200 hover:shadow-lg hover:border-[var(--warm-coral)]/40 hover:bg-[var(--warm-cream)]/50">
+      <Card className="h-full cursor-pointer border-[var(--border)] outline-none transition-[box-shadow,border-color,background-color] duration-200 hover:shadow-lg hover:border-[var(--warm-coral)]/40 hover:bg-[var(--warm-cream)]/50 focus-visible:ring-0 focus-visible:ring-offset-0">
         <CardHeader>
           <CardTitle>{game.title}</CardTitle>
           <CardDescription>{description}</CardDescription>

@@ -120,6 +120,14 @@ export function useSkitgubbeGameMultiplayer(sessionId: string | undefined) {
     return () => clearTimeout(t);
   }, [state?.trickShowingWinner, state?.phase, myPlayerId, sessionId, state, sendState]);
 
+  useEffect(() => {
+    if (!state || !sessionId || state.phase !== "play" || state.trickPickUpBy !== myPlayerId) return;
+    const t = setTimeout(() => {
+      sendState({ ...state, trickPickUpBy: null });
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [state?.phase, state?.trickPickUpBy, myPlayerId, sessionId, state, sendState]);
+
   const humanHand = state?.playerHands[myPlayerId] ?? [];
   const isHumanTurn = state?.currentPlayerId === myPlayerId;
 

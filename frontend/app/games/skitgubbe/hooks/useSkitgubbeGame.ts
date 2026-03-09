@@ -451,6 +451,17 @@ export function useSkitgubbeGame() {
   }, [state?.phase, state?.trickShowingWinner]);
 
   useEffect(() => {
+    if (!state || state.phase !== "play" || !state.trickPickUpBy) return;
+    const t = setTimeout(() => {
+      setState((s) => {
+        if (!s || s.phase !== "play" || !s.trickPickUpBy) return s;
+        return { ...s, trickPickUpBy: null };
+      });
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [state?.phase, state?.trickPickUpBy]);
+
+  useEffect(() => {
     if (!state || state.phase !== "play" || state.trickShowingWinner) return;
     if (state.currentPlayerId === HUMAN_PLAYER) return;
     if (aiTurnRef.current) return;
@@ -739,6 +750,7 @@ function applyPickUpTrick(s: GameState, playerId: PlayerId): GameState {
       trickHighRank: null,
       trumpPlayedInTrick: false,
       currentPlayerId: nextPlayer,
+      trickPickUpBy: playerId,
     };
   }
 
@@ -755,6 +767,7 @@ function applyPickUpTrick(s: GameState, playerId: PlayerId): GameState {
     trickHighRank: toBeat.highRank,
     trumpPlayedInTrick: remaining.some((tc) => tc.card.suit === s.trumpSuit),
     currentPlayerId: nextPlayer,
+    trickPickUpBy: playerId,
   };
 }
 

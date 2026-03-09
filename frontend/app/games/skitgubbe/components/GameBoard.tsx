@@ -15,6 +15,12 @@ const SUIT_LABELS: Record<string, string> = {
   spades: "spader",
 };
 
+const RANK_LABELS: Record<string, string> = {
+  "2": "2", "3": "3", "4": "4", "5": "5", "6": "6",
+  "7": "7", "8": "8", "9": "9", "10": "10",
+  jack: "knekt", queen: "dam", king: "kung", ace: "ess",
+};
+
 type GameBoardProps = { sessionId?: string };
 
 export function GameBoard({ sessionId }: GameBoardProps) {
@@ -164,7 +170,15 @@ export function GameBoard({ sessionId }: GameBoardProps) {
         <div className="flex gap-4 sm:gap-6 text-xs sm:text-sm">
           {getPlayerIds().map((id) => (
             <div key={id} className="flex flex-col gap-0.5">
-              <span className="font-medium">{playerLabel(id)}</span>
+              <div className="flex items-center gap-1.5">
+                {state.currentPlayerId === id && (
+                  <span
+                    className="h-2 w-2 shrink-0 rounded-full bg-green-500 ring-2 ring-green-500/40"
+                    aria-hidden
+                  />
+                )}
+                <span className="font-medium">{playerLabel(id)}</span>
+              </div>
               <span className="text-muted-foreground">
                 {isSticks ? `Stick: ${state.sticksWon[id] ?? 0}` : `${state.playerHands[id]?.length ?? 0} kort`}
               </span>
@@ -214,6 +228,16 @@ export function GameBoard({ sessionId }: GameBoardProps) {
           </div>
           <section className="rounded-lg border border-[var(--border)] bg-[var(--warm-sand)]/40 p-3 sm:p-4">
             <h2 className="mb-2 text-sm font-medium">Fas 1 – Stick</h2>
+          {state.stickFighters.length > 0 && state.stickLedRank && (
+            <div className="mb-3 rounded-md border-2 border-amber-500 bg-amber-500/15 px-3 py-2 text-sm">
+              <p className="font-medium text-amber-800 dark:text-amber-200">
+                Fight – samma valör ({RANK_LABELS[state.stickLedRank] ?? state.stickLedRank}) lades ut.
+              </p>
+              <p className="mt-0.5 text-muted-foreground">
+                Det står mellan: {state.stickFighters.map((f) => playerLabel(f)).join(" och ")}. Nästa kort avgör.
+              </p>
+            </div>
+          )}
           <div className="mb-4 min-h-[120px]">
           {state.tableStick.length > 0 && (
             <div className="flex flex-wrap items-end gap-2">
@@ -260,7 +284,12 @@ export function GameBoard({ sessionId }: GameBoardProps) {
             </div>
           )}
           </div>
-          {!isHumanTurn && !state.trickShowingWinner && (
+          {state.trickPickUpBy && (
+            <p className="text-sm font-medium text-primary mb-2">
+              {playerLabel(state.trickPickUpBy)} plockade sticket
+            </p>
+          )}
+          {!isHumanTurn && !state.trickShowingWinner && !state.trickPickUpBy && (
             <p className="text-muted-foreground text-sm">Andra spelares tur…</p>
           )}
         </section>

@@ -66,6 +66,7 @@ export function apiStateToGameState(raw: Record<string, unknown>): GameState {
     winnerId: (r.winnerId as GameState["winnerId"]) ?? null,
     skitgubbePlayerId: (r.skitgubbePlayerId as GameState["skitgubbePlayerId"]) ?? null,
     trickShowingWinner: (r.trickShowingWinner as GameState["trickShowingWinner"]) ?? null,
+    trickPickUpBy: (r.trickPickUpBy as GameState["trickPickUpBy"]) ?? null,
   };
 }
 
