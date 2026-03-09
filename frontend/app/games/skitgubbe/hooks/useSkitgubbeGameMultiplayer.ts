@@ -215,7 +215,7 @@ export function useSkitgubbeGameMultiplayer(sessionId: string | undefined) {
   const tableTrickLen = tableTrick.length;
   const trickLeadSuit = state?.trickLeadSuit;
   const isLeading = tableTrickLen === 0 || !trickLeadSuit;
-  const inTrickFight = (state?.trickFighters?.length ?? 0) > 0 && state.trickFighters!.includes(myPlayerId);
+  const inTrickFight = (state?.trickFighters?.length ?? 0) > 0 && (state?.trickFighters?.includes(myPlayerId) ?? false);
   const playableTrickIndices = (() => {
     if (!state || state.phase !== "play" || !isHumanTurn) return new Set<number>();
     const hand = state.playerHands[myPlayerId] ?? [];
