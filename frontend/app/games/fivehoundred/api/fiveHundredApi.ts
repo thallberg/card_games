@@ -81,7 +81,7 @@ export type FiveHundredStateResponse = { state: GameState; myPlayerId: string };
 
 export type FiveHundredActionResponse = { state: GameState; lastDrawnCard?: Card | null };
 
-export type SessionPlayer = { userId: string; displayName: string; seatOrder: number };
+export type SessionPlayer = { userId: string; displayName: string; seatOrder: number; avatarEmoji?: string | null };
 export type SessionInfo = { id: string; status: string; players: SessionPlayer[] };
 
 export async function fetchGameSession(sessionId: string): Promise<SessionInfo | null> {
@@ -89,10 +89,11 @@ export async function fetchGameSession(sessionId: string): Promise<SessionInfo |
   if (!res.ok) return null;
   const data = await res.json().catch(() => null);
   if (!data || !Array.isArray(data.players)) return data as SessionInfo;
-  const players: SessionPlayer[] = data.players.map((p: { userId?: string; UserId?: string; displayName?: string; DisplayName?: string; seatOrder?: number; SeatOrder?: number }) => ({
+  const players: SessionPlayer[] = data.players.map((p: { userId?: string; UserId?: string; displayName?: string; DisplayName?: string; seatOrder?: number; SeatOrder?: number; avatarEmoji?: string | null; AvatarEmoji?: string | null }) => ({
     userId: String(p.userId ?? p.UserId ?? ""),
     displayName: String(p.displayName ?? p.DisplayName ?? "").trim() || "Spelare",
     seatOrder: Number(p.seatOrder ?? p.SeatOrder ?? 0),
+    avatarEmoji: p.avatarEmoji ?? p.AvatarEmoji ?? null,
   }));
   return { ...data, players } as SessionInfo;
 }

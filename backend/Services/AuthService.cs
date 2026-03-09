@@ -64,6 +64,19 @@ public class AuthService
         return (true, null);
     }
 
+    public static readonly IReadOnlyList<string> AllowedAvatarEmojis = new[] { "😀", "😎", "🎮", "👑", "🌟", "🎯", "🃏", "🍀", "⚡", "🏆" };
+
+    public async Task<(bool Ok, string? Error)> UpdateAvatarEmojiAsync(Guid userId, string? emoji)
+    {
+        if (emoji != null && !AllowedAvatarEmojis.Contains(emoji))
+            return (false, "Ogiltig emoji. Välj en av de tillåtna.");
+        var user = await _db.Users.FindAsync(userId);
+        if (user == null) return (false, "Användaren hittades inte.");
+        user.AvatarEmoji = string.IsNullOrWhiteSpace(emoji) ? null : emoji.Trim();
+        await _db.SaveChangesAsync();
+        return (true, null);
+    }
+
     public async Task<(bool Ok, string? Error)> ChangePasswordAsync(Guid userId, string currentPassword, string newPassword)
     {
         if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 6)

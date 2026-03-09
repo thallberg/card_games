@@ -54,7 +54,7 @@ public class GameSessionService
         if (s == null) return null;
 
         var players = s.Players.OrderBy(p => p.SeatOrder)
-            .Select(p => new GameSessionPlayerDto(p.UserId, p.User.DisplayName, p.SeatOrder, p.JoinedAt))
+            .Select(p => new GameSessionPlayerDto(p.UserId, p.User.DisplayName, p.SeatOrder, p.JoinedAt, p.User.AvatarEmoji))
             .ToList();
         return new GameSessionDto(
             s.Id,

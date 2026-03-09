@@ -101,6 +101,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
   }
 
   const playerDisplayNames = useMulti ? multi.playerDisplayNames : undefined;
+  const playerAvatarEmojis = useMulti ? multi.playerAvatarEmojis : undefined;
   const playerLabel = (id: string) => {
     if (id === myPlayerId) return playerDisplayNames?.[id] ? `${playerDisplayNames[id]} (Du)` : "Du";
     return playerDisplayNames?.[id] ?? "Spelare " + id;
@@ -130,7 +131,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
             {skitgubbeId ? (
               <div className="w-full rounded-lg border-2 border-amber-600 bg-amber-500/20 p-4 text-center">
                 <p className="font-medium text-amber-900 dark:text-amber-100">
-                  {playerLabel(skitgubbeId)} fick skitgubbe
+                  {playerLabel(skitgubbeId)}{playerAvatarEmojis?.[skitgubbeId] && " " + playerAvatarEmojis[skitgubbeId]} fick skitgubbe
                 </p>
                 <p className="text-muted-foreground text-sm mt-1">
                   Bara kort under trumf – får 2, 3, 4, 5 och trumf 6 från alla andra.
@@ -154,7 +155,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
         <h1 className="text-lg sm:text-xl font-semibold">Skitgubbe</h1>
         <section className="rounded-lg border border-[var(--border)] bg-[var(--warm-peach)]/50 p-6 text-center">
           <p className="font-medium">
-            {state.winnerId ? playerLabel(state.winnerId) : ""} vann!
+            {state.winnerId ? playerLabel(state.winnerId) + (playerAvatarEmojis?.[state.winnerId] ? " " + playerAvatarEmojis[state.winnerId] : "") + " vann!" : ""}
           </p>
           <Button onClick={resetGame} className="mt-4">
             Spela igen
@@ -182,6 +183,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
                   />
                 )}
                 <span className="font-medium">{playerLabel(id)}</span>
+                {playerAvatarEmojis?.[id] && <span className="ml-0.5" aria-hidden>{playerAvatarEmojis[id]}</span>}
               </div>
               <span className="text-muted-foreground">
                 {isSticks ? `Stick: ${state.sticksWon[id] ?? 0}` : `${state.playerHands[id]?.length ?? 0} kort`}
@@ -226,7 +228,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
               <WonPile
                 key={id}
                 count={(state.wonCards ?? {})[id]?.length ?? 0}
-                label={id === myPlayerId ? "Mina kort" : playerLabel(id)}
+                label={id === myPlayerId ? "Mina kort" : playerLabel(id) + (playerAvatarEmojis?.[id] ? " " + playerAvatarEmojis[id] : "")}
               />
             ))}
           </div>
@@ -238,7 +240,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
                 Fight – samma valör ({RANK_LABELS[state.stickLedRank] ?? state.stickLedRank}) lades ut.
               </p>
               <p className="mt-0.5 text-muted-foreground">
-                Det står mellan: {state.stickFighters.map((f) => playerLabel(f)).join(" och ")}. Nästa kort avgör.
+                Det står mellan: {state.stickFighters.map((f) => playerLabel(f) + (playerAvatarEmojis?.[f] ? " " + playerAvatarEmojis[f] : "")).join(" och ")}. Nästa kort avgör.
               </p>
             </div>
           )}
@@ -250,7 +252,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
                   <div key={i} className="flex flex-col items-center">
                     <PlayingCard card={sc.card} faceUp />
                     <span className="text-xs text-muted-foreground">
-                      {playerLabel(sc.playerId)}
+                      {playerLabel(sc.playerId)}{playerAvatarEmojis?.[sc.playerId] && " " + playerAvatarEmojis[sc.playerId]}
                     </span>
                   </div>
                 ))}
@@ -259,7 +261,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
             </div>
             {state.stickShowingWinner ? (
               <p className="text-sm font-medium text-primary mb-0 min-h-[1.5rem]">
-                {playerLabel(state.stickShowingWinner)} vann sticket!
+                {playerLabel(state.stickShowingWinner)}{playerAvatarEmojis?.[state.stickShowingWinner] && " " + playerAvatarEmojis[state.stickShowingWinner]} vann sticket!
               </p>
             ) : !isHumanTurn ? (
               <p className="text-muted-foreground text-sm min-h-[1.5rem]">Andra spelares tur…</p>
@@ -285,16 +287,16 @@ export function GameBoard({ sessionId }: GameBoardProps) {
                   <div key={i} className="flex flex-col items-center">
                     <PlayingCard card={tc.card} faceUp />
                     <span className="text-xs text-muted-foreground">
-                      {playerLabel(tc.playerId)}
+                      {playerLabel(tc.playerId)}{playerAvatarEmojis?.[tc.playerId] && " " + playerAvatarEmojis[tc.playerId]}
                     </span>
                   </div>
                 ))}
               </div>
             )}
-            </div>
+          </div>
             {state.trickPickUpBy ? (
               <p className="text-sm font-medium text-primary mb-0 min-h-[1.5rem]">
-                {playerLabel(state.trickPickUpBy)} plockade sticket
+                {playerLabel(state.trickPickUpBy)}{playerAvatarEmojis?.[state.trickPickUpBy] && " " + playerAvatarEmojis[state.trickPickUpBy]} plockade sticket
               </p>
             ) : !isHumanTurn && !state.trickShowingWinner ? (
               <p className="text-muted-foreground text-sm min-h-[1.5rem]">Andra spelares tur…</p>

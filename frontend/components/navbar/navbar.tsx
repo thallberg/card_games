@@ -7,7 +7,7 @@ import { Menu, X, User, UserPlus, Users, Gamepad2, LogOut, LogIn, UserPlus as Re
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export type NavbarUser = { displayName: string };
+export type NavbarUser = { displayName: string; avatarEmoji?: string | null };
 
 type NavbarProps = {
   user?: NavbarUser | null;
@@ -32,6 +32,7 @@ export function Navbar({ user, onRegisterClick, onLoginClick, onLogout, onInvite
         onClick={closeMobile}
       >
         Hej, <span className="font-medium text-foreground">{user.displayName}</span>
+        {user.avatarEmoji && <span className="ml-0.5" aria-hidden>{user.avatarEmoji}</span>}
         <ChevronRight className="size-3.5 shrink-0 opacity-70" aria-hidden />
       </Link>
       {onInviteFriendClick && (
@@ -139,6 +140,7 @@ export function Navbar({ user, onRegisterClick, onLoginClick, onLogout, onInvite
             >
               <User className="size-4 shrink-0" />
               Hej, <span className="font-medium text-foreground">{user.displayName}</span>
+              {user.avatarEmoji && <span aria-hidden>{user.avatarEmoji}</span>}
               <ChevronRight className="size-3.5 shrink-0 opacity-70 ml-auto" aria-hidden />
             </Link>
           )}

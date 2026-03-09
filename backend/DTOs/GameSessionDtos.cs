@@ -18,7 +18,7 @@ public record GameSessionDto(
     List<GameSessionPlayerDto> Players
 );
 
-public record GameSessionPlayerDto(Guid UserId, string DisplayName, int SeatOrder, DateTime JoinedAt);
+public record GameSessionPlayerDto(Guid UserId, string DisplayName, int SeatOrder, DateTime JoinedAt, string? AvatarEmoji = null);
 
 public enum GameTypeDto
 {

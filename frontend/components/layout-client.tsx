@@ -14,8 +14,8 @@ function getUserFromStorage(): NavbarUser | null {
   const raw = localStorage.getItem("user");
   if (!token || !raw) return null;
   try {
-    const u = JSON.parse(raw) as { displayName?: string };
-    return u?.displayName ? { displayName: u.displayName } : null;
+    const u = JSON.parse(raw) as { displayName?: string; avatarEmoji?: string | null };
+    return u?.displayName ? { displayName: u.displayName, avatarEmoji: u.avatarEmoji ?? null } : null;
   } catch {
     return null;
   }

@@ -6,6 +6,8 @@ public class User
     public string Email { get; set; } = string.Empty;
     public string PasswordHash { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
+    /// <summary>Vald avatar-emoji (en av de tillåtna), eller null.</summary>
+    public string? AvatarEmoji { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public ICollection<FriendRequest> SentFriendRequests { get; set; } = new List<FriendRequest>();

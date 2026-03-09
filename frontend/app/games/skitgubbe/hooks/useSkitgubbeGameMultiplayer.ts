@@ -280,10 +280,13 @@ export function useSkitgubbeGameMultiplayer(sessionId: string | undefined) {
     (state?.tableTrick?.length ?? 0) > 0;
 
   const playerDisplayNames: Record<string, string> = {};
+  const playerAvatarEmojis: Record<string, string | null> = {};
   if (state?.playerIds && sessionPlayers?.length) {
     const bySeat = [...sessionPlayers].sort((a, b) => a.seatOrder - b.seatOrder);
     state.playerIds.forEach((id, i) => {
-      playerDisplayNames[id] = bySeat[i]?.displayName ?? "Spelare " + id;
+      const p = bySeat[i];
+      playerDisplayNames[id] = p?.displayName ?? "Spelare " + id;
+      playerAvatarEmojis[id] = p?.avatarEmoji ?? null;
     });
   }
 
@@ -311,6 +314,7 @@ export function useSkitgubbeGameMultiplayer(sessionId: string | undefined) {
     getPlayerIds: () => (state ? getPlayerIds(state) : []),
     getSkitgubbePreview: () => (state?.phase === "skitgubbe" ? getSkitgubbePlayerId(state) : null),
     playerDisplayNames,
+    playerAvatarEmojis,
     loading,
     waitingForStart,
     myPlayerId,

@@ -102,7 +102,7 @@ app.MapPost("/api/auth/register", async (RegisterRequest req, AuthService auth, 
         var (ok, err, u) = await auth.RegisterAsync(req.Email, req.Password, req.DisplayName);
         if (!ok) return Results.BadRequest(new { error = err });
         var token = auth.GenerateJwt(u!);
-        return Results.Ok(new LoginResponse(token, new UserDto(u!.Id, u.Email, u.DisplayName, u.CreatedAt)));
+        return Results.Ok(new LoginResponse(token, new UserDto(u!.Id, u.Email, u.DisplayName, u.CreatedAt, u.AvatarEmoji)));
     }
     catch (Exception ex)
     {
@@ -118,7 +118,7 @@ app.MapPost("/api/auth/login", async (LoginRequest req, AuthService auth, ILogge
         var (ok, err, u) = await auth.LoginAsync(req.Email, req.Password);
         if (!ok) return Results.BadRequest(new { error = err });
         var token = auth.GenerateJwt(u!);
-        return Results.Ok(new LoginResponse(token, new UserDto(u!.Id, u.Email, u.DisplayName, u.CreatedAt)));
+        return Results.Ok(new LoginResponse(token, new UserDto(u!.Id, u.Email, u.DisplayName, u.CreatedAt, u.AvatarEmoji)));
     }
     catch (Exception ex)
     {
@@ -142,6 +142,15 @@ app.MapPatch("/api/auth/me/password", async (ChangePasswordRequest req, HttpCont
     var userId = GetUserId(ctx.User);
     if (userId == null) return Results.Unauthorized();
     var (ok, err) = await auth.ChangePasswordAsync(userId.Value, req.CurrentPassword, req.NewPassword);
+    if (!ok) return Results.BadRequest(new { error = err });
+    return Results.Ok();
+}).RequireAuthorization();
+
+app.MapPatch("/api/auth/me/avatar", async (UpdateAvatarRequest req, HttpContext ctx, AuthService auth) =>
+{
+    var userId = GetUserId(ctx.User);
+    if (userId == null) return Results.Unauthorized();
+    var (ok, err) = await auth.UpdateAvatarEmojiAsync(userId.Value, req.Emoji);
     if (!ok) return Results.BadRequest(new { error = err });
     return Results.Ok();
 }).RequireAuthorization();
@@ -217,7 +226,7 @@ app.MapGet("/api/users/search", async (string? q, HttpContext ctx, ApplicationDb
     var users = await db.Users
         .Where(u => u.Id != userId && (u.DisplayName.ToLower().Contains(query) || u.Email.ToLower().Contains(query)))
         .Take(20)
-        .Select(u => new UserDto(u.Id, u.Email, u.DisplayName, u.CreatedAt))
+        .Select(u => new UserDto(u.Id, u.Email, u.DisplayName, u.CreatedAt, u.AvatarEmoji))
         .ToListAsync();
     return Results.Ok(users);
 }).RequireAuthorization();

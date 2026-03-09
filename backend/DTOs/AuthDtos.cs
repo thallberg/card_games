@@ -6,8 +6,10 @@ public record LoginRequest(string Email, string Password);
 
 public record LoginResponse(string Token, UserDto User);
 
-public record UserDto(Guid Id, string Email, string DisplayName, DateTime CreatedAt);
+public record UserDto(Guid Id, string Email, string DisplayName, DateTime CreatedAt, string? AvatarEmoji = null);
 
 public record UpdateDisplayNameRequest(string DisplayName);
+
+public record UpdateAvatarRequest(string? Emoji);
 
 public record ChangePasswordRequest(string CurrentPassword, string NewPassword);

@@ -8,24 +8,27 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { apiFetch } from "@/lib/api";
 
-function getUserFromStorage(): { displayName: string } | null {
+const AVATAR_EMOJIS = ["😀", "😎", "🎮", "👑", "🌟", "🎯", "🃏", "🍀", "⚡", "🏆"] as const;
+
+function getUserFromStorage(): { displayName: string; avatarEmoji?: string | null } | null {
   if (typeof window === "undefined") return null;
   const raw = localStorage.getItem("user");
   if (!raw) return null;
   try {
-    const u = JSON.parse(raw) as { displayName?: string };
-    return u?.displayName != null ? { displayName: u.displayName } : null;
+    const u = JSON.parse(raw) as { displayName?: string; avatarEmoji?: string | null };
+    return u?.displayName != null ? { displayName: u.displayName, avatarEmoji: u.avatarEmoji ?? null } : null;
   } catch {
     return null;
   }
 }
 
-function updateUserInStorage(displayName: string) {
+function updateUserInStorage(updates: { displayName?: string; avatarEmoji?: string | null }) {
   const raw = localStorage.getItem("user");
   if (!raw) return;
   try {
     const u = JSON.parse(raw) as Record<string, unknown>;
-    u.displayName = displayName;
+    if (updates.displayName !== undefined) u.displayName = updates.displayName;
+    if (updates.avatarEmoji !== undefined) u.avatarEmoji = updates.avatarEmoji;
     localStorage.setItem("user", JSON.stringify(u));
     window.dispatchEvent(new Event("user-updated"));
   } catch {
@@ -35,8 +38,13 @@ function updateUserInStorage(displayName: string) {
 
 export default function MinMenyPage() {
   const router = useRouter();
-  const [user, setUser] = useState<{ displayName: string } | null>(null);
+  const [user, setUser] = useState<{ displayName: string; avatarEmoji?: string | null } | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const [selectedEmoji, setSelectedEmoji] = useState<string | null>(null);
+  const [avatarSaving, setAvatarSaving] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
+  const [avatarSuccess, setAvatarSuccess] = useState(false);
 
   const [displayName, setDisplayName] = useState("");
   const [displayNameSaving, setDisplayNameSaving] = useState(false);
@@ -58,6 +66,7 @@ export default function MinMenyPage() {
     }
     setUser(u);
     setDisplayName(u.displayName);
+    setSelectedEmoji(u.avatarEmoji ?? null);
     setLoading(false);
   }, [router]);
 
@@ -88,13 +97,39 @@ export default function MinMenyPage() {
         setDisplayNameError((data as { error?: string }).error ?? "Kunde inte spara.");
         return;
       }
-      updateUserInStorage(trimmed);
+      updateUserInStorage({ displayName: trimmed });
       setDisplayNameSuccess(true);
       setTimeout(() => setDisplayNameSuccess(false), 3000);
     } catch {
       setDisplayNameError("Nätverksfel.");
     } finally {
       setDisplayNameSaving(false);
+    }
+  };
+
+  const handleSaveAvatar = async (emoji: string | null) => {
+    setAvatarError(null);
+    setAvatarSuccess(false);
+    setAvatarSaving(true);
+    try {
+      const res = await apiFetch("/api/auth/me/avatar", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ emoji }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setAvatarError((data as { error?: string }).error ?? "Kunde inte spara.");
+        return;
+      }
+      setSelectedEmoji(emoji);
+      updateUserInStorage({ avatarEmoji: emoji });
+      setAvatarSuccess(true);
+      setTimeout(() => setAvatarSuccess(false), 3000);
+    } catch {
+      setAvatarError("Nätverksfel.");
+    } finally {
+      setAvatarSaving(false);
     }
   };
 
@@ -156,7 +191,7 @@ export default function MinMenyPage() {
         </p>
       </div>
 
-      <section className="rounded-lg border border-[var(--border)] bg-card p-4 sm:p-6">
+      <section className="rounded-lg border border-border bg-card p-4 sm:p-6">
         <h2 className="text-lg font-medium mb-4">Byta användarnamn</h2>
         <p className="text-muted-foreground text-sm mb-4">
           Detta namn visas för andra i spel (t.ex. Skitgubbe, 500).
@@ -187,7 +222,41 @@ export default function MinMenyPage() {
         </form>
       </section>
 
-      <section className="rounded-lg border border-[var(--border)] bg-card p-4 sm:p-6">
+      <section className="rounded-lg border border-border bg-card p-4 sm:p-6">
+        <h2 className="text-lg font-medium mb-4">Avatar i spel</h2>
+        <p className="text-muted-foreground text-sm mb-4">
+          Välj en emoji som visas efter ditt namn i alla spel (Skitgubbe, 500, m.fl.).
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {AVATAR_EMOJIS.map((emoji) => (
+            <button
+              key={emoji}
+              type="button"
+              onClick={() => handleSaveAvatar(selectedEmoji === emoji ? null : emoji)}
+              disabled={avatarSaving}
+              className={`text-2xl w-12 h-12 rounded-lg border-2 transition-colors flex items-center justify-center ${
+                selectedEmoji === emoji
+                  ? "border-primary bg-primary/15"
+                  : "border-border hover:border-primary/50 hover:bg-muted/50"
+              }`}
+              title={selectedEmoji === emoji ? "Klicka för att ta bort" : "Välj som avatar"}
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
+        {selectedEmoji && (
+          <p className="text-sm text-muted-foreground mt-2">
+            Vald: {selectedEmoji} – klicka igen för att ta bort.
+          </p>
+        )}
+        {avatarError && <p className="text-sm text-destructive mt-2">{avatarError}</p>}
+        {avatarSuccess && (
+          <p className="text-sm text-green-600 dark:text-green-400 mt-2">Avataren är sparad.</p>
+        )}
+      </section>
+
+      <section className="rounded-lg border border-border bg-card p-4 sm:p-6">
         <h2 className="text-lg font-medium mb-4">Byta lösenord</h2>
         <form onSubmit={handleChangePassword} className="space-y-4">
           <div className="space-y-2">

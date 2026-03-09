@@ -491,6 +491,7 @@ export function useGameState() {
     startNewRound,
     getPlayerIds,
     playerDisplayNames: {} as Record<string, string>,
+    playerAvatarEmojis: {} as Record<string, string | null>,
     myPlayerId: HUMAN_PLAYER,
     lastDrawnCards,
     hasLaidFirstMeld: state != null && state.melds.some((m) => m.ownerId === HUMAN_PLAYER),

@@ -164,6 +164,17 @@ export function useGameStateMultiplayer(sessionId: string | undefined) {
     return out;
   }, [state?.playerHands, sessionPlayers]);
 
+  const playerAvatarEmojis: Record<string, string | null> = useMemo(() => {
+    const ids = state ? Object.keys(state.playerHands) : [];
+    if (!sessionPlayers?.length || ids.length === 0) return {};
+    const bySeat = [...sessionPlayers].sort((a, b) => a.seatOrder - b.seatOrder);
+    const out: Record<string, string | null> = {};
+    ids.forEach((id, i) => {
+      out[id] = bySeat[i]?.avatarEmoji ?? null;
+    });
+    return out;
+  }, [state?.playerHands, sessionPlayers]);
+
   const humanHand = useMemo(
     () => sortHand(state?.playerHands[myPlayerId] ?? []),
     [state, myPlayerId]
@@ -194,6 +205,7 @@ export function useGameStateMultiplayer(sessionId: string | undefined) {
     startNewRound,
     getPlayerIds,
     playerDisplayNames,
+    playerAvatarEmojis,
     myPlayerId,
     lastDrawnCard,
     lastDrawnCards: lastDrawnCard != null ? [lastDrawnCard] : [],
