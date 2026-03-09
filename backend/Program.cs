@@ -146,13 +146,22 @@ app.MapPatch("/api/auth/me/password", async (ChangePasswordRequest req, HttpCont
     return Results.Ok();
 }).RequireAuthorization();
 
-app.MapPatch("/api/auth/me/avatar", async (UpdateAvatarRequest req, HttpContext ctx, AuthService auth) =>
+app.MapPatch("/api/auth/me/avatar", async (UpdateAvatarRequest req, HttpContext ctx, AuthService auth, ILoggerFactory logFactory) =>
 {
     var userId = GetUserId(ctx.User);
     if (userId == null) return Results.Unauthorized();
-    var (ok, err) = await auth.UpdateAvatarEmojiAsync(userId.Value, req.Emoji);
-    if (!ok) return Results.BadRequest(new { error = err });
-    return Results.Ok();
+    try
+    {
+        var (ok, err) = await auth.UpdateAvatarEmojiAsync(userId.Value, req.Emoji);
+        if (!ok) return Results.BadRequest(new { error = err });
+        return Results.Ok();
+    }
+    catch (Exception ex)
+    {
+        var log = logFactory.CreateLogger("Auth");
+        log.LogError(ex, "UpdateAvatarEmoji failed");
+        return Results.Json(new { error = "Kunde inte spara avataren. Kontrollera att databasen har kolumnen AvatarEmoji (kör migrering: dotnet ef database update)." }, statusCode: 500);
+    }
 }).RequireAuthorization();
 
 // ---- Vänner (kräver inloggning)
