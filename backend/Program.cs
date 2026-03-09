@@ -164,7 +164,9 @@ app.MapPatch("/api/auth/me/avatar", async (UpdateAvatarRequest req, HttpContext 
     {
         var log = logFactory.CreateLogger("Auth");
         log.LogError(ex, "UpdateAvatarEmoji failed");
-        return Results.Json(new { error = "Kunde inte spara avataren. Kontrollera att databasen har kolumnen AvatarEmoji (kör migrering: dotnet ef database update)." }, statusCode: 500);
+        var msg = ex.Message;
+        if (ex.InnerException != null) msg += " | " + ex.InnerException.Message;
+        return Results.Json(new { error = "Kunde inte spara avataren.", detail = msg }, statusCode: 500);
     }
 }).RequireAuthorization();
 
