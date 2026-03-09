@@ -101,8 +101,10 @@ export function GameBoard({ sessionId }: GameBoardProps) {
   }
 
   const playerDisplayNames = useMulti ? multi.playerDisplayNames : undefined;
-  const playerLabel = (id: string) =>
-    id === myPlayerId ? "Du" : (playerDisplayNames?.[id] ?? "Spelare " + id);
+  const playerLabel = (id: string) => {
+    if (id === myPlayerId) return playerDisplayNames?.[id] ? `${playerDisplayNames[id]} (Du)` : "Du";
+    return playerDisplayNames?.[id] ?? "Spelare " + id;
+  };
 
   if (state.phase === "skitgubbe") {
     const skitgubbeId = getSkitgubbePreview?.() ?? null;
@@ -128,7 +130,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
             {skitgubbeId ? (
               <div className="w-full rounded-lg border-2 border-amber-600 bg-amber-500/20 p-4 text-center">
                 <p className="font-medium text-amber-900 dark:text-amber-100">
-                  {skitgubbeId === myPlayerId ? "Du" : playerLabel(skitgubbeId)} fick skitgubbe
+                  {playerLabel(skitgubbeId)} fick skitgubbe
                 </p>
                 <p className="text-muted-foreground text-sm mt-1">
                   Bara kort under trumf – får 2, 3, 4, 5 och trumf 6 från alla andra.
@@ -152,7 +154,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
         <h1 className="text-lg sm:text-xl font-semibold">Skitgubbe</h1>
         <section className="rounded-lg border border-[var(--border)] bg-[var(--warm-peach)]/50 p-6 text-center">
           <p className="font-medium">
-            {state.winnerId === myPlayerId ? "Du" : state.winnerId ? playerLabel(state.winnerId) : ""} vann!
+            {state.winnerId ? playerLabel(state.winnerId) : ""} vann!
           </p>
           <Button onClick={resetGame} className="mt-4">
             Spela igen

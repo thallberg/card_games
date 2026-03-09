@@ -57,13 +57,13 @@ export function GameBoard({ sessionId }: GameBoardProps) {
   } = useMulti ? multi : single;
 
   const playerLabel = (id: string) => {
-    if (id === myPlayerId) return "Du";
+    if (id === myPlayerId) return (useMulti && playerDisplayNames?.[id]) ? `${playerDisplayNames[id]} (Du)` : "Du";
     if (useMulti && playerDisplayNames?.[id]) return playerDisplayNames[id];
     const numPlayers = state ? Object.keys(state.playerHands).length : 2;
     return numPlayers === 2 ? "Motståndare" : "Spelare " + id;
   };
   const playerLabelGenitive = (id: string) => {
-    if (id === myPlayerId) return "Du";
+    if (id === myPlayerId) return (useMulti && playerDisplayNames?.[id]) ? `${playerDisplayNames[id]} (Du)` : "Du";
     if (useMulti && playerDisplayNames?.[id]) return playerDisplayNames[id];
     const numPlayers = state ? Object.keys(state.playerHands).length : 2;
     return numPlayers === 2 ? "Motståndaren" : "Spelare " + id;
@@ -196,7 +196,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
       {state.phase === "gameOver" && state.winnerId && (
         <div className="rounded-lg border border-[var(--border)] bg-[var(--warm-peach)]/50 p-4 text-center">
           <p className="font-medium">
-            {state.winnerId === myPlayerId ? "Du" : playerLabelGenitive(state.winnerId)} har vunnit spelet!
+            {state.winnerId ? playerLabelGenitive(state.winnerId) : ""} har vunnit spelet!
           </p>
           <Button onClick={resetGame} className="mt-2">
             Spela igen
@@ -207,7 +207,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
       {state.phase === "roundEnd" && state.winnerId && (
         <div className="rounded-lg border border-[var(--border)] bg-[var(--warm-peach)]/50 p-4 text-center">
           <p className="font-medium">
-            Rundan över! {state.winnerId === myPlayerId ? "Du" : playerLabelGenitive(state.winnerId)} gick ut.
+            Rundan över! {state.winnerId ? playerLabelGenitive(state.winnerId) : ""} gick ut.
           </p>
           <p className="text-muted-foreground mt-1 text-sm">
             Poäng: {getPlayerIds().map((id) => `${playerLabel(id)} ${state.playerScores[id] ?? 0}`).join(", ")}
