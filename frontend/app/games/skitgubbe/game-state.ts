@@ -49,14 +49,21 @@ export type GameState = {
   /** Stick som just avgjordes – visa på bordet innan vi flyttar till vunna. */
   stickShowingWinner: PlayerId | null;
 
-  // Fas 2 – play
-  /** Nuvarande trick på bordet. En spelare kan ha lagt flera kort (stege). */
+  // Fas 2 – play (utspel: stege följer valör, plocka = ta ledarens kort, trumf gäller efter utlagt)
+  /** Nuvarande trick på bordet. Först ut: ledarens stege, sedan nästa spelares, osv. */
   tableTrick: TrickCard[];
-  /** Vem som ledde tricket. */
+  /** Vem som ledde tricket (la ut första steget). */
   trickLeader: PlayerId | null;
-  /** Högsta kort/stege som måste slås (färg + valör). */
+  /** Antal kort i ledarens stege – man får lägga 1 till leadLength kort som slår (samma färg/trumf). */
+  trickLeadLength: number;
+  /** Antal kort per spelare i detta trick (t.ex. [6, 1, 3] = ledaren 6, nästa 1, nästa 3). */
+  trickPlayLengths: number[];
+  /** Färg som leddes (eller trumf om trumf har lagts ut i detta trick). */
   trickLeadSuit: Card["suit"] | null;
+  /** Högsta valör som måste slås. */
   trickHighRank: Rank | null;
+  /** Har någon lagt trumf i detta trick – då gäller trumf för resten av rundan. */
+  trumpPlayedInTrick: boolean;
   /** Spelare som vunnit (0 kort kvar). */
   winnerId: PlayerId | null;
   /** Spelare som blev skitgubbe (fick straffkort) – sätts vid övergång till play. */
@@ -109,8 +116,11 @@ export function createInitialState(numPlayers: number): GameState {
     stickShowingWinner: null,
     tableTrick: [],
     trickLeader: null,
+    trickLeadLength: 0,
+    trickPlayLengths: [],
     trickLeadSuit: null,
     trickHighRank: null,
+    trumpPlayedInTrick: false,
     winnerId: null,
     skitgubbePlayerId: null,
     trickShowingWinner: null,

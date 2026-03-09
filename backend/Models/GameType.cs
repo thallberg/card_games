@@ -7,4 +7,5 @@ public enum GameType
     FiveHundred = 2,
     Chicago = 3,
     TexasHoldem = 4,
+    Skitgubbe = 5,
 }

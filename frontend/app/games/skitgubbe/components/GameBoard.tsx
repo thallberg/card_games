@@ -1,6 +1,7 @@
 "use client";
 
 import { useSkitgubbeGame } from "../hooks/useSkitgubbeGame";
+import { useSkitgubbeGameMultiplayer } from "../hooks/useSkitgubbeGameMultiplayer";
 import { PlayingCard } from "./PlayingCard";
 import { StockPile } from "./StockPile";
 import { WonPile } from "./WonPile";
@@ -14,7 +15,13 @@ const SUIT_LABELS: Record<string, string> = {
   spades: "spader",
 };
 
-export function GameBoard() {
+type GameBoardProps = { sessionId?: string };
+
+export function GameBoard({ sessionId }: GameBoardProps) {
+  const single = useSkitgubbeGame();
+  const multi = useSkitgubbeGameMultiplayer(sessionId);
+  const useMulti = !!sessionId;
+
   const {
     state,
     playerCount,
@@ -36,9 +43,30 @@ export function GameBoard() {
     resetGame,
     getPlayerIds,
     getSkitgubbePreview,
-  } = useSkitgubbeGame();
+  } = useMulti ? multi : single;
 
-  if (playerCount === null) {
+  const myPlayerId = useMulti ? (multi.myPlayerId ?? "p1") : "p1";
+  const loading = useMulti && multi.loading;
+  const waitingForStart = useMulti && multi.waitingForStart;
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[200px] items-center justify-center">
+        <p className="text-muted-foreground">Laddar Skitgubbe…</p>
+      </div>
+    );
+  }
+
+  if (waitingForStart) {
+    return (
+      <div className="mx-auto max-w-4xl space-y-4 px-1 sm:px-0">
+        <h1 className="text-lg sm:text-xl font-semibold">Skitgubbe</h1>
+        <p className="text-muted-foreground">Väntar på att ledaren startar spelet…</p>
+      </div>
+    );
+  }
+
+  if (playerCount === null && !useMulti) {
     return (
       <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6 px-1 sm:px-0">
         <h1 className="text-lg sm:text-xl font-semibold">Skitgubbe</h1>
@@ -66,12 +94,14 @@ export function GameBoard() {
     );
   }
 
+  const playerLabel = (id: string) => (id === myPlayerId ? "Du" : "Spelare " + id);
+
   if (state.phase === "skitgubbe") {
     const skitgubbeId = getSkitgubbePreview?.() ?? null;
     return (
       <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6 px-1 sm:px-0">
         <h1 className="text-lg sm:text-xl font-semibold">Skitgubbe – Trumf</h1>
-        <section className="rounded-lg border border-[var(--border)] bg-[var(--warm-peach)]/30 p-4">
+        <section className="rounded-lg border border-border bg-[var(--warm-peach)]/30 p-4">
           <div className="flex flex-col items-center gap-4">
             {state.lastRevealedCard ? (
               <>
@@ -87,10 +117,18 @@ export function GameBoard() {
                 Trumf: {state.trumpSuit ? SUIT_LABELS[state.trumpSuit] : "—"}
               </p>
             )}
-            {skitgubbeId && (
+            {skitgubbeId ? (
+              <div className="w-full rounded-lg border-2 border-amber-600 bg-amber-500/20 p-4 text-center">
+                <p className="font-medium text-amber-900 dark:text-amber-100">
+                  {skitgubbeId === myPlayerId ? "Du" : "Spelare " + skitgubbeId} fick skitgubbe
+                </p>
+                <p className="text-muted-foreground text-sm mt-1">
+                  Bara kort under trumf – får 2, 3, 4, 5 och trumf 6 från alla andra.
+                </p>
+              </div>
+            ) : (
               <p className="text-muted-foreground text-sm">
-                {skitgubbeId === "p1" ? "Du" : "Spelare " + skitgubbeId} har bara kort under trumf
-                – får 2–5 och trumf 6 från andra.
+                Ingen blev skitgubbe – alla hade minst ett kort som slår trumf.
               </p>
             )}
             <Button onClick={continueToPlay}>Fortsätt till utspelet</Button>
@@ -106,7 +144,7 @@ export function GameBoard() {
         <h1 className="text-lg sm:text-xl font-semibold">Skitgubbe</h1>
         <section className="rounded-lg border border-[var(--border)] bg-[var(--warm-peach)]/50 p-6 text-center">
           <p className="font-medium">
-            {state.winnerId === "p1" ? "Du" : "Spelare " + state.winnerId} vann!
+            {state.winnerId === myPlayerId ? "Du" : "Spelare " + state.winnerId} vann!
           </p>
           <Button onClick={resetGame} className="mt-4">
             Spela igen
@@ -126,7 +164,7 @@ export function GameBoard() {
         <div className="flex gap-4 sm:gap-6 text-xs sm:text-sm">
           {getPlayerIds().map((id) => (
             <div key={id} className="flex flex-col gap-0.5">
-              <span className="font-medium">{id === "p1" ? "Du" : "Spelare " + id}</span>
+              <span className="font-medium">{playerLabel(id)}</span>
               <span className="text-muted-foreground">
                 {isSticks ? `Stick: ${state.sticksWon[id] ?? 0}` : `${state.playerHands[id]?.length ?? 0} kort`}
               </span>
@@ -135,9 +173,25 @@ export function GameBoard() {
         </div>
       </div>
 
-      {state.lastRevealedCard && state.phase === "sticks" && (
+      {state.phase === "sticks" && state.trumpSuit && (
+        <div className="flex flex-wrap items-center gap-2">
+          {state.lastRevealedCard ? (
+            <>
+              <p className="text-muted-foreground text-sm">
+                Trumf: {SUIT_LABELS[state.lastRevealedCard.suit]} ({state.lastRevealedCard.rank})
+              </p>
+              <PlayingCard card={state.lastRevealedCard} faceUp />
+            </>
+          ) : (
+            <p className="text-muted-foreground text-sm">
+              Trumf: {SUIT_LABELS[state.trumpSuit]}
+            </p>
+          )}
+        </div>
+      )}
+      {state.phase === "play" && state.trumpSuit && (
         <p className="text-muted-foreground text-sm">
-          Sista kortet (trumf): {state.lastRevealedCard.rank} {SUIT_LABELS[state.lastRevealedCard.suit]}
+          Trumf: {SUIT_LABELS[state.trumpSuit]}
         </p>
       )}
 
@@ -148,32 +202,35 @@ export function GameBoard() {
               count={state.stock.length}
               onDraw={canDrawAndPlay ? drawAndPlay : undefined}
               disabled={!canDrawAndPlay}
+              isMyTurn={isHumanTurn}
             />
             {getPlayerIds().map((id) => (
               <WonPile
                 key={id}
                 count={(state.wonCards ?? {})[id]?.length ?? 0}
-                label={id === "p1" ? "Mina kort" : `Spelare ${id}`}
+                label={id === myPlayerId ? "Mina kort" : `Spelare ${id}`}
               />
             ))}
           </div>
           <section className="rounded-lg border border-[var(--border)] bg-[var(--warm-sand)]/40 p-3 sm:p-4">
             <h2 className="mb-2 text-sm font-medium">Fas 1 – Stick</h2>
+          <div className="mb-4 min-h-[120px]">
           {state.tableStick.length > 0 && (
-            <div className="mb-4 flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-end gap-2">
               {state.tableStick.map((sc, i) => (
                 <div key={i} className="flex flex-col items-center">
                   <PlayingCard card={sc.card} faceUp />
                   <span className="text-xs text-muted-foreground">
-                    {sc.playerId === "p1" ? "Du" : sc.playerId}
+                    {playerLabel(sc.playerId)}
                   </span>
                 </div>
               ))}
             </div>
           )}
+          </div>
           {state.stickShowingWinner && (
             <p className="text-sm font-medium text-primary mb-2">
-              {state.stickShowingWinner === "p1" ? "Du" : "Spelare " + state.stickShowingWinner} vann sticket!
+              {state.stickShowingWinner ? playerLabel(state.stickShowingWinner) + " vann sticket!" : ""}
             </p>
           )}
           {!isHumanTurn && !state.stickShowingWinner && (
@@ -189,23 +246,20 @@ export function GameBoard() {
           {state.trumpSuit && (
             <p className="text-muted-foreground text-xs mb-2">Trumf: {SUIT_LABELS[state.trumpSuit]}</p>
           )}
-          {state.tableTrick.length > 0 && (
-            <div className="mb-4 flex flex-wrap gap-2">
+          <div className="mb-4 min-h-[120px]">
+          {(state.tableTrick.length > 0 || state.trickShowingWinner) && (
+            <div className="flex flex-wrap items-end gap-2">
               {state.tableTrick.map((tc, i) => (
                 <div key={i} className="flex flex-col items-center">
                   <PlayingCard card={tc.card} faceUp />
                   <span className="text-xs text-muted-foreground">
-                    {tc.playerId === "p1" ? "Du" : tc.playerId}
+                    {playerLabel(tc.playerId)}
                   </span>
                 </div>
               ))}
             </div>
           )}
-          {state.trickShowingWinner && (
-            <p className="text-sm font-medium text-primary mb-2">
-              {state.trickShowingWinner === "p1" ? "Du" : "Spelare " + state.trickShowingWinner} vann sticket!
-            </p>
-          )}
+          </div>
           {!isHumanTurn && !state.trickShowingWinner && (
             <p className="text-muted-foreground text-sm">Andra spelares tur…</p>
           )}
@@ -216,9 +270,8 @@ export function GameBoard() {
         <h2 className="mb-2 text-sm font-medium text-muted-foreground">
           Din hand
           {isHumanTurn &&
-            (isSticks
-              ? " – välj ett kort att lägga, eller plocka från högen"
-              : " – markera kort (enkort eller stege), klicka Lägg ut för att spela")}
+            !isSticks &&
+            " – markera kort (enkort eller stege), klicka Lägg ut för att spela"}
         </h2>
         <div
           className={
@@ -257,11 +310,6 @@ export function GameBoard() {
             );
           })}
         </div>
-        {isSticks && isHumanTurn && canDrawAndPlay && (
-          <Button variant="outline" onClick={drawAndPlay} className="mt-3">
-            Plocka från högen och lägg ut
-          </Button>
-        )}
         {state.phase === "play" && isHumanTurn && isTrickSelectionValid && (
           <Button onClick={confirmTrickPlay} className="mt-3">
             Lägg ut

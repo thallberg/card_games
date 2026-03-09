@@ -98,7 +98,9 @@ export default function SpelPage() {
             ? "/games/chicago"
             : session?.gameType === "TexasHoldem"
               ? "/games/texasholdem"
-              : "/games/fivehoundred";
+              : session?.gameType === "Skitgubbe"
+                ? "/games/skitgubbe"
+                : "/games/fivehoundred";
         router.push(`${gamePath}?sessionId=${sessionId}`);
         setTexasSetup(null);
         return;
@@ -183,7 +185,7 @@ export default function SpelPage() {
                       >
                         <div className="min-w-0">
                           <span className="font-medium">
-                            {s.gameType === "FiveHundred" ? "500" : s.gameType === "Chicago" ? "Chicago" : s.gameType === "TexasHoldem" ? "Texas Hold'em" : s.gameType}
+                            {s.gameType === "FiveHundred" ? "500" : s.gameType === "Chicago" ? "Chicago" : s.gameType === "TexasHoldem" ? "Texas Hold'em" : s.gameType === "Skitgubbe" ? "Skitgubbe" : s.gameType}
                           </span>
                           <span className="text-muted-foreground text-sm block sm:inline">
                             {" "}– ledd av {s.leaderDisplayName} · {s.currentPlayerCount}/{s.maxPlayers} spelare
@@ -256,7 +258,7 @@ export default function SpelPage() {
                       className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg border border-[var(--border)] bg-card p-3 shadow-sm"
                     >
                       <span className="min-w-0 truncate">
-                        {s.gameType === "FiveHundred" ? "500" : s.gameType === "Chicago" ? "Chicago" : s.gameType === "TexasHoldem" ? "Texas Hold'em" : s.gameType} – {s.leaderDisplayName}
+                        {s.gameType === "FiveHundred" ? "500" : s.gameType === "Chicago" ? "Chicago" : s.gameType === "TexasHoldem" ? "Texas Hold'em" : s.gameType === "Skitgubbe" ? "Skitgubbe" : s.gameType} – {s.leaderDisplayName}
                       </span>
                       <div className="flex gap-2 shrink-0 flex-wrap">
                         <Button asChild size="sm">
@@ -266,7 +268,9 @@ export default function SpelPage() {
                                 ? `/games/chicago?sessionId=${s.id}`
                                 : s.gameType === "TexasHoldem"
                                   ? `/games/texasholdem?sessionId=${s.id}`
-                                  : `/games/fivehoundred?sessionId=${s.id}`
+                                  : s.gameType === "Skitgubbe"
+                                    ? `/games/skitgubbe?sessionId=${s.id}`
+                                    : `/games/fivehoundred?sessionId=${s.id}`
                             }
                           >
                             Fortsätt spela
@@ -296,7 +300,7 @@ export default function SpelPage() {
             <DialogTitle>Bjud in fler vänner</DialogTitle>
             <DialogDescription>
               {inviteMoreFor && (
-                <>Välj vänner att bjuda in till {inviteMoreFor.gameType === "FiveHundred" ? "500" : inviteMoreFor.gameType === "Chicago" ? "Chicago" : inviteMoreFor.gameType === "TexasHoldem" ? "Texas Hold'em" : inviteMoreFor.gameType}.</>
+                <>Välj vänner att bjuda in till {inviteMoreFor.gameType === "FiveHundred" ? "500" : inviteMoreFor.gameType === "Chicago" ? "Chicago" : inviteMoreFor.gameType === "TexasHoldem" ? "Texas Hold'em" : inviteMoreFor.gameType === "Skitgubbe" ? "Skitgubbe" : inviteMoreFor.gameType}.</>
               )}
             </DialogDescription>
           </DialogHeader>

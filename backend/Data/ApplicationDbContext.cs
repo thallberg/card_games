@@ -18,6 +18,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<FiveHundredState> FiveHundredStates => Set<FiveHundredState>();
     public DbSet<ChicagoState> ChicagoStates => Set<ChicagoState>();
     public DbSet<TexasHoldemState> TexasHoldemStates => Set<TexasHoldemState>();
+    public DbSet<SkitgubbeState> SkitgubbeStates => Set<SkitgubbeState>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -72,6 +73,12 @@ public class ApplicationDbContext : DbContext
         {
             e.HasKey(t => t.GameSessionId);
             e.HasOne(t => t.GameSession).WithMany().HasForeignKey(t => t.GameSessionId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<SkitgubbeState>(e =>
+        {
+            e.HasKey(s => s.GameSessionId);
+            e.HasOne(s => s.GameSession).WithMany().HasForeignKey(s => s.GameSessionId).OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

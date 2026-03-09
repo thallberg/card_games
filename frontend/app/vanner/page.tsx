@@ -22,7 +22,7 @@ export default function VannerPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [createGameFor, setCreateGameFor] = useState<Friend | null>(null);
-  const [createGameType, setCreateGameType] = useState<2 | 3 | 4>(2);
+  const [createGameType, setCreateGameType] = useState<2 | 3 | 4 | 5>(2);
   const [creating, setCreating] = useState(false);
 
   const loadData = useCallback(async () => {
@@ -69,7 +69,7 @@ export default function VannerPage() {
     if (!createGameFor) return;
     setCreating(true);
     try {
-      const maxPlayers = createGameType === 3 ? 2 : createGameType === 4 ? 6 : 6; // 500: upp till 6, Chicago: 2, Texas: 6
+      const maxPlayers = createGameType === 3 ? 2 : 6; // Chicago: 2, 500/Skitgubbe/Texas: 6
       const createRes = await apiFetch("/api/gamesessions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -213,6 +213,14 @@ export default function VannerPage() {
                 className="min-h-10 flex-1 sm:flex-initial"
               >
                 Texas Hold&apos;em
+              </Button>
+              <Button
+                variant={createGameType === 5 ? "default" : "outline"}
+                size="sm"
+                onClick={() => setCreateGameType(5)}
+                className="min-h-10 flex-1 sm:flex-initial"
+              >
+                Skitgubbe
               </Button>
             </div>
             <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
