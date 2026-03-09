@@ -72,6 +72,10 @@ export type GameState = {
   trickShowingWinner: PlayerId | null;
   /** Spelare som just plockade sticket – visa text i 1,5 sek. */
   trickPickUpBy: PlayerId | null;
+  /** När flera spelat samma högsta kort: de slåss om tricket med ett kort till var. */
+  trickFighters: PlayerId[];
+  /** Index i tableTrick där fight-korten börjar (för att avgöra vinnare). */
+  trickFightStartIndex: number;
 };
 
 function createPlayerIds(count: number): PlayerId[] {
@@ -127,6 +131,8 @@ export function createInitialState(numPlayers: number): GameState {
     skitgubbePlayerId: null,
     trickShowingWinner: null,
     trickPickUpBy: null,
+    trickFighters: [],
+    trickFightStartIndex: 0,
   };
 }
 

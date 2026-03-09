@@ -581,6 +581,54 @@ function applyTrickCards(
   const newTrickCards = cards.map((card) => ({ playerId, card }));
   const tableTrick = [...s.tableTrick, ...newTrickCards];
 
+  // Trick-fight: flera spelade samma högsta – de slårss med ett kort till var
+  const fighters = s.trickFighters ?? [];
+  if (fighters.length > 0) {
+    if (!fighters.includes(playerId) || cards.length !== 1) return s;
+    const startIdx = s.trickFightStartIndex ?? 0;
+    const fightCards = tableTrick.slice(startIdx);
+    if (fightCards.length < fighters.length) {
+      const nextFighter = getNextTrickFighter(s.playerIds, playerId, fighters, fightCards);
+      return {
+        ...s,
+        playerHands: newHands,
+        tableTrick,
+        currentPlayerId: nextFighter ?? playerId,
+      };
+    }
+    // Alla fightare har spelat – avgör vinnare på fight-korten
+    const leadSuitFight = fightCards[0].card.suit;
+    let trickWinner = fightCards[0].playerId;
+    let bestCard = fightCards[0].card;
+    for (const tc of fightCards.slice(1)) {
+      const beats =
+        (tc.card.suit === s.trumpSuit && bestCard.suit !== s.trumpSuit) ||
+        (tc.card.suit === s.trumpSuit && bestCard.suit === s.trumpSuit &&
+          RANK_VALUE[tc.card.rank] > RANK_VALUE[bestCard.rank]) ||
+        (tc.card.suit === leadSuitFight && bestCard.suit !== s.trumpSuit &&
+          RANK_VALUE[tc.card.rank] > RANK_VALUE[bestCard.rank]);
+      if (beats) {
+        trickWinner = tc.playerId;
+        bestCard = tc.card;
+      }
+    }
+    return {
+      ...s,
+      playerHands: newHands,
+      tableTrick,
+      trickLeader: trickWinner,
+      trickLeadLength: 0,
+      trickPlayLengths: [],
+      trickLeadSuit: null,
+      trickHighRank: null,
+      trumpPlayedInTrick: false,
+      trickFighters: [],
+      trickFightStartIndex: 0,
+      currentPlayerId: trickWinner,
+      trickShowingWinner: trickWinner,
+    };
+  }
+
   if (hand.length === 0) {
     return {
       ...s,
@@ -592,6 +640,8 @@ function applyTrickCards(
       trickLeadSuit: null,
       trickHighRank: null,
       trumpPlayedInTrick: false,
+      trickFighters: [],
+      trickFightStartIndex: 0,
       phase: "gameOver",
       winnerId: playerId,
     };
@@ -631,6 +681,12 @@ function applyTrickCards(
   }
 
   const leadSuit = tableTrick[0].card.suit;
+  const beats = (a: Card, b: Card) =>
+    (a.suit === s.trumpSuit && b.suit !== s.trumpSuit) ||
+    (a.suit === s.trumpSuit && b.suit === s.trumpSuit && RANK_VALUE[a.rank] > RANK_VALUE[b.rank]) ||
+    (a.suit === leadSuit && b.suit !== s.trumpSuit && RANK_VALUE[a.rank] > RANK_VALUE[b.rank]);
+  const ties = (a: Card, b: Card) => !beats(a, b) && !beats(b, a);
+
   let trickWinner = tableTrick[0].playerId;
   let bestCard = tableTrick[0].card;
   let offset = 0;
@@ -647,14 +703,40 @@ function applyTrickCards(
       return best;
     }, null);
     if (!playBest) continue;
-    const beats = (a: Card, b: Card) =>
-      (a.suit === s.trumpSuit && b.suit !== s.trumpSuit) ||
-      (a.suit === s.trumpSuit && b.suit === s.trumpSuit && RANK_VALUE[a.rank] > RANK_VALUE[b.rank]) ||
-      (a.suit === leadSuit && b.suit !== s.trumpSuit && RANK_VALUE[a.rank] > RANK_VALUE[b.rank]);
     if (beats(playBest.card, bestCard)) {
       trickWinner = playBest.playerId;
       bestCard = playBest.card;
     }
+  }
+
+  // Hitta alla som spelade samma högsta kort – de ska slåss (trick-fight)
+  const tiedFighters: PlayerId[] = [];
+  offset = 0;
+  for (const playLen of trickPlayLengths) {
+    const playCards = tableTrick.slice(offset, offset + playLen);
+    offset += playLen;
+    const playBest = playCards.reduce<{ playerId: PlayerId; card: Card } | null>((best, tc) => {
+      if (!best) return { playerId: tc.playerId, card: tc.card };
+      if (tc.card.suit === s.trumpSuit && best.card.suit !== s.trumpSuit) return { playerId: tc.playerId, card: tc.card };
+      if (tc.card.suit === s.trumpSuit && best.card.suit === s.trumpSuit)
+        return RANK_VALUE[tc.card.rank] > RANK_VALUE[best.card.rank] ? { playerId: tc.playerId, card: tc.card } : best;
+      if (tc.card.suit === leadSuit && best.card.suit !== s.trumpSuit)
+        return RANK_VALUE[tc.card.rank] > RANK_VALUE[best.card.rank] ? { playerId: tc.playerId, card: tc.card } : best;
+      return best;
+    }, null);
+    if (playBest && ties(playBest.card, bestCard)) tiedFighters.push(playBest.playerId);
+  }
+
+  if (tiedFighters.length > 1) {
+    const firstFighter = getFirstFighterAfter(s.playerIds, playerId, tiedFighters);
+    return {
+      ...s,
+      playerHands: newHands,
+      tableTrick,
+      trickFighters: tiedFighters,
+      trickFightStartIndex: tableTrick.length,
+      currentPlayerId: firstFighter,
+    };
   }
 
   return {
@@ -684,6 +766,32 @@ function applyTrickCard(
 function getNextInOrder(playerIds: PlayerId[], current: PlayerId): PlayerId {
   const i = playerIds.indexOf(current);
   return playerIds[(i + 1) % playerIds.length];
+}
+
+/** Första spelare i fighters som kommer i turordning efter after (medsols). */
+function getFirstFighterAfter(playerIds: PlayerId[], after: PlayerId, fighters: PlayerId[]): PlayerId {
+  let next = getNextInOrder(playerIds, after);
+  for (let n = 0; n < playerIds.length; n++) {
+    if (fighters.includes(next)) return next;
+    next = getNextInOrder(playerIds, next);
+  }
+  return fighters[0];
+}
+
+/** Nästa fighter som inte spelat i fighten (tableTrick från startIndex). */
+function getNextTrickFighter(
+  playerIds: PlayerId[],
+  lastPlayer: PlayerId,
+  fighters: PlayerId[],
+  fightCards: { playerId: PlayerId }[]
+): PlayerId | null {
+  const played = new Set(fightCards.map((tc) => tc.playerId));
+  let next = getNextInOrder(playerIds, lastPlayer);
+  for (let n = 0; n < playerIds.length; n++) {
+    if (fighters.includes(next) && !played.has(next)) return next;
+    next = getNextInOrder(playerIds, next);
+  }
+  return null;
 }
 
 /** Compute suit and rank to beat from trick cards (trumf beats, else highest in lead suit). */
@@ -749,6 +857,8 @@ function applyPickUpTrick(s: GameState, playerId: PlayerId): GameState {
       trickLeadSuit: null,
       trickHighRank: null,
       trumpPlayedInTrick: false,
+      trickFighters: [],
+      trickFightStartIndex: 0,
       currentPlayerId: nextPlayer,
       trickPickUpBy: playerId,
     };
@@ -766,6 +876,8 @@ function applyPickUpTrick(s: GameState, playerId: PlayerId): GameState {
     trickLeadSuit: toBeat.effectiveSuit,
     trickHighRank: toBeat.highRank,
     trumpPlayedInTrick: remaining.some((tc) => tc.card.suit === s.trumpSuit),
+    trickFighters: [],
+    trickFightStartIndex: 0,
     currentPlayerId: nextPlayer,
     trickPickUpBy: playerId,
   };
@@ -1097,13 +1209,15 @@ export function resolveStickWinner(s: GameState): GameState {
     trumpSuit,
     lastStickWinner,
     phase,
+    // Nästa stick ledes av den som tog förra – turordningen fortsätter från vinnaren, inte från p1
+    currentPlayerId: w,
   };
 }
 
 /** Rensar trick-vinnare och bordet. För multiplayer. */
 export function resolveTrickWinner(s: GameState): GameState {
   if (s.phase !== "play" || !s.trickShowingWinner) return s;
-  return { ...s, trickShowingWinner: null, tableTrick: [] };
+  return { ...s, trickShowingWinner: null, tableTrick: [], trickFighters: [], trickFightStartIndex: 0 };
 }
 
 /** Övergång skitgubbe-fas -> utspel. För multiplayer. */
@@ -1134,6 +1248,8 @@ export function continueToPlayState(s: GameState): GameState {
     trickHighRank: null,
     trumpPlayedInTrick: false,
     trickShowingWinner: null,
+    trickFighters: [],
+    trickFightStartIndex: 0,
     currentPlayerId: s.lastStickWinner ?? s.playerIds[0],
   };
 }

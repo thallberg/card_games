@@ -5,6 +5,7 @@ import type { Card } from "../types";
 import type { GameState } from "../game-state";
 import { sortHand } from "../deck";
 import { fetchFiveHundredState, fetchGameSession, sendFiveHundredAction, startFiveHundredNewRound, resetFiveHundredGame } from "../api/fiveHundredApi";
+import type { SessionPlayer } from "../api/fiveHundredApi";
 
 const POLL_INTERVAL_MS = 1000;
 const WAITING_POLL_MS = 2000;
@@ -12,6 +13,7 @@ const WAITING_POLL_MS = 2000;
 export function useGameStateMultiplayer(sessionId: string | undefined) {
   const [state, setState] = useState<GameState | null>(null);
   const [myPlayerId, setMyPlayerId] = useState<string>("p1");
+  const [sessionPlayers, setSessionPlayers] = useState<SessionPlayer[] | null>(null);
   const [lastDrawnCard, setLastDrawnCard] = useState<Card | null>(null);
   const [loading, setLoading] = useState(!!sessionId);
   const [waitingForStart, setWaitingForStart] = useState(false);
@@ -25,6 +27,9 @@ export function useGameStateMultiplayer(sessionId: string | undefined) {
       setMyPlayerId(data.myPlayerId);
       setLastDrawnCard(null);
       setWaitingForStart(false);
+      fetchGameSession(sessionId).then((session) => {
+        if (session?.players?.length) setSessionPlayers(session.players);
+      });
     } else {
       const session = await fetchGameSession(sessionId);
       const raw = typeof window !== "undefined" ? localStorage.getItem("user") : null;
@@ -148,6 +153,17 @@ export function useGameStateMultiplayer(sessionId: string | undefined) {
 
   const getPlayerIds = useCallback(() => (state ? Object.keys(state.playerHands) as import("../types").PlayerId[] : ["p1", "p2"]), [state]);
 
+  const playerDisplayNames: Record<string, string> = useMemo(() => {
+    const ids = state ? Object.keys(state.playerHands) : [];
+    if (!sessionPlayers?.length || ids.length === 0) return {};
+    const bySeat = [...sessionPlayers].sort((a, b) => a.seatOrder - b.seatOrder);
+    const out: Record<string, string> = {};
+    ids.forEach((id, i) => {
+      out[id] = bySeat[i]?.displayName ?? "Spelare " + id;
+    });
+    return out;
+  }, [state?.playerHands, sessionPlayers]);
+
   const humanHand = useMemo(
     () => sortHand(state?.playerHands[myPlayerId] ?? []),
     [state, myPlayerId]
@@ -177,6 +193,7 @@ export function useGameStateMultiplayer(sessionId: string | undefined) {
     resetGame,
     startNewRound,
     getPlayerIds,
+    playerDisplayNames,
     myPlayerId,
     lastDrawnCard,
     lastDrawnCards: lastDrawnCard != null ? [lastDrawnCard] : [],

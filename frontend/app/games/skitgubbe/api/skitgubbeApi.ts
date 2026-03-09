@@ -67,18 +67,27 @@ export function apiStateToGameState(raw: Record<string, unknown>): GameState {
     skitgubbePlayerId: (r.skitgubbePlayerId as GameState["skitgubbePlayerId"]) ?? null,
     trickShowingWinner: (r.trickShowingWinner as GameState["trickShowingWinner"]) ?? null,
     trickPickUpBy: (r.trickPickUpBy as GameState["trickPickUpBy"]) ?? null,
+    trickFighters: Array.isArray(r.trickFighters) ? (r.trickFighters as GameState["trickFighters"]) : [],
+    trickFightStartIndex: (r.trickFightStartIndex as number) ?? 0,
   };
 }
 
 export type SkitgubbeStateResponse = { state: GameState; myPlayerId: string };
 
-export type SessionInfo = { id: string; status: string; players: { userId: string }[] };
+export type SessionPlayer = { userId: string; displayName: string; seatOrder: number };
+export type SessionInfo = { id: string; status: string; players: SessionPlayer[] };
 
 export async function fetchGameSession(sessionId: string): Promise<SessionInfo | null> {
   const res = await apiFetch(`/api/gamesessions/${sessionId}`);
   if (!res.ok) return null;
   const data = await res.json().catch(() => null);
-  return data as SessionInfo;
+  if (!data || !Array.isArray(data.players)) return data as SessionInfo;
+  const players: SessionPlayer[] = data.players.map((p: { userId?: string; UserId?: string; displayName?: string; DisplayName?: string; seatOrder?: number; SeatOrder?: number }) => ({
+    userId: String(p.userId ?? p.UserId ?? ""),
+    displayName: String(p.displayName ?? p.DisplayName ?? "").trim() || "Spelare",
+    seatOrder: Number(p.seatOrder ?? p.SeatOrder ?? 0),
+  }));
+  return { ...data, players } as SessionInfo;
 }
 
 export async function fetchSkitgubbeState(sessionId: string): Promise<SkitgubbeStateResponse | null> {

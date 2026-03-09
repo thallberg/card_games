@@ -16,6 +16,7 @@ import {
   getSkitgubbePlayerId,
 } from "./useSkitgubbeGame";
 import { fetchSkitgubbeState, sendSkitgubbeAction, fetchGameSession } from "../api/skitgubbeApi";
+import type { SessionPlayer } from "../api/skitgubbeApi";
 
 const POLL_INTERVAL_MS = 1500;
 const WAITING_POLL_MS = 2000;
@@ -23,6 +24,7 @@ const WAITING_POLL_MS = 2000;
 export function useSkitgubbeGameMultiplayer(sessionId: string | undefined) {
   const [state, setState] = useState<GameState | null>(null);
   const [myPlayerId, setMyPlayerId] = useState<PlayerId>("p1");
+  const [sessionPlayers, setSessionPlayers] = useState<SessionPlayer[] | null>(null);
   const [selectedTrickIndices, setSelectedTrickIndices] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(!!sessionId);
   const [waitingForStart, setWaitingForStart] = useState(false);
@@ -35,6 +37,9 @@ export function useSkitgubbeGameMultiplayer(sessionId: string | undefined) {
       setState(data.state);
       setMyPlayerId(data.myPlayerId as PlayerId);
       setWaitingForStart(false);
+      fetchGameSession(sessionId).then((session) => {
+        if (session?.players?.length) setSessionPlayers(session.players);
+      });
     } else {
       const session = await fetchGameSession(sessionId);
       const raw = typeof window !== "undefined" ? localStorage.getItem("user") : null;
@@ -160,11 +165,17 @@ export function useSkitgubbeGameMultiplayer(sessionId: string | undefined) {
   const toggleTrickSelection = useCallback((handIndex: number) => {
     setSelectedTrickIndices((prev) => {
       const next = new Set(prev);
+      const inFight = (state?.trickFighters?.length ?? 0) > 0 && state?.trickFighters?.includes(myPlayerId);
+      if (inFight) {
+        if (next.has(handIndex)) next.delete(handIndex);
+        else return new Set([handIndex]);
+        return next;
+      }
       if (next.has(handIndex)) next.delete(handIndex);
       else next.add(handIndex);
       return next;
     });
-  }, []);
+  }, [state, myPlayerId]);
 
   const confirmTrickPlay = useCallback(() => {
     if (!state || state.phase !== "play" || state.currentPlayerId !== myPlayerId || state.trickShowingWinner) return;
@@ -204,10 +215,12 @@ export function useSkitgubbeGameMultiplayer(sessionId: string | undefined) {
   const tableTrickLen = tableTrick.length;
   const trickLeadSuit = state?.trickLeadSuit;
   const isLeading = tableTrickLen === 0 || !trickLeadSuit;
+  const inTrickFight = (state?.trickFighters?.length ?? 0) > 0 && state.trickFighters!.includes(myPlayerId);
   const playableTrickIndices = (() => {
     if (!state || state.phase !== "play" || !isHumanTurn) return new Set<number>();
     const hand = state.playerHands[myPlayerId] ?? [];
     if (hand.length === 0) return new Set<number>();
+    if (inTrickFight) return new Set(hand.map((_, i) => i));
     if (isLeading) return new Set(hand.map((_, i) => i));
     const leadLen = state.trickLeadLength || 1;
     const toBeat = state.trickHighRank ?? null;
@@ -245,6 +258,7 @@ export function useSkitgubbeGameMultiplayer(sessionId: string | undefined) {
     const hand = state.playerHands[myPlayerId] ?? [];
     const cards = [...selectedTrickIndices].sort((a, b) => a - b).map((i) => hand[i]).filter(Boolean);
     if (cards.length !== selectedTrickIndices.size) return false;
+    if (inTrickFight) return selectedTrickIndices.size === 1;
     if (isLeading) {
       if (cards.length === 1) return true;
       const suit = cards[0].suit;
@@ -262,7 +276,16 @@ export function useSkitgubbeGameMultiplayer(sessionId: string | undefined) {
     state?.phase === "play" &&
     isHumanTurn &&
     !state?.trickShowingWinner &&
+    (state?.trickFighters?.length ?? 0) === 0 &&
     (state?.tableTrick?.length ?? 0) > 0;
+
+  const playerDisplayNames: Record<string, string> = {};
+  if (state?.playerIds && sessionPlayers?.length) {
+    const bySeat = [...sessionPlayers].sort((a, b) => a.seatOrder - b.seatOrder);
+    state.playerIds.forEach((id, i) => {
+      playerDisplayNames[id] = bySeat[i]?.displayName ?? "Spelare " + id;
+    });
+  }
 
   return {
     state,
@@ -287,6 +310,7 @@ export function useSkitgubbeGameMultiplayer(sessionId: string | undefined) {
     resetGame: () => {},
     getPlayerIds: () => (state ? getPlayerIds(state) : []),
     getSkitgubbePreview: () => (state?.phase === "skitgubbe" ? getSkitgubbePlayerId(state) : null),
+    playerDisplayNames,
     loading,
     waitingForStart,
     myPlayerId,

@@ -50,10 +50,24 @@ export function GameBoard({ sessionId }: GameBoardProps) {
     resetGame,
     startNewRound,
     getPlayerIds,
+    playerDisplayNames,
     myPlayerId,
     lastDrawnCards,
     hasLaidFirstMeld,
   } = useMulti ? multi : single;
+
+  const playerLabel = (id: string) => {
+    if (id === myPlayerId) return "Du";
+    if (useMulti && playerDisplayNames?.[id]) return playerDisplayNames[id];
+    const numPlayers = state ? Object.keys(state.playerHands).length : 2;
+    return numPlayers === 2 ? "Motståndare" : "Spelare " + id;
+  };
+  const playerLabelGenitive = (id: string) => {
+    if (id === myPlayerId) return "Du";
+    if (useMulti && playerDisplayNames?.[id]) return playerDisplayNames[id];
+    const numPlayers = state ? Object.keys(state.playerHands).length : 2;
+    return numPlayers === 2 ? "Motståndaren" : "Spelare " + id;
+  };
 
   const canDraw = state != null && state.phase === "draw" && state.currentPlayerId === myPlayerId;
 
@@ -142,7 +156,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
   return (
     <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6 px-1 sm:px-0">
       <p className="text-muted-foreground text-sm">
-        {isHumanTurn ? "Din tur" : "Motståndarens tur – vänta på att de spelar."}
+        {isHumanTurn ? "Din tur" : (state?.currentPlayerId ? `${playerLabel(state.currentPlayerId)}s tur – vänta på att de spelar.` : "Vänta på att de spelar.")}
       </p>
       <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-4">
         <h1 className="text-lg sm:text-xl font-semibold">500</h1>
@@ -158,7 +172,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
                       aria-hidden
                     />
                   )}
-                  <span className="font-medium">{id === myPlayerId ? "Du" : "Motståndare"}</span>
+                  <span className="font-medium">{playerLabel(id)}</span>
                 </div>
                 {id !== myPlayerId && state.phase !== "roundEnd" && state.phase !== "gameOver" && (
                   <span className="text-muted-foreground">
@@ -182,7 +196,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
       {state.phase === "gameOver" && state.winnerId && (
         <div className="rounded-lg border border-[var(--border)] bg-[var(--warm-peach)]/50 p-4 text-center">
           <p className="font-medium">
-            {state.winnerId === myPlayerId ? "Du" : "Motståndaren"} har vunnit spelet!
+            {state.winnerId === myPlayerId ? "Du" : playerLabelGenitive(state.winnerId)} har vunnit spelet!
           </p>
           <Button onClick={resetGame} className="mt-2">
             Spela igen
@@ -193,10 +207,10 @@ export function GameBoard({ sessionId }: GameBoardProps) {
       {state.phase === "roundEnd" && state.winnerId && (
         <div className="rounded-lg border border-[var(--border)] bg-[var(--warm-peach)]/50 p-4 text-center">
           <p className="font-medium">
-            Rundan över! {state.winnerId === myPlayerId ? "Du" : "Motståndaren"} gick ut.
+            Rundan över! {state.winnerId === myPlayerId ? "Du" : playerLabelGenitive(state.winnerId)} gick ut.
           </p>
           <p className="text-muted-foreground mt-1 text-sm">
-            Poäng: {getPlayerIds().map((id) => `${id === myPlayerId ? "Du" : "Motståndare"} ${state.playerScores[id] ?? 0}`).join(", ")}
+            Poäng: {getPlayerIds().map((id) => `${playerLabel(id)} ${state.playerScores[id] ?? 0}`).join(", ")}
           </p>
           <Button onClick={startNewRound} className="mt-2">
             Nästa rond
