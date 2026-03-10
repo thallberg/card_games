@@ -88,7 +88,8 @@ export async function fetchGameSession(sessionId: string): Promise<SessionInfo |
     seatOrder: Number(p.seatOrder ?? p.SeatOrder ?? 0),
     avatarEmoji: p.avatarEmoji ?? p.AvatarEmoji ?? null,
   }));
-  return { ...data, players } as SessionInfo;
+  const status = (data.status ?? data.Status ?? "").toString();
+  return { ...data, status, players } as SessionInfo;
 }
 
 export async function fetchSkitgubbeState(sessionId: string): Promise<SkitgubbeStateResponse | null> {
