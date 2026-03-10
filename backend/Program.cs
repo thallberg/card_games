@@ -106,8 +106,10 @@ app.MapPost("/api/auth/register", async (RegisterRequest req, AuthService auth, 
     }
     catch (Exception ex)
     {
-        loggerFactory.CreateLogger("Auth").LogError(ex, "Registrering misslyckades");
-        return Results.Json(new { error = "Serverfel. Kontrollera att databasen är konfigurerad (ConnectionStrings:DefaultConnection i appsettings) och att migreringar är körda: dotnet ef database update." }, statusCode: 503);
+        var log = loggerFactory.CreateLogger("Auth");
+        log.LogError(ex, "Registrering misslyckades");
+        var detail = ex.Message + (ex.InnerException != null ? " | " + ex.InnerException.Message : "");
+        return Results.Json(new { error = "Serverfel vid registrering.", detail }, statusCode: 503);
     }
 });
 
@@ -122,8 +124,10 @@ app.MapPost("/api/auth/login", async (LoginRequest req, AuthService auth, ILogge
     }
     catch (Exception ex)
     {
-        loggerFactory.CreateLogger("Auth").LogError(ex, "Inloggning misslyckades");
-        return Results.Json(new { error = "Serverfel. Kontrollera databaskonfiguration." }, statusCode: 503);
+        var log = loggerFactory.CreateLogger("Auth");
+        log.LogError(ex, "Inloggning misslyckades");
+        var detail = ex.Message + (ex.InnerException != null ? " | " + ex.InnerException.Message : "");
+        return Results.Json(new { error = "Serverfel vid inloggning.", detail }, statusCode: 503);
     }
 });
 
