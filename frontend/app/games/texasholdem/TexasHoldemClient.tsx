@@ -175,7 +175,7 @@ export function TexasHoldemClient() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {!isMultiplayer && state.phase === "setup" ? (
         <SetupForm onStart={handleStart} />
       ) : (

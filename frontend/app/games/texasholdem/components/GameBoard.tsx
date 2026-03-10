@@ -90,11 +90,6 @@ export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoar
 
     return (
       <div className="mx-auto flex max-w-4xl flex-col gap-4 sm:gap-8 px-2 sm:px-0">
-        <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-4">
-          <h1 className="text-lg sm:text-xl font-semibold">Texas Hold&apos;em</h1>
-          <span className="text-muted-foreground text-sm">Handen är slut</span>
-        </div>
-
         {/* Längst upp: motståndare med kort (face up), vinnarens kort grönmarkerade */}
         <div className="flex flex-wrap justify-center gap-4">
           {state.seats.map((s, i) => {
@@ -193,23 +188,7 @@ export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoar
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col gap-4 sm:gap-8 px-2 sm:px-0">
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-4">
-        <h1 className="text-lg sm:text-xl font-semibold">Texas Hold&apos;em</h1>
-        <span className="text-muted-foreground text-sm">
-          {state.bettingPhase === "preflop"
-            ? "Preflop"
-            : state.bettingPhase === "flop"
-              ? "Flop"
-              : state.bettingPhase === "turn"
-                ? "Turn"
-                : state.bettingPhase === "river"
-                  ? "River"
-                  : "Showdown"}
-        </span>
-      </div>
-
-        {/* Längst upp: motståndare */}
+      {/* Längst upp: motståndare */}
       <div className="flex flex-wrap justify-center gap-4">
         {state.seats.map((s, i) => {
           if (i === humanSeat) return null;

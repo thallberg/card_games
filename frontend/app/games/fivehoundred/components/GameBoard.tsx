@@ -156,11 +156,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
 
   return (
     <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6 px-1 sm:px-0">
-      <p className="text-muted-foreground text-sm">
-        {isHumanTurn ? "Din tur" : (state?.currentPlayerId ? `${playerLabel(state.currentPlayerId)}s tur – vänta på att de spelar.` : "Vänta på att de spelar.")}
-      </p>
-      <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-4">
-        <h1 className="text-lg sm:text-xl font-semibold">500</h1>
+      <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-4">
         <div className="flex flex-wrap gap-4 sm:gap-6 text-xs sm:text-sm">
           {getPlayerIds().map((id) => {
             const handSize = state.playerHands[id]?.length ?? 0;
