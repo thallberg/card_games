@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,8 +30,11 @@ type Session = {
   players: Player[];
 };
 
+const DEFAULT_INVITE_GAME_TYPE = 2; // 500 om gameType saknas i URL
+
 export default function SpelPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [starting, setStarting] = useState<string | null>(null);
@@ -45,6 +48,7 @@ export default function SpelPage() {
   const [inviteMoreFor, setInviteMoreFor] = useState<Session | null>(null);
   const [friends, setFriends] = useState<Friend[]>([]);
   const [inviting, setInviting] = useState<string | null>(null);
+  const [creatingFromInvite, setCreatingFromInvite] = useState(false);
 
   const loadFriends = useCallback(async () => {
     const res = await apiFetch("/api/friends");
@@ -65,23 +69,66 @@ export default function SpelPage() {
     }
   }, []);
 
+  const loadSessions = useCallback(async () => {
+    const res = await apiFetch("/api/gamesessions");
+    if (res.status === 401) {
+      router.push("/");
+      return;
+    }
+    const data = await res.json().catch(() => []);
+    return Array.isArray(data) ? data : [];
+  }, [router]);
+
   useEffect(() => {
     let cancelled = false;
+    loadSessions().then((data) => {
+      if (!cancelled && data) setSessions(data);
+    }).finally(() => {
+      if (!cancelled) setLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [loadSessions]);
+
+  // När användaren kommer från vänner med ?invite=id1,id2&gameType=2: skapa session för rätt spel, bjud in alla
+  useEffect(() => {
+    const inviteParam = searchParams.get("invite");
+    if (!inviteParam) return;
+    const ids = inviteParam.split(",").map((s) => s.trim()).filter(Boolean);
+    if (ids.length === 0) return;
+    const gameTypeParam = searchParams.get("gameType");
+    const gameType = gameTypeParam ? parseInt(gameTypeParam, 10) : DEFAULT_INVITE_GAME_TYPE;
+    const validGameType = [2, 3, 4, 5].includes(gameType) ? gameType : DEFAULT_INVITE_GAME_TYPE;
+
+    let cancelled = false;
+    setCreatingFromInvite(true);
     (async () => {
       try {
-        const res = await apiFetch("/api/gamesessions");
-        if (res.status === 401) {
-          router.push("/");
-          return;
+        const maxPlayers = validGameType === 3 ? 2 : 6; // Chicago: 2, övriga: 6
+        const createRes = await apiFetch("/api/gamesessions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ gameType: validGameType, maxPlayers }),
+        });
+        if (!createRes.ok || cancelled) return;
+        const session = await createRes.json();
+        for (const friendId of ids) {
+          if (cancelled) return;
+          await apiFetch(`/api/gamesessions/${session.id}/invite`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId: friendId }),
+          });
         }
-        const data = await res.json().catch(() => []);
-        if (!cancelled) setSessions(Array.isArray(data) ? data : []);
+        if (cancelled) return;
+        const updated = await loadSessions();
+        if (updated) setSessions(updated);
+        router.replace("/spel", { scroll: false });
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) setCreatingFromInvite(false);
       }
     })();
     return () => { cancelled = true; };
-  }, [router]);
+  }, [searchParams, loadSessions, router]);
 
   const handleStart = async (sessionId: string, body?: { buyIn?: number; bigBlind?: number }) => {
     setStarting(sessionId);
@@ -151,10 +198,12 @@ export default function SpelPage() {
     }
   };
 
-  if (loading) {
+  if (loading || creatingFromInvite) {
     return (
       <main className="flex-1 p-4 sm:p-6">
-        <p className="text-muted-foreground">Laddar spel...</p>
+        <p className="text-muted-foreground">
+          {creatingFromInvite ? "Skapar spel och bjuder in..." : "Laddar spel..."}
+        </p>
       </main>
     );
   }
