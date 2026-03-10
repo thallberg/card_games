@@ -32,36 +32,39 @@ export function useSkitgubbeGameMultiplayer(sessionId: string | undefined) {
 
   const loadState = useCallback(async () => {
     if (!sessionId) return;
-    const data = await fetchSkitgubbeState(sessionId);
-    if (data) {
-      setState(data.state);
-      setMyPlayerId(data.myPlayerId as PlayerId);
-      setWaitingForStart(false);
-      fetchGameSession(sessionId).then((session) => {
-        if (session?.players?.length) setSessionPlayers(session.players);
-      });
-    } else {
-      const session = await fetchGameSession(sessionId);
-      const raw = typeof window !== "undefined" ? localStorage.getItem("user") : null;
-      let currentUserId: string | null = null;
-      if (raw) {
-        try {
-          const u = JSON.parse(raw) as { id?: string };
-          currentUserId = u?.id ?? null;
-        } catch {
-          /* ignore */
+    try {
+      const data = await fetchSkitgubbeState(sessionId);
+      if (data) {
+        setState(data.state);
+        setMyPlayerId(data.myPlayerId as PlayerId);
+        setWaitingForStart(false);
+        fetchGameSession(sessionId).then((session) => {
+          if (session?.players?.length) setSessionPlayers(session.players);
+        }).catch(() => { /* ignore */ });
+      } else {
+        const session = await fetchGameSession(sessionId).catch(() => null);
+        const raw = typeof window !== "undefined" ? localStorage.getItem("user") : null;
+        let currentUserId: string | null = null;
+        if (raw) {
+          try {
+            const u = JSON.parse(raw) as { id?: string };
+            currentUserId = u?.id ?? null;
+          } catch {
+            /* ignore */
+          }
+        }
+        const isInSession = session?.players?.some(
+          (p) => String(p.userId).toLowerCase() === String(currentUserId ?? "").toLowerCase()
+        );
+        if (session?.status === "Waiting" && isInSession) {
+          setWaitingForStart(true);
+        } else {
+          setWaitingForStart(false);
         }
       }
-      const isInSession = session?.players?.some(
-        (p) => String(p.userId).toLowerCase() === String(currentUserId ?? "").toLowerCase()
-      );
-      if (session?.status === "Waiting" && isInSession) {
-        setWaitingForStart(true);
-      } else {
-        setWaitingForStart(false);
-      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [sessionId]);
 
   useEffect(() => {

@@ -67,7 +67,6 @@ export function GameBoard({ sessionId }: GameBoardProps) {
   if (waitingForStart) {
     return (
       <div className="mx-auto max-w-4xl space-y-4 px-1 sm:px-0">
-        <h1 className="text-lg sm:text-xl font-semibold">Skitgubbe</h1>
         <p className="text-muted-foreground">Väntar på att ledaren startar spelet…</p>
         <p className="text-muted-foreground text-sm">
           Spelet startar när partiledaren klickar &quot;Starta spelet&quot; i Mina spel.
@@ -82,7 +81,6 @@ export function GameBoard({ sessionId }: GameBoardProps) {
   if (playerCount === null && !useMulti) {
     return (
       <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6 px-1 sm:px-0">
-        <h1 className="text-lg sm:text-xl font-semibold">Skitgubbe</h1>
         <p className="text-muted-foreground text-sm">
           Välj antal spelare (2–6). Du spelar som spelare 1, övriga är datorer.
         </p>
@@ -128,7 +126,6 @@ export function GameBoard({ sessionId }: GameBoardProps) {
     const skitgubbeId = getSkitgubbePreview?.() ?? null;
     return (
       <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6 px-1 sm:px-0">
-        <h1 className="text-lg sm:text-xl font-semibold">Skitgubbe – Trumf</h1>
         <section className="rounded-lg border border-border bg-[var(--warm-peach)]/30 p-4">
           <div className="flex flex-col items-center gap-4">
             {state.lastRevealedCard ? (
@@ -169,7 +166,6 @@ export function GameBoard({ sessionId }: GameBoardProps) {
   if (state.phase === "gameOver") {
     return (
       <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6 px-1 sm:px-0">
-        <h1 className="text-lg sm:text-xl font-semibold">Skitgubbe</h1>
         <section className="rounded-lg border border-[var(--border)] bg-[var(--warm-peach)]/50 p-6 text-center">
           <p className="font-medium">
             {state.winnerId ? playerLabel(state.winnerId) + (playerAvatarEmojis?.[state.winnerId] ? " " + playerAvatarEmojis[state.winnerId] : "") + " vann!" : ""}
@@ -187,8 +183,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
 
   return (
     <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6 px-1 sm:px-0">
-      <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-4">
-        <h1 className="text-lg sm:text-xl font-semibold">Skitgubbe</h1>
+      <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-4">
         <div className="flex gap-4 sm:gap-6 text-xs sm:text-sm">
           {getPlayerIds().map((id) => (
             <div key={id} className="flex flex-col gap-0.5">

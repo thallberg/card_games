@@ -1,14 +1,17 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Navbar } from "@/components/navbar";
-import type { NavbarUser } from "@/components/navbar/navbar";
+import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
+import type { AppSidebarUser } from "@/components/app-sidebar";
 import { AuthModal } from "@/components/auth-modal";
 import type { AuthModalMode } from "@/components/auth-modal";
-import { InviteFriendDialog } from "@/components/invite-friend-dialog";
 import { apiFetch } from "@/lib/api";
+import Link from "next/link";
+import Image from "next/image";
+import { Menu } from "lucide-react";
 
-function getUserFromStorage(): NavbarUser | null {
+function getUserFromStorage(): AppSidebarUser | null {
   if (typeof window === "undefined") return null;
   const token = localStorage.getItem("token");
   const raw = localStorage.getItem("user");
@@ -26,10 +29,9 @@ export function LayoutClient({
 }: {
   children: React.ReactNode;
 }) {
-  const [user, setUser] = useState<NavbarUser | null>(null);
+  const [user, setUser] = useState<AppSidebarUser | null>(null);
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<AuthModalMode>("login");
-  const [inviteFriendOpen, setInviteFriendOpen] = useState(false);
   const [pendingFriendRequestsCount, setPendingFriendRequestsCount] = useState(0);
 
   useEffect(() => {
@@ -92,8 +94,8 @@ export function LayoutClient({
   };
 
   return (
-    <div className="flex min-h-[100dvh] flex-col">
-      <Navbar
+    <SidebarProvider>
+      <AppSidebar
         user={user}
         onRegisterClick={() => {
           setAuthMode("register");
@@ -104,20 +106,26 @@ export function LayoutClient({
           setAuthOpen(true);
         }}
         onLogout={handleLogout}
-        onInviteFriendClick={() => setInviteFriendOpen(true)}
         pendingFriendRequestsCount={pendingFriendRequestsCount}
       />
-      <InviteFriendDialog
-        open={inviteFriendOpen}
-        onOpenChange={setInviteFriendOpen}
-      />
+      <SidebarInset>
+        <header className="sticky top-0 z-40 flex h-14 min-h-[44px] shrink-0 items-center gap-2 border-b border-border bg-[var(--warm-cream)]/95 px-3 backdrop-blur supports-backdrop-filter:bg-[var(--warm-cream)]/80">
+          <SidebarTrigger className="-ml-1">
+            <Menu className="size-5" aria-hidden />
+          </SidebarTrigger>
+          <Link href="/" className="flex items-center gap-2 font-semibold text-foreground hover:opacity-80">
+            <Image src="/df161571-b42c-43f0-8b05-5c26a4bd9d01.png" alt="" width={24} height={24} className="size-6 shrink-0 object-contain" aria-hidden />
+            <span>Kortspel</span>
+          </Link>
+        </header>
+        <div className="flex flex-1 flex-col min-h-0">{children}</div>
+      </SidebarInset>
       <AuthModal
         open={authOpen}
         onOpenChange={setAuthOpen}
         mode={authMode}
         onSuccess={() => setUser(getUserFromStorage())}
       />
-      <div className="flex flex-1 flex-col min-h-0">{children}</div>
-    </div>
+    </SidebarProvider>
   );
 }

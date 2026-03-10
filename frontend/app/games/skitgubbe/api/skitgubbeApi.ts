@@ -93,13 +93,17 @@ export async function fetchGameSession(sessionId: string): Promise<SessionInfo |
 }
 
 export async function fetchSkitgubbeState(sessionId: string): Promise<SkitgubbeStateResponse | null> {
-  const res = await apiFetch(`/api/gamesessions/${sessionId}/skitgubbe/state`);
-  if (!res.ok) return null;
-  const data = await res.json();
-  const state = data.state ? apiStateToGameState(data.state as Record<string, unknown>) : null;
-  const myPlayerId = data.myPlayerId ?? "p1";
-  if (!state) return null;
-  return { state, myPlayerId };
+  try {
+    const res = await apiFetch(`/api/gamesessions/${sessionId}/skitgubbe/state`);
+    if (!res.ok) return null;
+    const data = await res.json().catch(() => null);
+    if (!data?.state) return null;
+    const state = apiStateToGameState(data.state as Record<string, unknown>);
+    const myPlayerId = data.myPlayerId ?? "p1";
+    return { state, myPlayerId };
+  } catch {
+    return null;
+  }
 }
 
 export async function sendSkitgubbeAction(sessionId: string, newState: GameState): Promise<SkitgubbeStateResponse | null> {
