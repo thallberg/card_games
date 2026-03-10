@@ -28,7 +28,7 @@ function VannerPageContent() {
   const [receivedRequests, setReceivedRequests] = useState<ReceivedRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [createGameFor, setCreateGameFor] = useState<Friend | null>(null);
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [createGameType, setCreateGameType] = useState<2 | 3 | 4 | 5>(() =>
     inviteGameType ?? 2
   );
@@ -87,8 +87,10 @@ function VannerPageContent() {
     }
   };
 
-  const handleCreateGame = async () => {
-    if (!createGameFor) return;
+  const handleInviteToGame = async () => {
+    const idsToInvite =
+      selectedFriendIds.size > 0 ? [...selectedFriendIds] : friends.map((f) => f.id);
+    if (idsToInvite.length === 0) return;
     setCreating(true);
     try {
       const maxPlayers = createGameType === 3 ? 2 : 6; // Chicago: 2, 500/Skitgubbe/Texas: 6
@@ -103,17 +105,19 @@ function VannerPageContent() {
         return;
       }
       const session = await createRes.json();
-      const inviteRes = await apiFetch(`/api/gamesessions/${session.id}/invite`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: createGameFor.id }),
-      });
-      if (!inviteRes.ok) {
-        const err = await inviteRes.json().catch(() => ({}));
-        setError(err.error ?? "Spelet skapades men inbjudan misslyckades.");
-        return;
+      for (const userId of idsToInvite) {
+        const inviteRes = await apiFetch(`/api/gamesessions/${session.id}/invite`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId }),
+        });
+        if (!inviteRes.ok) {
+          const err = await inviteRes.json().catch(() => ({}));
+          setError(err.error ?? "Spelet skapades men några inbjudan misslyckades.");
+          break;
+        }
       }
-      setCreateGameFor(null);
+      setInviteDialogOpen(false);
       router.push("/spel");
     } catch {
       setError("Kunde inte skapa spel.");
@@ -136,7 +140,7 @@ function VannerPageContent() {
         <h1 className="mb-4 text-lg sm:text-xl font-semibold">Mina vänner</h1>
         {currentInviteGameLabel && (
           <p className="mb-3 text-muted-foreground text-sm">
-            Du bjuder in till <span className="font-medium text-foreground">{currentInviteGameLabel}</span>. Välj vänner och klicka &quot;Bjud in alla till spel&quot;.
+            Du bjuder in till <span className="font-medium text-foreground">{currentInviteGameLabel}</span>. Välj vänner med kryssrutan eller bjud in alla – klicka sedan på knappen och välj spel i popupen.
           </p>
         )}
         {error && (
@@ -187,16 +191,10 @@ function VannerPageContent() {
             <div className="mb-4 flex flex-wrap items-center gap-2">
               <Button
                 size="sm"
-                disabled={selectedFriendIds.size === 0}
-                onClick={() => {
-                  const ids = [...selectedFriendIds];
-                  const gameType = inviteGameType ?? createGameType;
-                  const q = new URLSearchParams({ invite: ids.join(","), gameType: String(gameType) });
-                  router.push(`/spel?${q.toString()}`);
-                }}
+                onClick={() => setInviteDialogOpen(true)}
                 className="min-h-10"
               >
-                Bjud in alla till spel
+                {selectedFriendIds.size > 0 ? "Bjud in till spel" : "Bjud in alla till spel"}
               </Button>
               {selectedFriendIds.size > 0 && (
                 <span className="text-muted-foreground text-sm">
@@ -231,14 +229,6 @@ function VannerPageContent() {
                       <span className="text-muted-foreground text-sm block sm:inline truncate"> {f.email}</span>
                     </div>
                   </label>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCreateGameFor(f)}
-                    className="min-h-10 w-full sm:w-auto shrink-0"
-                  >
-                    Skapa spel
-                  </Button>
                 </li>
               ))}
             </ul>
@@ -246,12 +236,14 @@ function VannerPageContent() {
         )}
       </section>
 
-      <Dialog open={!!createGameFor} onOpenChange={(open) => !open && setCreateGameFor(null)}>
+      <Dialog open={inviteDialogOpen} onOpenChange={(open) => !open && setInviteDialogOpen(false)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Skapa spel med {createGameFor?.displayName}</DialogTitle>
+            <DialogTitle>Bjud in till spel</DialogTitle>
             <DialogDescription>
-              Välj spel och skicka inbjudan till {createGameFor?.displayName}. De får den i &quot;Mina spel&quot;.
+              {selectedFriendIds.size > 0
+                ? `Välj spel. ${selectedFriendIds.size} valda vänner bjuds in. De får inbjudan i &quot;Mina spel&quot;.`
+                : "Välj spel. Alla dina vänner bjuds in. De får inbjudan i &quot;Mina spel&quot;."}
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-4">
@@ -290,13 +282,11 @@ function VannerPageContent() {
               </Button>
             </div>
             <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
-              <Button variant="outline" onClick={() => setCreateGameFor(null)} className="min-h-10">
+              <Button variant="outline" onClick={() => setInviteDialogOpen(false)} className="min-h-10">
                 Avbryt
               </Button>
-              <Button onClick={handleCreateGame} disabled={creating} className="min-h-10">
-                {creating
-                  ? "Skapar..."
-                  : "Skicka inbjudan"}
+              <Button onClick={handleInviteToGame} disabled={creating} className="min-h-10">
+                {creating ? "Skapar..." : "Skicka inbjudan"}
               </Button>
             </div>
           </div>
