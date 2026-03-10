@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -11,19 +12,40 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { apiFetch } from "@/lib/api";
+import { getGameTypeFromId } from "@/lib/game-type";
+import { cn } from "@/lib/utils";
 
 type Friend = { id: string; displayName: string; email: string; friendsSince: string };
 type ReceivedRequest = { id: string; fromUserDisplayName: string; createdAt: string };
 
 export default function VannerPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const inviteGameId = searchParams.get("inviteGame"); // från spelkort: vilket spel vi bjuder in till
+  const inviteGameType = inviteGameId ? getGameTypeFromId(inviteGameId) : null;
+
   const [friends, setFriends] = useState<Friend[]>([]);
   const [receivedRequests, setReceivedRequests] = useState<ReceivedRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [createGameFor, setCreateGameFor] = useState<Friend | null>(null);
-  const [createGameType, setCreateGameType] = useState<2 | 3 | 4 | 5>(2);
+  const [createGameType, setCreateGameType] = useState<2 | 3 | 4 | 5>(() =>
+    inviteGameType ?? 2
+  );
   const [creating, setCreating] = useState(false);
+  const [selectedFriendIds, setSelectedFriendIds] = useState<Set<string>>(new Set());
+
+  const inviteGameLabel: Record<string, string> = {
+    fivehoundred: "500",
+    chicago: "Chicago",
+    texasholdem: "Texas Hold'em",
+    skitgubbe: "Skitgubbe",
+  };
+  const currentInviteGameLabel = inviteGameId ? inviteGameLabel[inviteGameId] ?? null : null;
+
+  useEffect(() => {
+    if (inviteGameType != null) setCreateGameType(inviteGameType);
+  }, [inviteGameType]);
 
   const loadData = useCallback(async () => {
     try {
@@ -112,6 +134,11 @@ export default function VannerPage() {
     <main className="flex-1 p-3 sm:p-6">
       <section className="mx-auto max-w-2xl">
         <h1 className="mb-4 text-lg sm:text-xl font-semibold">Mina vänner</h1>
+        {currentInviteGameLabel && (
+          <p className="mb-3 text-muted-foreground text-sm">
+            Du bjuder in till <span className="font-medium text-foreground">{currentInviteGameLabel}</span>. Välj vänner och klicka &quot;Bjud in alla till spel&quot;.
+          </p>
+        )}
         {error && (
           <p className="mb-4 text-destructive text-sm">{error}</p>
         )}
@@ -156,27 +183,66 @@ export default function VannerPage() {
             Du har inga vänner än. Använd &quot;Väninbjudan&quot; i menyn för att bjuda in någon via e-post.
           </p>
         ) : (
-          <ul className="grid gap-2">
-            {friends.map((f) => (
-              <li
-                key={f.id}
-                className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg border border-[var(--border)] bg-card p-3 shadow-sm"
+          <>
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              <Button
+                size="sm"
+                disabled={selectedFriendIds.size === 0}
+                onClick={() => {
+                  const ids = [...selectedFriendIds];
+                  const gameType = inviteGameType ?? createGameType;
+                  const q = new URLSearchParams({ invite: ids.join(","), gameType: String(gameType) });
+                  router.push(`/spel?${q.toString()}`);
+                }}
+                className="min-h-10"
               >
-                <div className="min-w-0">
-                  <span className="font-medium">{f.displayName}</span>
-                  <span className="text-muted-foreground text-sm block sm:inline truncate"> {f.email}</span>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCreateGameFor(f)}
-                  className="min-h-10 w-full sm:w-auto shrink-0"
+                Bjud in alla till spel
+              </Button>
+              {selectedFriendIds.size > 0 && (
+                <span className="text-muted-foreground text-sm">
+                  {selectedFriendIds.size} valda
+                </span>
+              )}
+            </div>
+            <ul className="grid gap-2">
+              {friends.map((f) => (
+                <li
+                  key={f.id}
+                  className={cn(
+                    "flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg border border-[var(--border)] bg-card p-3 shadow-sm",
+                    selectedFriendIds.has(f.id) && "ring-2 ring-primary/30"
+                  )}
                 >
-                  Skapa spel
-                </Button>
-              </li>
-            ))}
-          </ul>
+                  <label className="flex min-w-0 cursor-pointer flex-1 items-center gap-3">
+                    <Checkbox
+                      checked={selectedFriendIds.has(f.id)}
+                      onCheckedChange={(checked) => {
+                        setSelectedFriendIds((prev) => {
+                          const next = new Set(prev);
+                          if (checked) next.add(f.id);
+                          else next.delete(f.id);
+                          return next;
+                        });
+                      }}
+                      className="size-5 shrink-0"
+                    />
+                    <div className="min-w-0">
+                      <span className="font-medium">{f.displayName}</span>
+                      <span className="text-muted-foreground text-sm block sm:inline truncate"> {f.email}</span>
+                    </div>
+                  </label>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCreateGameFor(f)}
+                    className="min-h-10 w-full sm:w-auto shrink-0"
+                  >
+                    Skapa spel
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </>
         )}
       </section>
 
