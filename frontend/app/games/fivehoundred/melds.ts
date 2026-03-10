@@ -166,8 +166,9 @@ export function isValidEffectiveSet(cards: Card[]): boolean {
 /**
  * Möjliga kort som en 2:a får representera i en stege (hål eller förlängning).
  * Stödjer låg stege (ess–2–3) och hög (…kung–ess).
- * Om det finns hål mellan de riktiga korten (t.ex. 3 och 5) får 2:an bara vara det som fyller hålet (4).
- * Förlängning (t.ex. 2 eller 6) erbjuds bara när korten redan är i följd (t.ex. 3,4 eller 4,5).
+ * Om det finns hål mellan de riktiga korten (t.ex. 3 och 5) får 2:an fylla hålet (4).
+ * Förlängning (t.ex. 3 eller 10) erbjuds när antingen det inte finns hål, eller det finns fler 2:or än hål
+ * (så att en 2:a kan fylla hål och en annan kan förlänga).
  */
 export function getWildOptionsForRun(cards: Card[]): Card[] {
   const rest = cards.filter((c) => !isWild(c));
@@ -191,7 +192,7 @@ export function getWildOptionsForRun(cards: Card[]): Card[] {
       if (r) options.push({ suit, rank: r });
     }
   }
-  const canExtend = gaps === 0 && wildCount >= 1;
+  const canExtend = (gaps === 0 && wildCount >= 1) || wildCount > gaps;
   if (canExtend && min > 0) {
     const r = valueToRank[min - 1] as Card["rank"];
     if (r) options.push({ suit, rank: r });
