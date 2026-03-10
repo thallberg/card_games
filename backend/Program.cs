@@ -110,8 +110,10 @@ app.MapPost("/api/auth/register", async (RegisterRequest req, AuthService auth, 
     }
     catch (Exception ex)
     {
-        loggerFactory.CreateLogger("Auth").LogError(ex, "Registrering misslyckades");
-        return Results.Json(new { error = "Serverfel. Kontrollera att databasen är konfigurerad (ConnectionStrings:DefaultConnection i appsettings) och att migreringar är körda: dotnet ef database update." }, statusCode: 503);
+        var log = loggerFactory.CreateLogger("Auth");
+        log.LogError(ex, "Registrering misslyckades");
+        var detail = ex.Message + (ex.InnerException != null ? " | " + ex.InnerException.Message : "");
+        return Results.Json(new { error = "Serverfel vid registrering.", detail }, statusCode: 503);
     }
 });
 
@@ -126,8 +128,10 @@ app.MapPost("/api/auth/login", async (LoginRequest req, AuthService auth, ILogge
     }
     catch (Exception ex)
     {
-        loggerFactory.CreateLogger("Auth").LogError(ex, "Inloggning misslyckades");
-        return Results.Json(new { error = "Serverfel. Kontrollera databaskonfiguration." }, statusCode: 503);
+        var log = loggerFactory.CreateLogger("Auth");
+        log.LogError(ex, "Inloggning misslyckades");
+        var detail = ex.Message + (ex.InnerException != null ? " | " + ex.InnerException.Message : "");
+        return Results.Json(new { error = "Serverfel vid inloggning.", detail }, statusCode: 503);
     }
 });
 
@@ -473,5 +477,22 @@ app.MapPost("/api/gamesessions/{id:guid}/texasholdem/action", async (Guid id, Te
 }).RequireAuthorization();
 
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok", app = "Kortspel API" }));
+
+app.MapGet("/api/health/db", async (ApplicationDbContext db) =>
+{
+    try
+    {
+        var canConnect = await db.Database.CanConnectAsync();
+        if (!canConnect) return Results.Json(new { ok = false, error = "CanConnectAsync returned false" }, statusCode: 503);
+        var count = await db.Users.CountAsync();
+        return Results.Ok(new { ok = true, usersCount = count });
+    }
+    catch (Exception ex)
+    {
+        var msg = ex.Message;
+        if (ex.InnerException != null) msg += " | " + ex.InnerException.Message;
+        return Results.Json(new { ok = false, error = msg }, statusCode: 503);
+    }
+});
 
 app.Run();
