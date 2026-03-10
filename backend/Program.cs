@@ -468,4 +468,21 @@ app.MapPost("/api/gamesessions/{id:guid}/texasholdem/action", async (Guid id, Te
 
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok", app = "Kortspel API" }));
 
+app.MapGet("/api/health/db", async (ApplicationDbContext db) =>
+{
+    try
+    {
+        var canConnect = await db.Database.CanConnectAsync();
+        if (!canConnect) return Results.Json(new { ok = false, error = "CanConnectAsync returned false" }, statusCode: 503);
+        var count = await db.Users.CountAsync();
+        return Results.Ok(new { ok = true, usersCount = count });
+    }
+    catch (Exception ex)
+    {
+        var msg = ex.Message;
+        if (ex.InnerException != null) msg += " | " + ex.InnerException.Message;
+        return Results.Json(new { ok = false, error = msg }, statusCode: 503);
+    }
+});
+
 app.Run();
