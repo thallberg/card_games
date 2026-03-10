@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useSkitgubbeGame } from "../hooks/useSkitgubbeGame";
 import { useSkitgubbeGameMultiplayer } from "../hooks/useSkitgubbeGameMultiplayer";
 import { PlayingCard } from "./PlayingCard";
@@ -68,6 +69,12 @@ export function GameBoard({ sessionId }: GameBoardProps) {
       <div className="mx-auto max-w-4xl space-y-4 px-1 sm:px-0">
         <h1 className="text-lg sm:text-xl font-semibold">Skitgubbe</h1>
         <p className="text-muted-foreground">Väntar på att ledaren startar spelet…</p>
+        <p className="text-muted-foreground text-sm">
+          Spelet startar när partiledaren klickar &quot;Starta spelet&quot; i Mina spel.
+        </p>
+        <Button asChild variant="outline">
+          <Link href="/spel">Gå till Mina spel</Link>
+        </Button>
       </div>
     );
   }
@@ -94,8 +101,18 @@ export function GameBoard({ sessionId }: GameBoardProps) {
 
   if (!state) {
     return (
-      <div className="flex min-h-[200px] items-center justify-center">
-        <p className="text-muted-foreground">Laddar Skitgubbe…</p>
+      <div className="flex min-h-[200px] flex-col items-center justify-center gap-4">
+        <p className="text-muted-foreground text-center">Kunde inte ladda spelet.</p>
+        {useMulti && (
+          <>
+            <p className="text-muted-foreground text-sm text-center">
+              Kontrollera att partiledaren har klickat &quot;Starta spelet&quot; i Mina spel.
+            </p>
+            <Button asChild variant="outline">
+              <Link href="/spel">Gå till Mina spel</Link>
+            </Button>
+          </>
+        )}
       </div>
     );
   }
