@@ -424,7 +424,19 @@ public class FiveHundredService
             s.PlayerScores[pid] = oppScore + meldPointsByPlayer[pid] - handPenalty;
         }
         s.WinnerId = winnerId;
-        s.Phase = winnerScore >= PointsToWin ? "gameOver" : "roundEnd";
+        // Använd det sparade poängvärdet för att undvika avrundning/avvikelser; vinst vid 500 eller mer
+        var roundWinnerFinalScore = s.PlayerScores.TryGetValue(winnerId, out var rws) ? rws : 0;
+        s.Phase = roundWinnerFinalScore >= PointsToWin ? "gameOver" : "roundEnd";
+        // Säkerhetsnät: om någon spelare har 500+ ska spelet alltid gå till gameOver med högsta poäng som vinnare
+        var gameWinner = s.PlayerScores
+            .Where(kv => kv.Value >= PointsToWin)
+            .OrderByDescending(kv => kv.Value)
+            .FirstOrDefault();
+        if (gameWinner.Key != null)
+        {
+            s.Phase = "gameOver";
+            s.WinnerId = gameWinner.Key;
+        }
     }
 
     /// <summary>Sorterar hand samma ordning som frontend: färg (hearts, clubs, diamonds, spades), sedan valör (2..ace).</summary>

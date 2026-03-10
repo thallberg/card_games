@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { Suspense, useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -32,7 +32,7 @@ type Session = {
 
 const DEFAULT_INVITE_GAME_TYPE = 2; // 500 om gameType saknas i URL
 
-export default function SpelPage() {
+function SpelPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -453,5 +453,17 @@ export default function SpelPage() {
         </DialogContent>
       </Dialog>
     </main>
+  );
+}
+
+export default function SpelPage() {
+  return (
+    <Suspense fallback={
+      <main className="flex-1 p-4 sm:p-6">
+        <p className="text-muted-foreground">Laddar...</p>
+      </main>
+    }>
+      <SpelPageContent />
+    </Suspense>
   );
 }

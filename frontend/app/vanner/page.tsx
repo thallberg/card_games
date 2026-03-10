@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { Suspense, useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 type Friend = { id: string; displayName: string; email: string; friendsSince: string };
 type ReceivedRequest = { id: string; fromUserDisplayName: string; createdAt: string };
 
-export default function VannerPage() {
+function VannerPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const inviteGameId = searchParams.get("inviteGame"); // från spelkort: vilket spel vi bjuder in till
@@ -303,5 +303,17 @@ export default function VannerPage() {
         </DialogContent>
       </Dialog>
     </main>
+  );
+}
+
+export default function VannerPage() {
+  return (
+    <Suspense fallback={
+      <main className="flex-1 p-4 sm:p-6">
+        <p className="text-muted-foreground">Laddar...</p>
+      </main>
+    }>
+      <VannerPageContent />
+    </Suspense>
   );
 }
