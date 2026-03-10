@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import type { Card, Meld } from "../types";
-import { getMeldType, canAddCardToMeld, isWild, getWildOptionsForRun, getWildOptionsForSet, isEffectiveRun, isValidEffectiveRun, isValidEffectiveSet } from "../melds";
+import { getMeldType, canAddCardToMeld, isWild, getWildOptionsForRun, getWildOptionsForSet, getEffectiveMeldCards, isEffectiveRun, isValidEffectiveRun, isValidEffectiveSet } from "../melds";
 import { PlayingCard } from "./PlayingCard";
 import { getMeldDisplayCards } from "../melds";
 import { cn } from "@/lib/utils";
@@ -228,7 +228,7 @@ export function MeldBuilderModal({
                 const meldIsRun = meld.type === "run" || isEffectiveRun(meld);
                 const addWildOptions = pending
                   ? (meldIsRun
-                      ? getWildOptionsForRun([...meld.cards, hand[pending.handIndex]])
+                      ? getWildOptionsForRun([...getEffectiveMeldCards(meld), hand[pending.handIndex]])
                       : getWildOptionsForSet([...meld.cards, hand[pending.handIndex]]))
                   : [];
                 return (
