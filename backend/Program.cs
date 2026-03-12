@@ -317,42 +317,49 @@ app.MapPost("/api/gamesessions/{id:guid}/leave", async (Guid id, HttpContext ctx
 
 app.MapPost("/api/gamesessions/{id:guid}/start", async (Guid id, HttpContext ctx, GameSessionService gameService, FiveHundredService fiveHundredService, ChicagoService chicagoService, TexasHoldemService texasHoldemService, SkitgubbeService skitgubbeService) =>
 {
-    var userId = GetUserId(ctx.User);
-    if (userId == null) return Results.Unauthorized();
-    var session = await gameService.GetByIdAsync(id, userId);
-    if (session == null) return Results.NotFound();
-    var (ok, err) = await gameService.StartGameAsync(id, userId.Value);
-    if (!ok) return Results.BadRequest(new { error = err });
-    if (session.GameType == "FiveHundred")
+    try
     {
-        var (initOk, initErr) = await fiveHundredService.CreateInitialStateAsync(id);
-        if (!initOk) return Results.BadRequest(new { error = initErr ?? "Kunde inte initiera 500." });
-    }
-    if (session.GameType == "Chicago")
-    {
-        var (initOk, initErr) = await chicagoService.CreateInitialStateAsync(id);
-        if (!initOk) return Results.BadRequest(new { error = initErr ?? "Kunde inte initiera Chicago." });
-    }
-    if (session.GameType == "TexasHoldem")
-    {
-        int? buyIn = null;
-        int? bigBlind = null;
-        try
+        var userId = GetUserId(ctx.User);
+        if (userId == null) return Results.Unauthorized();
+        var session = await gameService.GetByIdAsync(id, userId);
+        if (session == null) return Results.NotFound();
+        var (ok, err) = await gameService.StartGameAsync(id, userId.Value);
+        if (!ok) return Results.BadRequest(new { error = err });
+        if (session.GameType == "FiveHundred")
         {
-            var body = await ctx.Request.ReadFromJsonAsync<TexasHoldemStartRequest>();
-            if (body != null) { buyIn = body.BuyIn; bigBlind = body.BigBlind; }
+            var (initOk, initErr) = await fiveHundredService.CreateInitialStateAsync(id);
+            if (!initOk) return Results.BadRequest(new { error = initErr ?? "Kunde inte initiera 500." });
         }
-        catch { }
-        var (initOk, initErr) = await texasHoldemService.CreateInitialStateAsync(id, buyIn, bigBlind);
-        if (!initOk) return Results.BadRequest(new { error = initErr ?? "Kunde inte initiera Texas Hold'em." });
+        if (session.GameType == "Chicago")
+        {
+            var (initOk, initErr) = await chicagoService.CreateInitialStateAsync(id);
+            if (!initOk) return Results.BadRequest(new { error = initErr ?? "Kunde inte initiera Chicago." });
+        }
+        if (session.GameType == "TexasHoldem")
+        {
+            int? buyIn = null;
+            int? bigBlind = null;
+            try
+            {
+                var body = await ctx.Request.ReadFromJsonAsync<TexasHoldemStartRequest>();
+                if (body != null) { buyIn = body.BuyIn; bigBlind = body.BigBlind; }
+            }
+            catch { }
+            var (initOk, initErr) = await texasHoldemService.CreateInitialStateAsync(id, buyIn, bigBlind);
+            if (!initOk) return Results.BadRequest(new { error = initErr ?? "Kunde inte initiera Texas Hold'em." });
+        }
+        if (session.GameType == "Skitgubbe")
+        {
+            var (initOk, initErr) = await skitgubbeService.CreateInitialStateAsync(id);
+            if (!initOk) return Results.BadRequest(new { error = initErr ?? "Kunde inte initiera Skitgubbe." });
+        }
+        var updated = await gameService.GetByIdAsync(id, userId);
+        return Results.Ok(updated);
     }
-    if (session.GameType == "Skitgubbe")
+    catch (Exception ex)
     {
-        var (initOk, initErr) = await skitgubbeService.CreateInitialStateAsync(id);
-        if (!initOk) return Results.BadRequest(new { error = initErr ?? "Kunde inte initiera Skitgubbe." });
+        return Results.Json(new { error = ex.Message }, statusCode: 500);
     }
-    var updated = await gameService.GetByIdAsync(id, userId);
-    return Results.Ok(updated);
 }).RequireAuthorization();
 
 app.MapGet("/api/gamesessions/{id:guid}/500/state", async (Guid id, HttpContext ctx, FiveHundredService fiveHundredService) =>

@@ -24,6 +24,18 @@ public class SkitgubbeService
 
     public async Task<(bool Ok, string? Error)> CreateInitialStateAsync(Guid sessionId)
     {
+        try
+        {
+            return await CreateInitialStateCoreAsync(sessionId);
+        }
+        catch (Exception ex)
+        {
+            return (false, ex.Message);
+        }
+    }
+
+    private async Task<(bool Ok, string? Error)> CreateInitialStateCoreAsync(Guid sessionId)
+    {
         var session = await _db.GameSessions
             .Include(g => g.Players)
             .FirstOrDefaultAsync(g => g.Id == sessionId);
@@ -90,6 +102,7 @@ public class SkitgubbeService
             GameSessionId = sessionId,
             StateJson = stateJson,
             PlayerOrderJson = playerOrderJson,
+            UpdatedAt = DateTime.UtcNow,
         });
         await _db.SaveChangesAsync();
         return (true, null);
