@@ -45,3 +45,9 @@ export const RANK_VALUE: Record<Rank, number> = {
   king: 11,
   ace: 12,
 };
+
+/** Krav antal plockade kort för skitgubbe: sista kortets siffra (2→2 … 10→10, knekt→11, dam→12, kung→13, ess→14). */
+export const RANK_TO_REQUIRED_COUNT: Record<Rank, number> = {
+  "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9, "10": 10,
+  jack: 11, queen: 12, king: 13, ace: 14,
+};

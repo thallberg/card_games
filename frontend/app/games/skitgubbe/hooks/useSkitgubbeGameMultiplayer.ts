@@ -13,7 +13,7 @@ import {
   resolveStickWinner,
   resolveTrickWinner,
   continueToPlayState,
-  getSkitgubbePlayerId,
+  getSkitgubbePreviewData,
 } from "./useSkitgubbeGame";
 import { fetchSkitgubbeState, sendSkitgubbeAction, fetchGameSession } from "../api/skitgubbeApi";
 import type { SessionPlayer } from "../api/skitgubbeApi";
@@ -315,7 +315,7 @@ export function useSkitgubbeGameMultiplayer(sessionId: string | undefined) {
     pickUpTrick,
     resetGame: () => {},
     getPlayerIds: () => (state ? getPlayerIds(state) : []),
-    getSkitgubbePreview: () => (state?.phase === "skitgubbe" ? getSkitgubbePlayerId(state) : null),
+    getSkitgubbePreview: () => (state?.phase === "skitgubbe" ? getSkitgubbePreviewData(state) : null),
     playerDisplayNames,
     playerAvatarEmojis,
     loading,

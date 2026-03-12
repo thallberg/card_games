@@ -32,6 +32,7 @@ public class SkitgubbeStateDto
     public bool TrumpPlayedInTrick { get; set; }
     public string? WinnerId { get; set; }
     public string? SkitgubbePlayerId { get; set; }
+    public string[] SkitgubbePlayerIds { get; set; } = Array.Empty<string>();
     public string? TrickShowingWinner { get; set; }
     public string? TrickPickUpBy { get; set; }
     public List<string> TrickFighters { get; set; } = new();

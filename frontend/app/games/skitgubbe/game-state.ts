@@ -68,6 +68,8 @@ export type GameState = {
   winnerId: PlayerId | null;
   /** Spelare som blev skitgubbe (fick straffkort) – sätts vid övergång till play. */
   skitgubbePlayerId: PlayerId | null;
+  /** Alla som fick skiten (flera delar straffkorten). */
+  skitgubbePlayerIds: PlayerId[];
   /** Trick just avgjordes – visa 2 sec innan vi rensar. */
   trickShowingWinner: PlayerId | null;
   /** Spelare som just plockade sticket – visa text i 1,5 sek. */
@@ -129,6 +131,7 @@ export function createInitialState(numPlayers: number): GameState {
     trumpPlayedInTrick: false,
     winnerId: null,
     skitgubbePlayerId: null,
+    skitgubbePlayerIds: [],
     trickShowingWinner: null,
     trickPickUpBy: null,
     trickFighters: [],

@@ -1,12 +1,20 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
+import { useState, useEffect } from "react";
 import { useSkitgubbeGame } from "../hooks/useSkitgubbeGame";
 import { useSkitgubbeGameMultiplayer } from "../hooks/useSkitgubbeGameMultiplayer";
 import { PlayingCard } from "./PlayingCard";
 import { StockPile } from "./StockPile";
 import { WonPile } from "./WonPile";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { MIN_PLAYERS, MAX_PLAYERS } from "../constants";
 
 const SUIT_LABELS: Record<string, string> = {
@@ -28,6 +36,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
   const single = useSkitgubbeGame();
   const multi = useSkitgubbeGameMultiplayer(sessionId);
   const useMulti = !!sessionId;
+  const [skitgubbeShowOnlySkitgubbe, setSkitgubbeShowOnlySkitgubbe] = useState(false);
 
   const {
     state,
@@ -55,6 +64,13 @@ export function GameBoard({ sessionId }: GameBoardProps) {
   const myPlayerId = useMulti ? (multi.myPlayerId ?? "p1") : "p1";
   const loading = useMulti && multi.loading;
   const waitingForStart = useMulti && multi.waitingForStart;
+
+  useEffect(() => {
+    if (state?.phase !== "skitgubbe") return;
+    setSkitgubbeShowOnlySkitgubbe(false);
+    const t = setTimeout(() => setSkitgubbeShowOnlySkitgubbe(true), 3000);
+    return () => clearTimeout(t);
+  }, [state?.phase]);
 
   if (loading) {
     return (
@@ -123,17 +139,71 @@ export function GameBoard({ sessionId }: GameBoardProps) {
   };
 
   if (state.phase === "skitgubbe") {
-    const skitgubbeId = getSkitgubbePreview?.() ?? null;
+    const preview = getSkitgubbePreview?.() ?? null;
+    const skitgubbeIds = preview?.skitgubbeIds ?? [];
+    const threshold = preview?.threshold ?? 0;
+    const playerIdsToShow =
+      skitgubbeShowOnlySkitgubbe && skitgubbeIds.length > 0
+        ? skitgubbeIds
+        : state.playerIds;
     return (
       <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6 px-1 sm:px-0">
+        <Dialog open={true}>
+          <DialogContent showCloseButton={false} className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>
+                {!skitgubbeShowOnlySkitgubbe
+                  ? "Antal plockade kort"
+                  : "Får skiten (under " + threshold + " kort)"}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-3 py-2">
+              {playerIdsToShow.map((id) => {
+                const count = (state.wonCards?.[id] ?? []).length;
+                const getsSkit = skitgubbeIds.includes(id);
+                return (
+                  <div
+                    key={id}
+                    className={`flex items-center gap-3 rounded-lg border p-3 ${
+                      getsSkit && skitgubbeShowOnlySkitgubbe
+                        ? "border-amber-600 bg-amber-500/20"
+                        : "border-border bg-muted/30"
+                    }`}
+                  >
+                    <div className="relative h-12 w-9 shrink-0 overflow-hidden rounded border border-border">
+                      <Image
+                        src="/cardback.png"
+                        alt=""
+                        fill
+                        className="object-cover"
+                        unoptimized
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium truncate">
+                        {playerLabel(id)}
+                        {playerAvatarEmojis?.[id] && " " + playerAvatarEmojis[id]}
+                      </p>
+                      <p className="text-muted-foreground text-sm">
+                        {count} kort plockade
+                        {getsSkit && skitgubbeShowOnlySkitgubbe && " – får skiten"}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </DialogContent>
+        </Dialog>
+
         <section className="rounded-lg border border-border bg-[var(--warm-peach)]/30 p-4">
           <div className="flex flex-col items-center gap-4">
             {state.lastRevealedCard ? (
               <>
                 <p className="text-muted-foreground">
-                  Sista kortet var {state.lastRevealedCard.rank}{" "}
+                  Sista kortet var {RANK_LABELS[state.lastRevealedCard.rank]}{" "}
                   {SUIT_LABELS[state.lastRevealedCard.suit]}. Trumf är{" "}
-                  {SUIT_LABELS[state.trumpSuit ?? ""]}.
+                  {SUIT_LABELS[state.trumpSuit ?? ""]}. Krav: minst {threshold} plockade kort.
                 </p>
                 <PlayingCard card={state.lastRevealedCard} faceUp />
               </>
@@ -142,18 +212,20 @@ export function GameBoard({ sessionId }: GameBoardProps) {
                 Trumf: {state.trumpSuit ? SUIT_LABELS[state.trumpSuit] : "—"}
               </p>
             )}
-            {skitgubbeId ? (
+            {skitgubbeIds.length > 0 ? (
               <div className="w-full rounded-lg border-2 border-amber-600 bg-amber-500/20 p-4 text-center">
                 <p className="font-medium text-amber-900 dark:text-amber-100">
-                  {playerLabel(skitgubbeId)}{playerAvatarEmojis?.[skitgubbeId] && " " + playerAvatarEmojis[skitgubbeId]} fick skitgubbe
+                  {skitgubbeIds.length === 1
+                    ? `${playerLabel(skitgubbeIds[0])}${playerAvatarEmojis?.[skitgubbeIds[0]] ? " " + playerAvatarEmojis[skitgubbeIds[0]] : ""} fick skitgubbe`
+                    : skitgubbeIds.map((id) => playerLabel(id)).join(", ") + " delar skiten"}
                 </p>
                 <p className="text-muted-foreground text-sm mt-1">
-                  Bara kort under trumf – får 2, 3, 4, 5 och trumf 6 från alla andra.
+                  Färre än {threshold} plockade kort – får 2, 3, 4, 5 (alla färger) och trumf 6.
                 </p>
               </div>
             ) : (
               <p className="text-muted-foreground text-sm">
-                Ingen blev skitgubbe – alla hade minst ett kort som slår trumf.
+                Ingen blev skitgubbe – alla plockade minst {threshold} kort.
               </p>
             )}
             <Button onClick={continueToPlay}>Fortsätt till utspelet</Button>

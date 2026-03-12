@@ -65,6 +65,7 @@ export function apiStateToGameState(raw: Record<string, unknown>): GameState {
     trumpPlayedInTrick: (r.trumpPlayedInTrick as boolean) ?? false,
     winnerId: (r.winnerId as GameState["winnerId"]) ?? null,
     skitgubbePlayerId: (r.skitgubbePlayerId as GameState["skitgubbePlayerId"]) ?? null,
+    skitgubbePlayerIds: Array.isArray(r.skitgubbePlayerIds) ? (r.skitgubbePlayerIds as GameState["skitgubbePlayerIds"]) : [],
     trickShowingWinner: (r.trickShowingWinner as GameState["trickShowingWinner"]) ?? null,
     trickPickUpBy: (r.trickPickUpBy as GameState["trickPickUpBy"]) ?? null,
     trickFighters: Array.isArray(r.trickFighters) ? (r.trickFighters as GameState["trickFighters"]) : [],

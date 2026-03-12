@@ -10,7 +10,7 @@ import {
   getStickWinner,
 } from "../game-state";
 import { sortHand, sortHandForPlay } from "../deck";
-import { RANK_VALUE } from "../types";
+import { RANK_VALUE, RANK_TO_REQUIRED_COUNT } from "../types";
 
 const HUMAN_PLAYER: PlayerId = "p1";
 
@@ -79,33 +79,26 @@ function isMultiLegalToPlay(s: GameState, cards: Card[]): boolean {
 
 const LOW_RANKS: Rank[] = ["2", "3", "4", "5"];
 
-/** Skitgubbe-regeln: spelare med bara kort under trumfkortets valör får 2–5 från alla + trumf 6 */
+/** Skitgubbe-regeln: spelare med färre plockade kort än sista kortets siffra får skiten (2–5 alla färger + trumf 6). En får alla, flera delar. */
 function applySkitgubbeRule(
   s: GameState
-): { hands: Record<PlayerId, Card[]>; skitgubbeId: PlayerId | null } {
+): { hands: Record<PlayerId, Card[]>; skitgubbeIds: PlayerId[] } {
   const trumpRank = s.lastRevealedCard?.rank;
   const trumpSuit = s.trumpSuit;
-  if (!trumpRank || !trumpSuit) return { hands: s.playerHands, skitgubbeId: null };
+  if (!trumpRank || !trumpSuit) return { hands: s.playerHands, skitgubbeIds: [] };
 
-  const trumpVal = RANK_VALUE[trumpRank];
-  let skitgubbe: PlayerId | null = null;
+  const threshold = RANK_TO_REQUIRED_COUNT[trumpRank];
+  const skitgubbeIds = s.playerIds.filter(
+    (id) => (s.wonCards?.[id] ?? []).length < threshold
+  );
 
-  for (const id of s.playerIds) {
-    const hand = s.playerHands[id] ?? [];
-    const allBelow = hand.every((c) => RANK_VALUE[c.rank] < trumpVal);
-    if (allBelow && hand.length > 0) {
-      skitgubbe = id;
-      break;
-    }
-  }
-
-  if (!skitgubbe) return { hands: s.playerHands, skitgubbeId: null };
+  if (skitgubbeIds.length === 0) return { hands: s.playerHands, skitgubbeIds: [] };
 
   const penaltyCards: Card[] = [];
   const newHands = { ...s.playerHands };
 
   for (const id of s.playerIds) {
-    if (id === skitgubbe) continue;
+    if (skitgubbeIds.includes(id)) continue;
     const hand = newHands[id] ?? [];
     const toGive = hand.filter(
       (c) => LOW_RANKS.includes(c.rank) || (c.suit === trumpSuit && c.rank === "6")
@@ -116,12 +109,13 @@ function applySkitgubbeRule(
     );
   }
 
-  newHands[skitgubbe] = sortHand([
-    ...(newHands[skitgubbe] ?? []),
-    ...penaltyCards,
-  ]);
+  // Fördela straffkorten mellan skitgubbar (round-robin)
+  for (let i = 0; i < penaltyCards.length; i++) {
+    const targetId = skitgubbeIds[i % skitgubbeIds.length];
+    newHands[targetId] = sortHand([...(newHands[targetId] ?? []), penaltyCards[i]]);
+  }
 
-  return { hands: newHands, skitgubbeId: skitgubbe };
+  return { hands: newHands, skitgubbeIds };
 }
 
 export function useSkitgubbeGame() {
@@ -269,7 +263,7 @@ export function useSkitgubbeGame() {
         handsWithWonCards[id] = [...hand, ...won];
       }
       const stateWithMergedHands = { ...s, playerHands: handsWithWonCards };
-      const { hands, skitgubbeId } = applySkitgubbeRule(stateWithMergedHands);
+      const { hands, skitgubbeIds } = applySkitgubbeRule(stateWithMergedHands);
       const sortedHands: Record<string, Card[]> = {};
       for (const id of Object.keys(hands) as PlayerId[]) {
         sortedHands[id] = sortHandForPlay(hands[id] ?? [], s.trumpSuit);
@@ -277,7 +271,8 @@ export function useSkitgubbeGame() {
       return {
         ...s,
         playerHands: sortedHands as Record<PlayerId, Card[]>,
-        skitgubbePlayerId: skitgubbeId,
+        skitgubbePlayerId: skitgubbeIds[0] ?? null,
+        skitgubbePlayerIds,
         phase: "play",
         tableTrick: [],
         trickLeader: s.lastStickWinner,
@@ -553,19 +548,28 @@ export function useSkitgubbeGame() {
     resetGame,
     getPlayerIds: () => (state ? getPlayerIds(state) : []),
     getSkitgubbePreview: () =>
-      state?.phase === "skitgubbe" ? getSkitgubbePlayerId(state) : null,
+      state?.phase === "skitgubbe" ? getSkitgubbePreviewData(state) : null,
   };
 }
 
-export function getSkitgubbePlayerId(s: GameState): PlayerId | null {
+/** Preview: vilka som får skiten (antal plockade kort < sista kortets siffra) och tröskel. */
+export function getSkitgubbePreviewData(s: GameState): {
+  skitgubbeIds: PlayerId[];
+  threshold: number;
+} | null {
   const trumpRank = s.lastRevealedCard?.rank;
   if (!trumpRank) return null;
-  const trumpVal = RANK_VALUE[trumpRank];
-  for (const id of s.playerIds) {
-    const hand = s.playerHands[id] ?? [];
-    if (hand.length > 0 && hand.every((c) => RANK_VALUE[c.rank] < trumpVal)) return id;
-  }
-  return null;
+  const threshold = RANK_TO_REQUIRED_COUNT[trumpRank];
+  const skitgubbeIds = s.playerIds.filter(
+    (id) => (s.wonCards?.[id] ?? []).length < threshold
+  );
+  return { skitgubbeIds, threshold };
+}
+
+/** För bakåtkompatibilitet: första skitgubben. */
+export function getSkitgubbePlayerId(s: GameState): PlayerId | null {
+  const data = getSkitgubbePreviewData(s);
+  return data?.skitgubbeIds[0] ?? null;
 }
 
 /** Utspel: alla lägger stege som följer valör. Rundan över när alla lagt en gång; den som la sista (vinnare) börjar nästa. */
@@ -1236,7 +1240,7 @@ export function continueToPlayState(s: GameState): GameState {
     handsWithWonCards[id] = [...hand, ...won];
   }
   const stateWithMergedHands = { ...s, playerHands: handsWithWonCards };
-  const { hands, skitgubbeId } = applySkitgubbeRule(stateWithMergedHands);
+  const { hands, skitgubbeIds } = applySkitgubbeRule(stateWithMergedHands);
   const sortedHands: Record<string, Card[]> = {};
   for (const id of Object.keys(hands) as PlayerId[]) {
     sortedHands[id] = sortHandForPlay(hands[id] ?? [], s.trumpSuit);
@@ -1244,7 +1248,8 @@ export function continueToPlayState(s: GameState): GameState {
   return {
     ...s,
     playerHands: sortedHands as Record<PlayerId, Card[]>,
-    skitgubbePlayerId: skitgubbeId,
+    skitgubbePlayerId: skitgubbeIds[0] ?? null,
+    skitgubbePlayerIds,
     phase: "play",
     tableTrick: [],
     trickLeader: s.lastStickWinner,
