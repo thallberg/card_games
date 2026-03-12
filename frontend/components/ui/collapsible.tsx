@@ -5,7 +5,17 @@ import { Collapsible as CollapsiblePrimitive } from "radix-ui";
 
 import { cn } from "@/lib/utils";
 
-const Collapsible = CollapsiblePrimitive.Root;
+const Collapsible = React.forwardRef<
+  React.ComponentRef<typeof CollapsiblePrimitive.Root>,
+  React.ComponentPropsWithoutRef<typeof CollapsiblePrimitive.Root>
+>(({ className, ...props }, ref) => (
+  <CollapsiblePrimitive.Root
+    ref={ref}
+    className={cn("block w-full", className)}
+    {...props}
+  />
+));
+Collapsible.displayName = "Collapsible";
 
 const CollapsibleTrigger = CollapsiblePrimitive.Trigger;
 

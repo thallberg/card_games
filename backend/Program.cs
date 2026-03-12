@@ -113,7 +113,7 @@ app.MapPost("/api/auth/register", async (RegisterRequest req, AuthService auth, 
         var (ok, err, u) = await auth.RegisterAsync(req.Email, req.Password, req.DisplayName);
         if (!ok) return Results.BadRequest(new { error = err });
         var token = auth.GenerateJwt(u!);
-        return Results.Ok(new LoginResponse(token, new UserDto(u!.Id, u.Email, u.DisplayName, u.CreatedAt, u.AvatarEmoji)));
+        return Results.Ok(new LoginResponse(token, new UserDto(u!.Id, u.Email, u.DisplayName, u.CreatedAt, u.AvatarEmoji, u.AvatarImageData)));
     }
     catch (Exception ex)
     {
@@ -131,7 +131,7 @@ app.MapPost("/api/auth/login", async (LoginRequest req, AuthService auth, ILogge
         var (ok, err, u) = await auth.LoginAsync(req.Email, req.Password);
         if (!ok) return Results.BadRequest(new { error = err });
         var token = auth.GenerateJwt(u!);
-        return Results.Ok(new LoginResponse(token, new UserDto(u!.Id, u.Email, u.DisplayName, u.CreatedAt, u.AvatarEmoji)));
+        return Results.Ok(new LoginResponse(token, new UserDto(u!.Id, u.Email, u.DisplayName, u.CreatedAt, u.AvatarEmoji, u.AvatarImageData)));
     }
     catch (Exception ex)
     {
@@ -179,6 +179,34 @@ app.MapPatch("/api/auth/me/avatar", async (UpdateAvatarRequest req, HttpContext 
         if (ex.InnerException != null) msg += " | " + ex.InnerException.Message;
         return Results.Json(new { error = "Kunde inte spara avataren.", detail = msg }, statusCode: 500);
     }
+}).RequireAuthorization();
+
+app.MapPatch("/api/auth/me/avatar-image", async (UpdateAvatarImageRequest req, HttpContext ctx, AuthService auth, ILoggerFactory logFactory) =>
+{
+    var userId = GetUserId(ctx.User);
+    if (userId == null) return Results.Unauthorized();
+    try
+    {
+        var (ok, err) = await auth.UpdateAvatarImageAsync(userId.Value, req.AvatarImageData);
+        if (!ok) return Results.BadRequest(new { error = err });
+        return Results.Ok();
+    }
+    catch (Exception ex)
+    {
+        var log = logFactory.CreateLogger("Auth");
+        log.LogError(ex, "UpdateAvatarImage failed");
+        var msg = ex.Message + (ex.InnerException != null ? " | " + ex.InnerException.Message : "");
+        return Results.Json(new { error = "Kunde inte spara avatar-bilden.", detail = msg }, statusCode: 500);
+    }
+}).RequireAuthorization();
+
+app.MapGet("/api/auth/me", async (HttpContext ctx, ApplicationDbContext db) =>
+{
+    var userId = GetUserId(ctx.User);
+    if (userId == null) return Results.Unauthorized();
+    var user = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId.Value);
+    if (user == null) return Results.NotFound();
+    return Results.Ok(new UserDto(user.Id, user.Email, user.DisplayName, user.CreatedAt, user.AvatarEmoji, user.AvatarImageData));
 }).RequireAuthorization();
 
 // ---- Vänner (kräver inloggning)
@@ -249,11 +277,12 @@ app.MapGet("/api/users/search", async (string? q, HttpContext ctx, ApplicationDb
     if (userId == null) return Results.Unauthorized();
     var query = (q ?? "").Trim().ToLowerInvariant();
     if (query.Length < 2) return Results.Ok(Array.Empty<UserDto>());
-    var users = await db.Users
-        .Where(u => u.Id != userId && (u.DisplayName.ToLower().Contains(query) || u.Email.ToLower().Contains(query)))
+    var rows = await db.Users
+        .Where(u => u.Id != userId && u.DisplayName.ToLower().Contains(query))
         .Take(20)
-        .Select(u => new UserDto(u.Id, u.Email, u.DisplayName, u.CreatedAt, u.AvatarEmoji))
+        .Select(u => new { u.Id, u.Email, u.DisplayName, u.CreatedAt, u.AvatarEmoji, u.AvatarImageData })
         .ToListAsync();
+    var users = rows.Select(u => new UserDto(u.Id, u.Email, u.DisplayName, u.CreatedAt, u.AvatarEmoji, u.AvatarImageData)).ToList();
     return Results.Ok(users);
 }).RequireAuthorization();
 

@@ -17,8 +17,14 @@ function getUserFromStorage(): AppSidebarUser | null {
   const raw = localStorage.getItem("user");
   if (!token || !raw) return null;
   try {
-    const u = JSON.parse(raw) as { displayName?: string; avatarEmoji?: string | null };
-    return u?.displayName ? { displayName: u.displayName, avatarEmoji: u.avatarEmoji ?? null } : null;
+    const u = JSON.parse(raw) as { displayName?: string; avatarEmoji?: string | null; avatarImageData?: string | null };
+    return u?.displayName
+      ? {
+          displayName: u.displayName,
+          avatarEmoji: u.avatarEmoji ?? null,
+          avatarImageData: u.avatarImageData ?? null,
+        }
+      : null;
   } catch {
     return null;
   }
@@ -118,7 +124,7 @@ export function LayoutClient({
             <span>Kortspel</span>
           </Link>
         </header>
-        <div className="flex flex-1 flex-col min-h-0">{children}</div>
+        <div className="flex min-h-0 w-full flex-1 flex-col">{children}</div>
       </SidebarInset>
       <AuthModal
         open={authOpen}

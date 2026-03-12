@@ -21,11 +21,12 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { User, UserPlus, Users, Gamepad2, LogOut, LogIn, UserPlus as RegisterIcon, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type AppSidebarUser = { displayName: string; avatarEmoji?: string | null };
+export type AppSidebarUser = { displayName: string; avatarEmoji?: string | null; avatarImageData?: string | null };
 
 type AppSidebarProps = {
   user?: AppSidebarUser | null;
@@ -160,12 +161,14 @@ export function AppSidebar({
                 "group flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm font-medium transition-colors hover:bg-[var(--sidebar-accent)] hover:text-[var(--sidebar-accent-foreground)]"
               )}
             >
-              <span
-                className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[var(--sidebar-accent)] text-[var(--sidebar-accent-foreground)] text-sm font-medium"
-                aria-hidden
-              >
-                {user.avatarEmoji ?? user.displayName.charAt(0).toUpperCase()}
-              </span>
+              <Avatar className="size-8 shrink-0 rounded-full bg-[var(--sidebar-accent)] text-[var(--sidebar-accent-foreground)]">
+                {user.avatarImageData && (
+                  <AvatarImage src={user.avatarImageData} alt={user.displayName} />
+                )}
+                <AvatarFallback aria-hidden>
+                  {user.avatarEmoji ?? user.displayName.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
               <span className="truncate">{user.displayName}</span>
               <ChevronDown className="ml-auto size-4 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180" aria-hidden />
             </CollapsibleTrigger>

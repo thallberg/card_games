@@ -27,9 +27,11 @@ public class ApplicationDbContext : DbContext
         modelBuilder.Entity<User>(e =>
         {
             e.HasIndex(u => u.Email).IsUnique();
+            e.HasIndex(u => u.DisplayName).IsUnique();
             e.Property(u => u.Email).HasMaxLength(256);
             e.Property(u => u.DisplayName).HasMaxLength(100);
             e.Property(u => u.AvatarEmoji).HasMaxLength(20);
+            e.Property(u => u.AvatarImageData).HasColumnType("text");
         });
 
         modelBuilder.Entity<FriendRequest>(e =>

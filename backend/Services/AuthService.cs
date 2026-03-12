@@ -23,6 +23,7 @@ public class AuthService
     public async Task<(bool Ok, string? Error, User? User)> RegisterAsync(string email, string password, string displayName)
     {
         email = email.Trim().ToLowerInvariant();
+        displayName = displayName.Trim();
         if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password) || string.IsNullOrWhiteSpace(displayName))
             return (false, "Email, lösenord och visningsnamn krävs.", null);
         if (password.Length < 6)
@@ -31,12 +32,16 @@ public class AuthService
         if (await _db.Users.AnyAsync(u => u.Email == email))
             return (false, "E-postadressen används redan.", null);
 
+        var normalizedDisplay = displayName.ToLowerInvariant();
+        if (await _db.Users.AnyAsync(u => u.DisplayName.ToLower() == normalizedDisplay))
+            return (false, "Visningsnamnet används redan.", null);
+
         var user = new User
         {
             Id = Guid.NewGuid(),
             Email = email,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
-            DisplayName = displayName.Trim(),
+            DisplayName = displayName,
         };
         _db.Users.Add(user);
         await _db.SaveChangesAsync();
@@ -57,6 +62,9 @@ public class AuthService
         newDisplayName = (newDisplayName ?? "").Trim();
         if (string.IsNullOrWhiteSpace(newDisplayName))
             return (false, "Visningsnamn får inte vara tomt.");
+        var normalized = newDisplayName.ToLowerInvariant();
+        if (await _db.Users.AnyAsync(u => u.Id != userId && u.DisplayName.ToLower() == normalized))
+            return (false, "Visningsnamnet används redan.");
         var user = await _db.Users.FindAsync(userId);
         if (user == null) return (false, "Användaren hittades inte.");
         user.DisplayName = newDisplayName;
@@ -73,6 +81,18 @@ public class AuthService
         var user = await _db.Users.FindAsync(userId);
         if (user == null) return (false, "Användaren hittades inte.");
         user.AvatarEmoji = string.IsNullOrWhiteSpace(emoji) ? null : emoji.Trim();
+        await _db.SaveChangesAsync();
+        return (true, null);
+    }
+
+    /// <summary>Uppdaterar avatar-bild (data-URL). När null rensas både bild och emoji så att visning återgår till första bokstaven i visningsnamn.</summary>
+    public async Task<(bool Ok, string? Error)> UpdateAvatarImageAsync(Guid userId, string? avatarImageData)
+    {
+        var user = await _db.Users.FindAsync(userId);
+        if (user == null) return (false, "Användaren hittades inte.");
+        user.AvatarImageData = string.IsNullOrWhiteSpace(avatarImageData) ? null : avatarImageData.Trim();
+        if (user.AvatarImageData == null)
+            user.AvatarEmoji = null;
         await _db.SaveChangesAsync();
         return (true, null);
     }

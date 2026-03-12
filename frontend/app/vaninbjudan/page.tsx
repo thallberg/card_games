@@ -7,34 +7,71 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { apiFetch } from "@/lib/api";
 
+type UserSearchResult = {
+  id: string;
+  email: string;
+  displayName: string;
+  createdAt: string;
+  avatarEmoji?: string | null;
+};
+
 export default function VaninbjudanPage() {
-  const [email, setEmail] = useState("");
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<UserSearchResult[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [invitingId, setInvitingId] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setSuccessMessage(null);
+    const trimmed = query.trim();
+    if (trimmed.length < 2) {
+      setResults([]);
+      setError("Skriv minst 2 tecken för att söka.");
+      return;
+    }
     setLoading(true);
     try {
-      const res = await apiFetch("/api/friends/request-by-email", {
+      const res = await apiFetch(`/api/users/search?q=${encodeURIComponent(trimmed)}`);
+      const data = await res.json().catch(() => []);
+      if (!res.ok) {
+        setError((data as { error?: string }).error ?? "Kunde inte söka efter användare.");
+        setResults([]);
+        return;
+      }
+      setResults(Array.isArray(data) ? data : []);
+    } catch {
+      setError("Kunde inte ansluta till servern.");
+      setResults([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleInvite = async (userId: string, displayName: string) => {
+    setError(null);
+    setSuccessMessage(null);
+    setInvitingId(userId);
+    try {
+      const res = await apiFetch("/api/friends/request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim() }),
+        body: JSON.stringify({ toUserId: userId }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.error ?? "Kunde inte skicka inbjudan.");
+        setError((data as { error?: string }).error ?? "Kunde inte skicka vänförfrågan.");
         return;
       }
-      setEmail("");
-      setSuccess(true);
+      setSuccessMessage(`Vänförfrågan skickad till ${displayName}.`);
       window.dispatchEvent(new Event("friend-requests-changed"));
     } catch {
       setError("Kunde inte ansluta till servern.");
     } finally {
-      setLoading(false);
+      setInvitingId(null);
     }
   };
 
@@ -43,53 +80,65 @@ export default function VaninbjudanPage() {
       <section className="mx-auto max-w-md">
         <h1 className="mb-1 text-xl font-semibold">Bjud in vän</h1>
         <p className="mb-6 text-muted-foreground text-sm">
-          Skicka en vänförfrågan till någons e-postadress. De måste ha ett konto.
+          Sök på användarnamn och skicka en vänförfrågan.
         </p>
 
-        {success ? (
-          <div className="rounded-lg border border-border bg-muted/30 p-4">
-            <p className="font-medium text-foreground">Inbjudan skickad</p>
-            <p className="mt-1 text-muted-foreground text-sm">
-              Vänförfrågan har skickats. Personen kan se den under Vänner.
-            </p>
-            <div className="mt-4 flex gap-2">
-              <Button asChild variant="outline" size="sm">
-                <Link href="/vanner">Gå till Vänner</Link>
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                onClick={() => {
-                  setSuccess(false);
-                }}
-              >
-                Skicka en till
-              </Button>
-            </div>
+        <form onSubmit={handleSearch} className="grid gap-4 mb-4">
+          <div className="grid gap-2">
+            <Label htmlFor="invite-name">Användarnamn</Label>
+            <Input
+              id="invite-name"
+              type="text"
+              placeholder="T.ex. Tobbe"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
           </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="grid gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="invite-email">E-postadress</Label>
-              <Input
-                id="invite-email"
-                type="email"
-                placeholder="vän@exempel.se"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            {error && (
-              <p className="text-destructive text-sm" role="alert">
-                {error}
-              </p>
-            )}
+          <div className="flex items-center gap-3">
             <Button type="submit" disabled={loading}>
-              {loading ? "Skickar..." : "Skicka inbjudan"}
+              {loading ? "Söker..." : "Sök"}
             </Button>
-          </form>
+            <Button asChild variant="outline" size="sm">
+              <Link href="/vanner">Gå till Vänner</Link>
+            </Button>
+          </div>
+        </form>
+
+        {error && (
+          <p className="mb-3 text-destructive text-sm" role="alert">
+            {error}
+          </p>
         )}
+        {successMessage && (
+          <p className="mb-3 text-sm text-green-600 dark:text-green-400">{successMessage}</p>
+        )}
+
+        <div className="space-y-2">
+          {results.length === 0 && !error && !loading && query.trim().length >= 2 && (
+            <p className="text-muted-foreground text-sm">Inga användare hittades.</p>
+          )}
+          {results.map((u) => (
+            <div
+              key={u.id}
+              className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card p-3"
+            >
+              <div className="min-w-0">
+                <p className="font-medium truncate">
+                  {u.displayName}
+                  {u.avatarEmoji && ` ${u.avatarEmoji}`}
+                </p>
+                <p className="text-muted-foreground text-xs truncate">{u.email}</p>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => handleInvite(u.id, u.displayName)}
+                disabled={invitingId === u.id}
+              >
+                {invitingId === u.id ? "Skickar..." : "Bjud in"}
+              </Button>
+            </div>
+          ))}
+        </div>
       </section>
     </main>
   );
