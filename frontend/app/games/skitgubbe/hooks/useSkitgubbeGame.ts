@@ -927,11 +927,20 @@ function applyPlayCard(
     (id) => !tableStick.some((sc) => sc.playerId === id)
   );
 
-  // Original led rank from first card – must use this for fight detection
   const originalLedRank = tableStick.length > 0 ? tableStick[0].card.rank : ledRank;
-  const fightersFromTable = [...new Set(
-    tableStick.filter((sc) => sc.card.rank === originalLedRank).map((sc) => sc.playerId)
-  )];
+  // Fight bara när 2+ spelade samma högsta valör (inte bara ledvalör). P1=4, P2=5, P3=4 → ingen fight, P2 vinner.
+  const highestRankOnTable: Rank | null =
+    tableStick.length > 0
+      ? (tableStick.reduce(
+          (best, sc) => (RANK_VALUE[sc.card.rank] > RANK_VALUE[best] ? sc.card.rank : best),
+          tableStick[0].card.rank
+        ) as Rank)
+      : null;
+  const fightersFromTable =
+    highestRankOnTable != null
+      ? [...new Set(tableStick.filter((sc) => sc.card.rank === highestRankOnTable).map((sc) => sc.playerId))]
+      : [];
+  const fightTieRank = highestRankOnTable;
 
   const doDrawForHuman = () => {
     if (playerId === HUMAN_PLAYER && handIndex >= 0 && stock.length > 0) {
@@ -995,29 +1004,28 @@ function applyPlayCard(
     }
   }
 
-  // When everyone has played and 2+ have the lead rank → fight continues
-  // (båda måste spela fightkort – första sätter ny led, vi jämför bara fightkorten)
+  // When everyone has played and 2+ spelade samma högsta valör → fight (inte bara ledvalör)
   if (
     playersWhoHaventPlayed.length === 0 &&
     fightersFromTable.length > 1 &&
-    !someonePlayedHigher
+    fightTieRank != null
   ) {
     const allFightersPlayed = fightersFromTable.every((fid) => {
       const cards = tableStick.filter((sc) => sc.playerId === fid);
       if (cards.length < 2) return false;
       const lastCard = cards[cards.length - 1];
-      return lastCard.card.rank !== originalLedRank;
+      return lastCard.card.rank !== fightTieRank;
     });
     if (!allFightersPlayed) {
       const needsFightCard = (fid: PlayerId) => {
         const cards = tableStick.filter((sc) => sc.playerId === fid);
-        return cards.length >= 1 && cards[cards.length - 1].card.rank === originalLedRank;
+        return cards.length >= 1 && cards[cards.length - 1].card.rank === fightTieRank;
       };
       const nextFighter =
         fightersFromTable.find(needsFightCard) ??
         fightersFromTable.reduce((a, b) =>
-          tableStick.findIndex((sc) => sc.playerId === a && sc.card.rank === originalLedRank) <
-          tableStick.findIndex((sc) => sc.playerId === b && sc.card.rank === originalLedRank)
+          tableStick.findIndex((sc) => sc.playerId === a && sc.card.rank === fightTieRank) <
+          tableStick.findIndex((sc) => sc.playerId === b && sc.card.rank === fightTieRank)
             ? a
             : b
         );
@@ -1028,7 +1036,7 @@ function applyPlayCard(
           stock: finalStock,
           playerHands: finalHands,
           tableStick,
-          stickLedRank: originalLedRank,
+          stickLedRank: fightTieRank,
           playersMustPlay: [],
           stickFighters: fightersFromTable,
           currentPlayerId: nextFighter,
@@ -1067,8 +1075,7 @@ function applyPlayCard(
   }
 
   if (someonePlayedHigher) {
-    const originalFightRank = originalLedRank;
-    const winner = getStickWinner(tableStick, originalFightRank);
+    const winner = getStickWinner(tableStick, highestRankOnTable ?? originalLedRank);
     const { finalStock, finalHands } = doDrawForHuman();
     return {
       ...s,
@@ -1087,23 +1094,23 @@ function applyPlayCard(
 
   const fighters = fightersFromTable;
 
-  if (fighters.length > 1) {
+  if (fighters.length > 1 && fightTieRank != null) {
     const allFightersPlayed = fighters.every((fid) => {
       const cards = tableStick.filter((sc) => sc.playerId === fid);
       if (cards.length < 2) return false;
       const lastCard = cards[cards.length - 1];
-      return lastCard.card.rank !== originalLedRank;
+      return lastCard.card.rank !== fightTieRank;
     });
     if (!allFightersPlayed) {
       const needsFightCard = (fid: PlayerId) => {
         const cards = tableStick.filter((sc) => sc.playerId === fid);
-        return cards.length >= 1 && cards[cards.length - 1].card.rank === originalLedRank;
+        return cards.length >= 1 && cards[cards.length - 1].card.rank === fightTieRank;
       };
       const nextFighter =
         fighters.find(needsFightCard) ??
         fighters.reduce((a, b) =>
-          tableStick.findIndex((sc) => sc.playerId === a && sc.card.rank === originalLedRank) <
-          tableStick.findIndex((sc) => sc.playerId === b && sc.card.rank === originalLedRank)
+          tableStick.findIndex((sc) => sc.playerId === a && sc.card.rank === fightTieRank) <
+          tableStick.findIndex((sc) => sc.playerId === b && sc.card.rank === fightTieRank)
             ? a
             : b
         );
@@ -1114,7 +1121,7 @@ function applyPlayCard(
           stock: finalStock,
           playerHands: finalHands,
           tableStick,
-          stickLedRank: originalLedRank,
+          stickLedRank: fightTieRank,
           playersMustPlay: [],
           stickFighters: fighters,
           currentPlayerId: nextFighter,
@@ -1125,8 +1132,7 @@ function applyPlayCard(
     }
   }
 
-  const originalFightRank = originalLedRank ?? tableStick[0]?.card.rank ?? ledRank;
-  const winner = getStickWinner(tableStick, originalFightRank);
+  const winner = getStickWinner(tableStick, fightTieRank ?? originalLedRank ?? tableStick[0]?.card.rank ?? ledRank);
   const { finalStock, finalHands } = doDrawForHuman();
   return {
     ...s,
