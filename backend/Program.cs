@@ -358,7 +358,10 @@ app.MapPost("/api/gamesessions/{id:guid}/start", async (Guid id, HttpContext ctx
     }
     catch (Exception ex)
     {
-        return Results.Json(new { error = ex.Message }, statusCode: 500);
+        var msg = ex.Message;
+        var inner = ex.InnerException;
+        while (inner != null) { msg += " | " + inner.Message; inner = inner.InnerException; }
+        return Results.Json(new { error = msg }, statusCode: 500);
     }
 }).RequireAuthorization();
 

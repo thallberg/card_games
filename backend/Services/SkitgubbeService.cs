@@ -30,7 +30,10 @@ public class SkitgubbeService
         }
         catch (Exception ex)
         {
-            return (false, ex.Message);
+            var msg = ex.Message;
+            var inner = ex.InnerException;
+            while (inner != null) { msg += " | " + inner.Message; inner = inner.InnerException; }
+            return (false, msg);
         }
     }
 
