@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Backend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260310152650_AddUserAvatarEmoji")]
-    partial class AddUserAvatarEmoji
+    [Migration("20260315120000_AddSkitgubbeStatesTable")]
+    partial class AddSkitgubbeStatesTable
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

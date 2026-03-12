@@ -6,7 +6,8 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Backend.Migrations
 {
     /// <inheritdoc />
-    public partial class AddSkitgubbeState : Migration
+    /// <summary>Skapar SkitgubbeStates (samma innehåll som gamla AddSkitgubbeState, körs efter Initial).</summary>
+    public partial class AddSkitgubbeStatesTable : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
