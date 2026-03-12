@@ -70,6 +70,13 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
+// Applicera saknade migrationer vid start (t.ex. SkitgubbeStates på Azure).
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    db.Database.Migrate();
+}
+
 app.UseCors("AllowFrontend");
 app.UseRouting();
 
