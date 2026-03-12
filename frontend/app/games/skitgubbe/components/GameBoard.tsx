@@ -70,12 +70,6 @@ export function GameBoard({ sessionId }: GameBoardProps) {
     if (state?.phase !== "skitgubbe") return;
     setSkitgubbeShowOnlySkitgubbe(false);
     setSkitgubbeModalClosed(false);
-    const t1 = setTimeout(() => setSkitgubbeShowOnlySkitgubbe(true), 3000);
-    const t2 = setTimeout(() => setSkitgubbeModalClosed(true), 6000);
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-    };
   }, [state?.phase]);
 
   if (loading) {
@@ -148,56 +142,73 @@ export function GameBoard({ sessionId }: GameBoardProps) {
     const preview = getSkitgubbePreview?.() ?? null;
     const skitgubbeIds = preview?.skitgubbeIds ?? [];
     const threshold = preview?.threshold ?? 0;
+    const isSecondView = skitgubbeShowOnlySkitgubbe;
     const playerIdsToShow =
-      skitgubbeShowOnlySkitgubbe && skitgubbeIds.length > 0
-        ? skitgubbeIds
-        : state.playerIds;
+      isSecondView && skitgubbeIds.length > 0 ? skitgubbeIds : state.playerIds;
     return (
       <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6 px-1 sm:px-0">
         <Dialog open={!skitgubbeModalClosed}>
           <DialogContent showCloseButton={false} className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>
-                {!skitgubbeShowOnlySkitgubbe
+                {!isSecondView
                   ? "Antal plockade kort"
-                  : "Får skiten (under " + threshold + " kort)"}
+                  : skitgubbeIds.length > 0
+                    ? "Får skiten (under " + threshold + " kort)"
+                    : "Ingen får skiten"}
               </DialogTitle>
             </DialogHeader>
             <div className="grid gap-3 py-2">
-              {playerIdsToShow.map((id) => {
-                const count = (state.wonCards?.[id] ?? []).length;
-                const getsSkit = skitgubbeIds.includes(id);
-                return (
-                  <div
-                    key={id}
-                    className={`flex items-center gap-3 rounded-lg border p-3 ${
-                      getsSkit && skitgubbeShowOnlySkitgubbe
-                        ? "border-amber-600 bg-amber-500/20"
-                        : "border-border bg-muted/30"
-                    }`}
-                  >
-                    <div className="relative h-12 w-9 shrink-0 overflow-hidden rounded border border-border">
-                      <Image
-                        src="/cardback.png"
-                        alt=""
-                        fill
-                        className="object-cover"
-                        unoptimized
-                      />
+              {playerIdsToShow.length > 0 ? (
+                playerIdsToShow.map((id) => {
+                  const count = (state.wonCards?.[id] ?? []).length;
+                  const getsSkit = skitgubbeIds.includes(id);
+                  return (
+                    <div
+                      key={id}
+                      className={`flex items-center gap-3 rounded-lg border p-3 ${
+                        getsSkit && isSecondView
+                          ? "border-amber-600 bg-amber-500/20"
+                          : "border-border bg-muted/30"
+                      }`}
+                    >
+                      <div className="relative h-12 w-9 shrink-0 overflow-hidden rounded border border-border">
+                        <Image
+                          src="/cardback.png"
+                          alt=""
+                          fill
+                          className="object-cover"
+                          unoptimized
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium truncate">
+                          {playerLabel(id)}
+                          {playerAvatarEmojis?.[id] && " " + playerAvatarEmojis[id]}
+                        </p>
+                        <p className="text-muted-foreground text-sm">
+                          {count} kort plockade
+                          {getsSkit && isSecondView && " – får skiten"}
+                        </p>
+                      </div>
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium truncate">
-                        {playerLabel(id)}
-                        {playerAvatarEmojis?.[id] && " " + playerAvatarEmojis[id]}
-                      </p>
-                      <p className="text-muted-foreground text-sm">
-                        {count} kort plockade
-                        {getsSkit && skitgubbeShowOnlySkitgubbe && " – får skiten"}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              ) : (
+                <p className="text-muted-foreground text-sm py-2">
+                  Alla plockade minst {threshold} kort.
+                </p>
+              )}
+            </div>
+            <div className="flex justify-end pt-2">
+              <Button
+                onClick={() => {
+                  if (!isSecondView) setSkitgubbeShowOnlySkitgubbe(true);
+                  else setSkitgubbeModalClosed(true);
+                }}
+              >
+                Vidare
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
