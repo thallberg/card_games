@@ -52,49 +52,28 @@ public class SkitgubbeService
         var playerIds = Enumerable.Range(1, numPlayers).Select(i => $"p{i}").ToArray();
 
         var deck = CreateAndShuffleDeck();
-        var playerHands = new Dictionary<string, List<object>>();
+        var playerHands = new Dictionary<string, List<CardDto>>();
         var idx = 0;
         foreach (var pid in playerIds)
         {
-            var hand = deck.Skip(idx).Take(HandSizePhase1).Select(c => (object)new { suit = c.Suit, rank = c.Rank }).ToList();
+            var hand = deck.Skip(idx).Take(HandSizePhase1).Select(c => new CardDto { Suit = c.Suit, Rank = c.Rank }).ToList();
             playerHands[pid] = hand;
             idx += HandSizePhase1;
         }
-        var stock = deck.Skip(HandSizePhase1 * numPlayers).Select(c => (object)new { suit = c.Suit, rank = c.Rank }).ToList();
+        var stock = deck.Skip(HandSizePhase1 * numPlayers).Select(c => new CardDto { Suit = c.Suit, Rank = c.Rank }).ToList();
+        var sticksWon = playerIds.ToDictionary(p => p, _ => 0);
+        var wonCards = playerIds.ToDictionary(p => p, _ => new List<CardDto>());
 
-        var sticksWon = playerIds.ToDictionary(p => p, _ => (object)0);
-        var wonCards = playerIds.ToDictionary(p => p, _ => (object)new List<object>());
-
-        var state = new Dictionary<string, object?>
+        var state = new SkitgubbeStateDto
         {
-            ["phase"] = "sticks",
-            ["numPlayers"] = numPlayers,
-            ["playerIds"] = playerIds,
-            ["stock"] = stock,
-            ["playerHands"] = playerHands,
-            ["lastRevealedCard"] = (object?)null,
-            ["trumpSuit"] = (object?)null,
-            ["lastStickWinner"] = (object?)null,
-            ["tableStick"] = new List<object>(),
-            ["stickLedRank"] = (object?)null,
-            ["playersMustPlay"] = new List<object>(),
-            ["stickFighters"] = new List<object>(),
-            ["currentPlayerId"] = "p1",
-            ["sticksWon"] = sticksWon,
-            ["wonCards"] = wonCards,
-            ["humanPendingKlar"] = false,
-            ["nextPlayerIdAfterKlar"] = (object?)null,
-            ["stickShowingWinner"] = (object?)null,
-            ["tableTrick"] = new List<object>(),
-            ["trickLeader"] = (object?)null,
-            ["trickLeadLength"] = 0,
-            ["trickPlayLengths"] = new List<object>(),
-            ["trickLeadSuit"] = (object?)null,
-            ["trickHighRank"] = (object?)null,
-            ["trumpPlayedInTrick"] = false,
-            ["winnerId"] = (object?)null,
-            ["skitgubbePlayerId"] = (object?)null,
-            ["trickShowingWinner"] = (object?)null,
+            Phase = "sticks",
+            NumPlayers = numPlayers,
+            PlayerIds = playerIds,
+            Stock = stock,
+            PlayerHands = playerHands,
+            CurrentPlayerId = "p1",
+            SticksWon = sticksWon,
+            WonCards = wonCards,
         };
 
         var stateJson = JsonSerializer.Serialize(state, JsonOptions);
