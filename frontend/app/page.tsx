@@ -1,3 +1,4 @@
+/** Startsida – lista kortspel. */
 import { games } from "@/data-content/games";
 import { GameCard } from "@/components/game-card";
 
