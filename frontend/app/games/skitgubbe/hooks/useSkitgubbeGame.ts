@@ -471,43 +471,69 @@ export function useSkitgubbeGame() {
 
         const toBeat = s.trickHighRank;
         const leadSuit = s.trickLeadSuit;
+        const trumpSuit = s.trumpSuit;
         const tableTrick = s.tableTrick ?? [];
         const highestTrump = tableTrick
-          .filter((tc) => tc.card.suit === s.trumpSuit)
+          .filter((tc) => tc.card.suit === trumpSuit)
           .reduce<Rank | null>((b, tc) =>
             !b || RANK_VALUE[tc.card.rank] > RANK_VALUE[b] ? tc.card.rank : b
           , null);
 
+        // Något ligger på bordet: 1) lägg på stege, 2) lägg trumf / slå trumf, 3) plocka
         if (leadSuit !== null) {
           const leadLen = s.trickLeadLength || 1;
+
           if (leadLen === 1) {
+            // Ett kort på bordet: först samma färg som slår, sen trumf som slår (eller vilket trumf om inget trumf ligger)
             const leadSuitCards = hand.filter((c) => c.suit === leadSuit);
-            const trumpCards = hand.filter((c) => c.suit === s.trumpSuit);
+            const trumpCards = hand.filter((c) => c.suit === trumpSuit);
+
             let playIndex = -1;
-            if (leadSuitCards.length > 0 && toBeat) {
-              const canBeat = leadSuitCards.filter((c) => RANK_VALUE[c.rank] > RANK_VALUE[toBeat]);
-              if (canBeat.length > 0)
-                playIndex = hand.indexOf(canBeat.reduce((a, b) => RANK_VALUE[a.rank] > RANK_VALUE[b.rank] ? a : b));
+            // 1) Lägg på stege: samma färg som slår toBeat (eller vilket kort i färgen om toBeat saknas)
+            if (leadSuitCards.length > 0) {
+              const canBeat = toBeat
+                ? leadSuitCards.filter((c) => RANK_VALUE[c.rank] > RANK_VALUE[toBeat])
+                : leadSuitCards;
+              if (canBeat.length > 0) {
+                const lowest = canBeat.reduce((a, b) => RANK_VALUE[a.rank] < RANK_VALUE[b.rank] ? a : b);
+                playIndex = hand.indexOf(lowest);
+              }
             }
+            // 2) Kan inte i färg: lägg trumf. Ligger trumf måste vi slå; annars vilket trumf som helst
             if (playIndex < 0 && trumpCards.length > 0) {
               const canBeatTrump = highestTrump
                 ? trumpCards.filter((c) => RANK_VALUE[c.rank] > RANK_VALUE[highestTrump])
                 : trumpCards;
-              if (canBeatTrump.length > 0)
-                playIndex = hand.indexOf(canBeatTrump.reduce((a, b) => RANK_VALUE[a.rank] > RANK_VALUE[b.rank] ? a : b));
+              if (canBeatTrump.length > 0) {
+                const lowestTrump = canBeatTrump.reduce((a, b) => RANK_VALUE[a.rank] < RANK_VALUE[b.rank] ? a : b);
+                playIndex = hand.indexOf(lowestTrump);
+              } else if (!highestTrump) {
+                const lowestTrump = trumpCards.reduce((a, b) => RANK_VALUE[a.rank] < RANK_VALUE[b.rank] ? a : b);
+                playIndex = hand.indexOf(lowestTrump);
+              }
             }
             if (playIndex >= 0) return applyTrickCard(s, aiId, hand[playIndex], playIndex);
           } else {
+            // Stege på bordet: försök lägga samma längd som slår (färg eller trumf)
             for (let len = leadLen; len >= 1; len--) {
+              let bestPlay: { slice: Card[]; indices: number[] } | null = null;
               for (let start = 0; start <= hand.length - len; start++) {
                 const slice = hand.slice(start, start + len);
-                if (isValidStege(slice) && isMultiLegalToPlay(s, slice)) {
-                  const indices = slice.map((c) => hand.indexOf(c));
-                  return applyTrickCards(s, aiId, slice, indices);
+                if (!isValidStege(slice)) continue;
+                if (!isMultiLegalToPlay(s, slice)) continue;
+                const indices = slice.map((c) => hand.indexOf(c));
+                if (!bestPlay) bestPlay = { slice, indices };
+                else {
+                  const myHigh = highestRank(slice);
+                  const bestHigh = highestRank(bestPlay.slice);
+                  if (RANK_VALUE[myHigh] < RANK_VALUE[bestHigh])
+                    bestPlay = { slice, indices };
                 }
               }
+              if (bestPlay) return applyTrickCards(s, aiId, bestPlay.slice, bestPlay.indices);
             }
           }
+
           return applyPickUpTrick(s, aiId);
         }
 
