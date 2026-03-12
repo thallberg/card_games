@@ -37,6 +37,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
   const multi = useSkitgubbeGameMultiplayer(sessionId);
   const useMulti = !!sessionId;
   const [skitgubbeShowOnlySkitgubbe, setSkitgubbeShowOnlySkitgubbe] = useState(false);
+  const [skitgubbeModalClosed, setSkitgubbeModalClosed] = useState(false);
 
   const {
     state,
@@ -68,8 +69,13 @@ export function GameBoard({ sessionId }: GameBoardProps) {
   useEffect(() => {
     if (state?.phase !== "skitgubbe") return;
     setSkitgubbeShowOnlySkitgubbe(false);
-    const t = setTimeout(() => setSkitgubbeShowOnlySkitgubbe(true), 3000);
-    return () => clearTimeout(t);
+    setSkitgubbeModalClosed(false);
+    const t1 = setTimeout(() => setSkitgubbeShowOnlySkitgubbe(true), 3000);
+    const t2 = setTimeout(() => setSkitgubbeModalClosed(true), 6000);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
   }, [state?.phase]);
 
   if (loading) {
@@ -148,7 +154,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
         : state.playerIds;
     return (
       <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6 px-1 sm:px-0">
-        <Dialog open={true}>
+        <Dialog open={!skitgubbeModalClosed}>
           <DialogContent showCloseButton={false} className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>
