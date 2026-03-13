@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -94,11 +95,23 @@ export default function VaninbjudanPage() {
               onChange={(e) => setQuery(e.target.value)}
             />
           </div>
-          <div className="flex items-center gap-3">
-            <Button type="submit" disabled={loading}>
-              {loading ? "Söker..." : "Sök"}
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              type="submit"
+              variant="outline"
+              size="sm"
+              disabled={loading}
+              className="h-auto px-3 text-sm font-normal border-primary text-primary hover:bg-primary/5 hover:text-primary"
+            >
+              <Search className="mr-1 h-3.5 w-3.5" />
+              {loading ? "Söker..." : "Sök användare"}
             </Button>
-            <Button asChild variant="outline" size="sm">
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="h-auto px-3 text-sm font-normal border-primary text-primary hover:bg-primary/5 hover:text-primary"
+            >
               <Link href="/vanner">Gå till Vänner</Link>
             </Button>
           </div>

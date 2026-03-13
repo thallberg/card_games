@@ -16,6 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { MIN_PLAYERS, MAX_PLAYERS } from "../constants";
+import { SinglePlayerIntro } from "@/components/single-player-intro";
 
 const SUIT_LABELS: Record<string, string> = {
   hearts: "hjärter",
@@ -96,20 +97,13 @@ export function GameBoard({ sessionId }: GameBoardProps) {
 
   if (playerCount === null && !useMulti) {
     return (
-      <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6 px-1 sm:px-0">
-        <p className="text-muted-foreground text-sm">
-          Välj antal spelare (2–6). Du spelar som spelare 1, övriga är datorer.
-        </p>
-        <div className="flex flex-wrap gap-2">
-          {Array.from({ length: MAX_PLAYERS - MIN_PLAYERS + 1 }, (_, i) => i + MIN_PLAYERS).map(
-            (n) => (
-              <Button key={n} onClick={() => startGame(n)}>
-                {n} spelare
-              </Button>
-            )
-          )}
-        </div>
-      </div>
+      <SinglePlayerIntro
+        title="Skitgubbe – single player"
+        description="Välj antal spelare (2–6). Du spelar som spelare 1, övriga är datorer."
+        minPlayers={MIN_PLAYERS}
+        maxPlayers={MAX_PLAYERS}
+        onSelect={startGame}
+      />
     );
   }
 

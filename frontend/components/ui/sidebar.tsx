@@ -147,7 +147,10 @@ export function SidebarGroup({ className, ...props }: React.ComponentProps<"div"
 export function SidebarGroupLabel({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
-      className={cn("mb-1 px-2 text-xs font-medium text-[var(--sidebar-foreground)]/70", className)}
+      className={cn(
+        "mb-1 mt-1 px-2 text-xs font-semibold uppercase tracking-wide text-[var(--sidebar-foreground)]/70",
+        className
+      )}
       {...props}
     />
   );

@@ -2,6 +2,7 @@
 
 import { Suspense, useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -184,24 +185,17 @@ function VannerPageContent() {
 
         {friends.length === 0 ? (
           <p className="text-muted-foreground">
-            Du har inga vänner än. Använd &quot;Väninbjudan&quot; i menyn för att bjuda in någon via e-post.
+            Du har inga vänner än.{" "}
+            <Link
+              href="/vaninbjudan"
+              className="text-primary underline underline-offset-4 hover:text-primary/80"
+            >
+              Bjud in en vän
+            </Link>{" "}
+            för att komma igång.
           </p>
         ) : (
           <>
-            <div className="mb-4 flex flex-wrap items-center gap-2">
-              <Button
-                size="sm"
-                onClick={() => setInviteDialogOpen(true)}
-                className="min-h-10"
-              >
-                {selectedFriendIds.size > 0 ? "Bjud in till spel" : "Bjud in alla till spel"}
-              </Button>
-              {selectedFriendIds.size > 0 && (
-                <span className="text-muted-foreground text-sm">
-                  {selectedFriendIds.size} valda
-                </span>
-              )}
-            </div>
             <ul className="grid gap-2">
               {friends.map((f) => (
                 <li
@@ -232,6 +226,31 @@ function VannerPageContent() {
                 </li>
               ))}
             </ul>
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setInviteDialogOpen(true)}
+                className="h-auto px-3 text-sm font-normal border-primary text-primary hover:bg-primary/5 hover:text-primary"
+              >
+                {selectedFriendIds.size > 0 ? "Bjud in valda till spel" : "Bjud in alla till spel"}
+              </Button>
+              {selectedFriendIds.size > 0 && (
+                <span className="text-muted-foreground text-sm">
+                  {selectedFriendIds.size} valda
+                </span>
+              )}
+            </div>
+            <p className="mt-3 text-sm text-muted-foreground">
+              Vill du lägga till nya vänner?{" "}
+              <Link
+                href="/vaninbjudan"
+                className="text-primary underline underline-offset-4 hover:text-primary/80"
+              >
+                Bjud in en vän
+              </Link>
+              .
+            </p>
           </>
         )}
       </section>
