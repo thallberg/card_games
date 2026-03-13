@@ -6,6 +6,7 @@ import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { apiFetch } from "@/lib/api";
 
 type UserSearchResult = {
@@ -14,6 +15,7 @@ type UserSearchResult = {
   displayName: string;
   createdAt: string;
   avatarEmoji?: string | null;
+  avatarImageData?: string | null;
 };
 
 export default function VaninbjudanPage() {
@@ -135,12 +137,19 @@ export default function VaninbjudanPage() {
               key={u.id}
               className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card p-3"
             >
-              <div className="min-w-0">
-                <p className="font-medium truncate">
-                  {u.displayName}
-                  {u.avatarEmoji && ` ${u.avatarEmoji}`}
-                </p>
-                <p className="text-muted-foreground text-xs truncate">{u.email}</p>
+              <div className="flex min-w-0 items-center gap-3">
+                <Avatar className="h-8 w-8 shrink-0 rounded-full bg-[var(--sidebar-accent)] text-[var(--sidebar-accent-foreground)]">
+                  {u.avatarImageData && (
+                    <AvatarImage src={u.avatarImageData} alt={u.displayName} />
+                  )}
+                  <AvatarFallback aria-hidden>
+                    {u.avatarEmoji ?? u.displayName.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0">
+                  <p className="font-medium truncate">{u.displayName}</p>
+                  <p className="text-muted-foreground text-xs truncate">{u.email}</p>
+                </div>
               </div>
               <Button
                 size="sm"

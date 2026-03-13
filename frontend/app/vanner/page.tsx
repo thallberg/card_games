@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Dialog,
   DialogContent,
@@ -16,7 +17,14 @@ import { apiFetch } from "@/lib/api";
 import { getGameTypeFromId } from "@/lib/game-type";
 import { cn } from "@/lib/utils";
 
-type Friend = { id: string; displayName: string; email: string; friendsSince: string };
+type Friend = {
+  id: string;
+  displayName: string;
+  email: string;
+  friendsSince: string;
+  avatarEmoji?: string | null;
+  avatarImageData?: string | null;
+};
 type ReceivedRequest = { id: string; fromUserDisplayName: string; createdAt: string };
 
 function VannerPageContent() {
@@ -218,6 +226,14 @@ function VannerPageContent() {
                       }}
                       className="size-5 shrink-0"
                     />
+                    <Avatar className="h-8 w-8 shrink-0 rounded-full bg-[var(--sidebar-accent)] text-[var(--sidebar-accent-foreground)]">
+                      {f.avatarImageData && (
+                        <AvatarImage src={f.avatarImageData} alt={f.displayName} />
+                      )}
+                      <AvatarFallback aria-hidden>
+                        {f.avatarEmoji ?? f.displayName.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
                     <div className="min-w-0">
                       <span className="font-medium">{f.displayName}</span>
                       <span className="text-muted-foreground text-sm block sm:inline truncate"> {f.email}</span>
