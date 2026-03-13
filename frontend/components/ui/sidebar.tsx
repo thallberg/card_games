@@ -98,7 +98,7 @@ export function Sidebar({
       <div
         data-state={visible ? "open" : "closed"}
         className={cn(
-          "fixed top-0 z-50 flex h-[100dvh] flex-col border-r border-[var(--sidebar-border)] bg-[var(--sidebar)] text-[var(--sidebar-foreground)] transition-[width,transform] duration-200 ease-linear overflow-hidden",
+          "fixed top-0 z-50 flex h-[100dvh] flex-col border-r border-[var(--sidebar-border)] bg-[var(--sidebar)] text-[var(--sidebar-foreground)] transition-transform duration-200 ease-in-out overflow-hidden",
           side === "left" ? "left-0" : "right-0",
           isMobile && "w-[var(--sidebar-width-mobile)] shadow-xl",
           !isMobile && "w-[var(--sidebar-width)]",
@@ -108,7 +108,7 @@ export function Sidebar({
         style={
           isMobile
             ? undefined
-            : { width: visible ? "var(--sidebar-width)" : 0, minWidth: 0 }
+            : { width: "var(--sidebar-width)", minWidth: 0 }
         }
         {...props}
       >
@@ -226,7 +226,7 @@ export function SidebarInset({ className, ...props }: React.ComponentProps<"main
   return (
     <main
       className={cn(
-        "flex min-h-0 flex-1 flex-col transition-[margin] duration-200",
+        "flex min-h-0 flex-1 flex-col transition-[margin] duration-200 ease-in-out",
         !isMobile && visible && "md:ml-[var(--sidebar-width)]",
         className
       )}
