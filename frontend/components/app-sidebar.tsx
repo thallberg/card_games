@@ -260,7 +260,7 @@ export function AppSidebar({
           </Collapsible>
         </SidebarGroup>
         <SidebarGroup>
-          <Collapsible defaultOpen>
+          <Collapsible defaultOpen={false}>
             <CollapsibleTrigger
               className={cn(
                 "group flex w-full items-center gap-2 rounded-md px-2 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--sidebar-foreground)]/70 hover:bg-[var(--sidebar-accent)]/40"
@@ -282,7 +282,7 @@ export function AppSidebar({
           </Collapsible>
         </SidebarGroup>
         <SidebarGroup>
-          <Collapsible defaultOpen>
+          <Collapsible defaultOpen={false}>
             <CollapsibleTrigger
               className={cn(
                 "group flex w-full items-center gap-2 rounded-md px-2 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--sidebar-foreground)]/70 hover:bg-[var(--sidebar-accent)]/40"
