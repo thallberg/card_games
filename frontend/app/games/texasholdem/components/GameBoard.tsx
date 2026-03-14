@@ -12,7 +12,7 @@ import {
 } from "../game-state";
 import type { Card } from "../types";
 import { bestHand, handRankLabel } from "../hand-rankings";
-import { PlayingCard } from "./PlayingCard";
+import { PlayingCard } from "@/components/playing-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -223,6 +223,7 @@ export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoar
                       key={j}
                       card={c}
                       faceUp={state.phase === "handOver" || state.bettingPhase === "showdown"}
+                      faceDownVariant="cardback"
                       size="sm"
                     />
                   ))}

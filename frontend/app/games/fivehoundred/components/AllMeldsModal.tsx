@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import type { Card, Meld } from "../types";
 import { getMeldDisplayCards, getFullMeldDisplayCards } from "../melds";
-import { PlayingCard } from "./PlayingCard";
+import { PlayingCard } from "@/components/playing-card";
 
 const RANK_LABELS: Record<string, string> = {
   "2": "2", "3": "3", "4": "4", "5": "5", "6": "6", "7": "7", "8": "8",

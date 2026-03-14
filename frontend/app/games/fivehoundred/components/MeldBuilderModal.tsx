@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import type { Card, Meld } from "../types";
 import { getMeldType, canAddCardToMeld, isWild, getWildOptionsForRun, getWildOptionsForSet, getEffectiveMeldCards, isEffectiveRun, isValidEffectiveRun, isValidEffectiveSet } from "../melds";
-import { PlayingCard } from "./PlayingCard";
+import { PlayingCard } from "@/components/playing-card";
 import { getMeldDisplayCards } from "../melds";
 import { cn } from "@/lib/utils";
 

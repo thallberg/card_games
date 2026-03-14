@@ -1,17 +1,10 @@
 /**
- * Typer för Texas Hold'em.
+ * Types for Texas Hold'em. Card/Suit/Rank from shared lib.
  */
 
-export const SUITS = ["hearts", "diamonds", "clubs", "spades"] as const;
-export type Suit = (typeof SUITS)[number];
-
-export const RANKS = [
-  "2", "3", "4", "5", "6", "7", "8", "9", "10",
-  "jack", "queen", "king", "ace",
-] as const;
-export type Rank = (typeof RANKS)[number];
-
-export type Card = { suit: Suit; rank: Rank };
+import type { Card } from "@/lib/cards";
+export type { Card, Suit, Rank } from "@/lib/cards";
+export { SUITS, RANKS } from "@/lib/cards";
 
 export type PlayerId = string;
 
@@ -23,13 +16,13 @@ export type PlayerSeat = {
   id: PlayerId;
   name: string;
   stack: number;
-  /** Insats denna hand (för visning). */
+  /** Bet this hand (for display). */
   betThisHand: number;
-  /** Har lagt in sin bet för nuvarande betting-runda. */
+  /** Has posted bet for current betting round. */
   actedThisRound: boolean;
   folded: boolean;
   isAllIn: boolean;
-  /** Index i spelarlistan (0 = dealer i heads-up, annars dealer+1 = SB, +2 = BB). */
+  /** Index in player list (0 = dealer in heads-up, else dealer+1 = SB, +2 = BB). */
   seatIndex: number;
 };
 
@@ -47,8 +40,8 @@ export type HandRank =
 
 export type RankedHand = {
   rank: HandRank;
-  /** Fem kort som utgör handen (sorterade för jämförelse). */
+  /** Five cards that form the hand (sorted for comparison). */
   cards: Card[];
-  /** För tie-break: höga kort i ordning. */
+  /** For tie-break: high cards in order. */
   values: number[];
 };

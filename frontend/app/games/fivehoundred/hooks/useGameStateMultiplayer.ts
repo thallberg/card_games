@@ -1,14 +1,12 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import type { Card } from "../types";
 import type { GameState } from "../game-state";
 import { sortHand } from "../deck";
 import { fetchFiveHundredState, fetchGameSession, sendFiveHundredAction, startFiveHundredNewRound, resetFiveHundredGame } from "../api/fiveHundredApi";
 import type { SessionPlayer } from "../api/fiveHundredApi";
-
-const POLL_INTERVAL_MS = 1000;
-const WAITING_POLL_MS = 2000;
+import { useGameSessionPoll } from "@/hooks/useGameSessionPoll";
 
 export function useGameStateMultiplayer(sessionId: string | undefined) {
   const [state, setState] = useState<GameState | null>(null);
@@ -17,7 +15,6 @@ export function useGameStateMultiplayer(sessionId: string | undefined) {
   const [lastDrawnCard, setLastDrawnCard] = useState<Card | null>(null);
   const [loading, setLoading] = useState(!!sessionId);
   const [waitingForStart, setWaitingForStart] = useState(false);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const loadState = useCallback(async () => {
     if (!sessionId) return;
@@ -56,45 +53,26 @@ export function useGameStateMultiplayer(sessionId: string | undefined) {
   }, [sessionId]);
 
   useEffect(() => {
-    if (!sessionId) return;
-    setLoading(true);
-    setWaitingForStart(false);
-    loadState();
-  }, [sessionId, loadState]);
-
-  useEffect(() => {
-    if (!sessionId || !waitingForStart) return;
-    const interval = setInterval(loadState, WAITING_POLL_MS);
-    return () => clearInterval(interval);
-  }, [sessionId, waitingForStart, loadState]);
-
-  useEffect(() => {
-    if (!sessionId || !state) return;
-    if (state.phase === "gameOver") {
-      if (pollRef.current) {
-        clearInterval(pollRef.current);
-        pollRef.current = null;
-      }
-      loadState();
-      pollRef.current = setInterval(loadState, 3000);
-      return () => {
-        if (pollRef.current) clearInterval(pollRef.current);
-      };
+    if (sessionId) {
+      setLoading(true);
+      setWaitingForStart(false);
     }
-    const isMyTurn = state.currentPlayerId === myPlayerId;
-    if (isMyTurn && state.phase !== "roundEnd") {
-      if (pollRef.current) {
-        clearInterval(pollRef.current);
-        pollRef.current = null;
-      }
-      return;
-    }
-    loadState();
-    pollRef.current = setInterval(loadState, POLL_INTERVAL_MS);
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-    };
-  }, [sessionId, state?.currentPlayerId, state?.phase, myPlayerId, loadState, state]);
+  }, [sessionId]);
+
+  useGameSessionPoll({
+    sessionId,
+    loadState,
+    isWaitingForStart: waitingForStart,
+    waitForStartPollMs: 2000,
+    shouldPausePolling:
+      state != null &&
+      state.phase !== "gameOver" &&
+      state.currentPlayerId === myPlayerId &&
+      state.phase !== "roundEnd",
+    isGameOver: state?.phase === "gameOver",
+    gameOverPollMs: 3000,
+    pollIntervalMs: 1000,
+  });
 
   const runAction = useCallback(
     async (
