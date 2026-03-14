@@ -41,20 +41,12 @@ export function PlayerHand({
   return (
     <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
       {cards.map((card, i) => (
-        <div
-          key={`${card.suit}-${card.rank}-${i}`}
-          className={cn(
-            "rounded-md ring-2 transition-all ring-offset-2",
-            selectedIndices.has(i)
-              ? "ring-primary"
-              : lastDrawnIndices.has(i)
-                ? "ring-green-500"
-                : "ring-transparent"
-          )}
-        >
+        <div key={`${card.suit}-${card.rank}-${i}`} className="rounded-md">
           <PlayingCard
             card={card}
             faceUp
+            selected={selectedIndices.has(i)}
+            highlight={lastDrawnIndices.has(i)}
             onClick={
               onCardClick && !disabled
                 ? () => onCardClick(card, i)

@@ -79,12 +79,12 @@ export function Navbar({ user, onRegisterClick, onLoginClick, onLogout, onInvite
         </Button>
       )}
       {onLoginClick ? (
-        <Button type="button" onClick={() => { onLoginClick(); closeMobile(); }} className="min-h-11 w-full md:w-auto">
+        <Button type="button" variant="outlinePrimary" onClick={() => { onLoginClick(); closeMobile(); }} className="min-h-11 w-full md:w-auto">
           <LogIn className="size-4 md:mr-2 shrink-0" />
           Logga in
         </Button>
       ) : (
-        <Button asChild className="min-h-11 w-full md:w-auto">
+        <Button asChild variant="outlinePrimary" className="min-h-11 w-full md:w-auto">
           <Link href="/logga-in" onClick={closeMobile}>
             <LogIn className="size-4 md:mr-2 shrink-0" />
             Logga in
@@ -95,7 +95,7 @@ export function Navbar({ user, onRegisterClick, onLoginClick, onLogout, onInvite
   );
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-[var(--border)] bg-[var(--warm-cream)]/95 backdrop-blur supports-backdrop-filter:bg-[var(--warm-cream)]/80">
+    <header className="sticky top-0 z-50 w-full border-b border-[var(--border)] bg-[var(--warm-cream)]">
       <div className="mx-auto flex h-14 min-h-[44px] max-w-7xl items-center px-3 sm:px-6">
         <Link
           href="/"

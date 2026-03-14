@@ -320,7 +320,7 @@ function VannerPageContent() {
               <Button variant="outline" onClick={() => setInviteDialogOpen(false)} className="min-h-10">
                 Avbryt
               </Button>
-              <Button onClick={handleInviteToGame} disabled={creating} className="min-h-10">
+              <Button variant="outlinePrimary" onClick={handleInviteToGame} disabled={creating} className="min-h-10">
                 {creating ? "Skapar..." : "Skicka inbjudan"}
               </Button>
             </div>

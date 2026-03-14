@@ -47,7 +47,7 @@ export function CardActionModal({
             <Button variant="outline" className="flex-1" onClick={handleDiscard}>
               Kasta
             </Button>
-            <Button className="flex-1" onClick={handleLayMeld}>
+            <Button variant="outlinePrimary" className="flex-1" onClick={handleLayMeld}>
               Lägg ut som kombination
             </Button>
           </div>

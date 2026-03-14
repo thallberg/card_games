@@ -98,7 +98,7 @@ export function Sidebar({
       <div
         data-state={visible ? "open" : "closed"}
         className={cn(
-          "fixed top-0 z-50 flex h-[100dvh] flex-col border-r border-[var(--sidebar-border)] bg-[var(--sidebar)] text-[var(--sidebar-foreground)] transition-transform duration-200 ease-in-out overflow-hidden",
+          "fixed top-0 z-50 flex h-[100dvh] flex-col border-r border-[var(--sidebar-border)] bg-[var(--warm-cream)] text-[var(--sidebar-foreground)] transition-transform duration-200 ease-in-out overflow-hidden",
           side === "left" ? "left-0" : "right-0",
           isMobile && "w-[var(--sidebar-width-mobile)] shadow-xl",
           !isMobile && "w-[var(--sidebar-width)]",
@@ -106,9 +106,7 @@ export function Sidebar({
           className
         )}
         style={
-          isMobile
-            ? undefined
-            : { width: "var(--sidebar-width)", minWidth: 0 }
+          !isMobile ? { width: "var(--sidebar-width)", minWidth: 0 } : undefined
         }
         {...props}
       >
@@ -214,7 +212,7 @@ export function SidebarTrigger({ className, ...props }: React.ComponentProps<"bu
       type="button"
       onClick={toggleSidebar}
       className={cn(
-        "inline-flex size-9 items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground",
+        "inline-flex size-9 cursor-pointer items-center justify-center rounded-lg transition-colors hover:bg-[var(--sidebar-accent)] hover:text-[var(--sidebar-accent-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         className
       )}
       aria-label="Öppna eller stäng sidomeny"

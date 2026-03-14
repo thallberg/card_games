@@ -209,7 +209,7 @@ export function AuthModal({
           )}
 
           <DialogFooter>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" variant="outlinePrimary" disabled={loading}>
               {loading ? "Vänta..." : isRegister ? "Registrera" : "Logga in"}
             </Button>
           </DialogFooter>

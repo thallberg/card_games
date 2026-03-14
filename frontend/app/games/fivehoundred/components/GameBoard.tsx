@@ -196,7 +196,7 @@ export function GameBoard({ sessionId, playerCount = 2 }: GameBoardProps) {
           <p className="font-medium">
             {state.winnerId ? playerLabelGenitive(state.winnerId) + (playerAvatarEmojis?.[state.winnerId] ? " " + playerAvatarEmojis[state.winnerId] : "") + " har vunnit spelet!" : ""}
           </p>
-          <Button onClick={resetGame} className="mt-2">
+          <Button variant="outlinePrimary" onClick={resetGame} className="mt-2">
             Spela igen
           </Button>
         </div>
@@ -210,7 +210,7 @@ export function GameBoard({ sessionId, playerCount = 2 }: GameBoardProps) {
           <p className="text-muted-foreground mt-1 text-sm">
             Poäng: {getPlayerIds().map((id) => `${playerLabel(id)}${playerAvatarEmojis?.[id] ? " " + playerAvatarEmojis[id] : ""} ${state.playerScores[id] ?? 0}`).join(", ")}
           </p>
-          <Button onClick={startNewRound} className="mt-2">
+          <Button variant="outlinePrimary" onClick={startNewRound} className="mt-2">
             Nästa rond
           </Button>
         </div>
@@ -274,7 +274,7 @@ export function GameBoard({ sessionId, playerCount = 2 }: GameBoardProps) {
                     <Button
                       type="button"
                       variant="outline"
-                      className="min-h-11 w-full border-[var(--btn-nöjd)] bg-[var(--btn-nöjd)]/10 text-[var(--btn-nöjd-foreground)] hover:bg-[var(--btn-nöjd)]/25"
+                      className="min-h-11 w-full border-2 border-[var(--btn-nöjd)] bg-transparent text-[var(--btn-nöjd-foreground)] hover:bg-[var(--btn-nöjd)]/15"
                       onClick={() => {
                         passWithoutDiscard();
                         clearSelection();
@@ -290,12 +290,12 @@ export function GameBoard({ sessionId, playerCount = 2 }: GameBoardProps) {
                         type="button"
                         variant="outline"
                         onClick={handleKasta}
-                        className="min-h-11 flex-1 border-[var(--btn-kasta)] bg-[var(--btn-kasta)]/10 text-[var(--btn-kasta-foreground)] hover:bg-[var(--btn-kasta)]/25"
+                        className="min-h-11 flex-1 border-2 border-[var(--btn-kasta)] bg-transparent text-[var(--btn-kasta-foreground)] hover:bg-[var(--btn-kasta)]/15"
                       >
                         Kasta
                       </Button>
                     )}
-                    <Button type="button" onClick={handleLayMeldOpen} className="min-h-11 flex-1">
+                    <Button type="button" variant="outlinePrimary" onClick={handleLayMeldOpen} className="min-h-11 flex-1">
                       Lägg ut
                     </Button>
                   </>
@@ -353,7 +353,7 @@ export function GameBoard({ sessionId, playerCount = 2 }: GameBoardProps) {
                 <Button variant="outline" onClick={handleTakeDiscardCancel}>
                   Avbryt
                 </Button>
-                <Button onClick={handleTakeDiscardConfirm}>
+                <Button variant="outlinePrimary" onClick={handleTakeDiscardConfirm}>
                   Okej
                 </Button>
               </DialogFooter>

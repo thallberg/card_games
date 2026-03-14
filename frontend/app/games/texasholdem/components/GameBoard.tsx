@@ -179,7 +179,7 @@ export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoar
             </p>
           )}
           <div className="mt-4 text-center">
-            <Button onClick={handleNextHand}>Nästa hand</Button>
+            <Button variant="outlinePrimary" onClick={handleNextHand}>Nästa hand</Button>
           </div>
         </div>
       </div>
@@ -268,27 +268,27 @@ export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoar
         {isMyTurn && mySeat && !mySeat.folded && !mySeat.isAllIn && (
           <div className="mt-4 flex flex-col gap-2">
             <div className="flex w-full gap-2">
-              <Button variant="destructive" size="sm" onClick={handleFold} className="flex-1 min-h-11">
+              <Button variant="outlineDestructive" size="sm" onClick={handleFold} className="flex-1 min-h-11">
                 Fold
               </Button>
               {allInOrFoldOnly ? (
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={handleAllIn}
-                  disabled={mySeat.stack <= 0}
-                  className="flex-1 min-h-11"
-                >
-                  All-in ({mySeat.stack})
-                </Button>
+                  <Button
+                    size="sm"
+                    variant="outlineSecondary"
+                    onClick={handleAllIn}
+                    disabled={mySeat.stack <= 0}
+                    className="flex-1 min-h-11"
+                  >
+                    All-in ({mySeat.stack})
+                  </Button>
               ) : (
                 <>
                   {toCall <= 0 ? (
-                    <Button size="sm" onClick={handleCheck} className="flex-1 min-h-11">
+                    <Button size="sm" variant="outlinePrimary" onClick={handleCheck} className="flex-1 min-h-11">
                       Check
                     </Button>
                   ) : (
-                    <Button size="sm" onClick={handleCall} className="flex-1 min-h-11">
+                    <Button size="sm" variant="outlinePrimary" onClick={handleCall} className="flex-1 min-h-11">
                       Call {toCall}
                     </Button>
                   )}
@@ -308,12 +308,12 @@ export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoar
                   className="w-full min-h-11"
                 />
                 <div className="flex w-full gap-2">
-                  <Button size="sm" onClick={handleRaise} className="flex-1 min-h-11">
+                  <Button size="sm" variant="outlinePrimary" onClick={handleRaise} className="flex-1 min-h-11">
                     {currentBet === 0 ? "Bet" : "Raise"} {raiseAmount}
                   </Button>
                   <Button
                     size="sm"
-                    variant="secondary"
+                    variant="outlineSecondary"
                     onClick={handleAllIn}
                     disabled={!mySeat || mySeat.stack <= 0}
                     className="flex-1 min-h-11"

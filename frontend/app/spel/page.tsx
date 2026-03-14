@@ -44,6 +44,8 @@ function SpelPageContent() {
     sessionId: string;
     buyIn: number;
     bigBlind: number;
+    buyInStr: string;
+    bigBlindStr: string;
   } | null>(null);
   const [inviteMoreFor, setInviteMoreFor] = useState<Session | null>(null);
   const [friends, setFriends] = useState<Friend[]>([]);
@@ -254,11 +256,14 @@ function SpelPageContent() {
                                 s.gameType === "TexasHoldem" ? (
                                   <Button
                                     size="sm"
+                                    variant="outlinePrimary"
                                     onClick={() =>
                                       setTexasSetup({
                                         sessionId: s.id,
                                         buyIn: 2000,
                                         bigBlind: 20,
+                                        buyInStr: "2000",
+                                        bigBlindStr: "20",
                                       })
                                     }
                                     disabled={starting === s.id}
@@ -268,6 +273,7 @@ function SpelPageContent() {
                                 ) : (
                                   <Button
                                     size="sm"
+                                    variant="outlinePrimary"
                                     onClick={() => handleStart(s.id)}
                                     disabled={starting === s.id}
                                   >
@@ -365,6 +371,7 @@ function SpelPageContent() {
                     <span className="font-medium truncate">{f.displayName}</span>
                     <Button
                       size="sm"
+                      variant="outlinePrimary"
                       onClick={() => handleInviteToSession(inviteMoreFor.id, f.id)}
                       disabled={inviting === f.id}
                     >
@@ -397,8 +404,8 @@ function SpelPageContent() {
               onSubmit={(e) => {
                 e.preventDefault();
                 handleStart(texasSetup.sessionId, {
-                  buyIn: texasSetup.buyIn,
-                  bigBlind: texasSetup.bigBlind,
+                  buyIn: Number(texasSetup.buyInStr) || 2000,
+                  bigBlind: Number(texasSetup.bigBlindStr) || 20,
                 });
               }}
               className="space-y-4"
@@ -409,10 +416,10 @@ function SpelPageContent() {
                   id="buyin"
                   type="number"
                   min={1}
-                  value={texasSetup.buyIn}
+                  value={texasSetup.buyInStr}
                   onChange={(e) =>
                     setTexasSetup((p) =>
-                      p ? { ...p, buyIn: Number(e.target.value) || 2000 } : p
+                      p ? { ...p, buyInStr: e.target.value } : p
                     )
                   }
                   className="mt-1"
@@ -424,16 +431,16 @@ function SpelPageContent() {
                   id="bigblind"
                   type="number"
                   min={1}
-                  value={texasSetup.bigBlind}
+                  value={texasSetup.bigBlindStr}
                   onChange={(e) =>
                     setTexasSetup((p) =>
-                      p ? { ...p, bigBlind: Number(e.target.value) || 20 } : p
+                      p ? { ...p, bigBlindStr: e.target.value } : p
                     )
                   }
                   className="mt-1"
                 />
                 <p className="text-muted-foreground text-sm mt-1">
-                  Small blind blir automatiskt hälften: {Math.floor(texasSetup.bigBlind / 2)}
+                  Small blind blir automatiskt hälften: {Math.floor((Number(texasSetup.bigBlindStr) || 20) / 2)}
                 </p>
               </div>
               <DialogFooter>
@@ -444,7 +451,7 @@ function SpelPageContent() {
                 >
                   Avbryt
                 </Button>
-                <Button type="submit" disabled={starting === texasSetup.sessionId}>
+                <Button type="submit" variant="outlinePrimary" disabled={starting === texasSetup.sessionId}>
                   {starting === texasSetup.sessionId ? "Startar..." : "Starta spelet"}
                 </Button>
               </DialogFooter>

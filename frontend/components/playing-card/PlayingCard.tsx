@@ -83,10 +83,11 @@ export function PlayingCard({
       className={cn(
         "relative shrink-0 overflow-hidden rounded-md border-2 bg-muted shadow-sm transition-transform focus:outline-none focus:ring-2 focus:ring-ring",
         sizeClass,
-        selected ? "border-primary ring-2 ring-primary ring-offset-2" : "border-border",
-        highlight && "ring-2 ring-green-500 ring-offset-2 border-green-500",
+        "border-border",
+        selected && "border-primary",
+        !selected && highlight && "border-green-500",
         dimmed && "cursor-not-allowed opacity-50",
-        !dimmed && "hover:scale-105",
+        !dimmed && "hover:scale-105 hover:border-primary",
         className
       )}
       disabled={!onClick}

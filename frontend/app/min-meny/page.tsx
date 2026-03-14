@@ -263,7 +263,7 @@ export default function MinMenyPage() {
                     Visningsnamnet är sparat.
                   </p>
                 )}
-                <Button type="submit" disabled={displayNameSaving}>
+                <Button type="submit" variant="outlinePrimary" disabled={displayNameSaving}>
                   {displayNameSaving ? "Sparar…" : "Spara visningsnamn"}
                 </Button>
               </form>
@@ -479,7 +479,7 @@ export default function MinMenyPage() {
                     Lösenordet är bytt.
                   </p>
                 )}
-                <Button type="submit" disabled={passwordSaving}>
+                <Button type="submit" variant="outlinePrimary" disabled={passwordSaving}>
                   {passwordSaving ? "Byter…" : "Byta lösenord"}
                 </Button>
               </form>

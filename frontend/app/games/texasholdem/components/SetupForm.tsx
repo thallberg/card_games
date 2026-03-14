@@ -13,10 +13,13 @@ type SetupFormProps = {
 };
 
 export function SetupForm({ onStart }: SetupFormProps) {
-  const [numPlayers, setNumPlayers] = useState(2);
-  const [buyIn, setBuyIn] = useState(2000);
-  const [bigBlind, setBigBlind] = useState(20);
+  const [numPlayersStr, setNumPlayersStr] = useState("2");
+  const [buyInStr, setBuyInStr] = useState("2000");
+  const [bigBlindStr, setBigBlindStr] = useState("20");
 
+  const numPlayers = Number(numPlayersStr) || MIN_PLAYERS;
+  const buyIn = Number(buyInStr) || 2000;
+  const bigBlind = Number(bigBlindStr) || MIN_BIG_BLIND;
   const smallBlind = getSmallBlind(bigBlind);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -41,8 +44,8 @@ export function SetupForm({ onStart }: SetupFormProps) {
               type="number"
               min={MIN_PLAYERS}
               max={MAX_PLAYERS}
-              value={numPlayers}
-              onChange={(e) => setNumPlayers(Number(e.target.value) || 2)}
+              value={numPlayersStr}
+              onChange={(e) => setNumPlayersStr(e.target.value)}
             />
           </div>
           <div className="space-y-2">
@@ -51,8 +54,8 @@ export function SetupForm({ onStart }: SetupFormProps) {
               id="buyin"
               type="number"
               min={1}
-              value={buyIn}
-              onChange={(e) => setBuyIn(Number(e.target.value) || 0)}
+              value={buyInStr}
+              onChange={(e) => setBuyInStr(e.target.value)}
             />
           </div>
           <div className="space-y-2">
@@ -61,14 +64,14 @@ export function SetupForm({ onStart }: SetupFormProps) {
               id="bigblind"
               type="number"
               min={MIN_BIG_BLIND}
-              value={bigBlind}
-              onChange={(e) => setBigBlind(Number(e.target.value) || 1)}
+              value={bigBlindStr}
+              onChange={(e) => setBigBlindStr(e.target.value)}
             />
             <p className="text-muted-foreground text-sm">
               Small blind blir automatiskt hälften: {smallBlind}
             </p>
           </div>
-          <Button type="submit" className="w-full">
+          <Button type="submit" variant="outlinePrimary" className="w-full">
             Starta spelet
           </Button>
         </form>

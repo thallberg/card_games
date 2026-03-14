@@ -62,58 +62,81 @@
   --color-warm-sand: var(--warm-sand);
   --color-warm-rose: var(--warm-rose);
   --color-warm-teal: var(--warm-teal);
+  --color-pastel-lavender: var(--pastel-lavender);
+  --color-pastel-mint: var(--pastel-mint);
+  --color-pastel-peach: var(--pastel-peach);
+  --color-pastel-sage: var(--pastel-sage);
+  --color-pastel-sky: var(--pastel-sky);
+  --color-pastel-rose: var(--pastel-rose);
+  --color-pastel-apricot: var(--pastel-apricot);
+  --color-pastel-teal: var(--pastel-teal);
   --color-btn-kasta: var(--btn-kasta);
   --color-btn-nöjd: var(--btn-nöjd);
 }
 
 :root {
-  --radius: 0.625rem;
-  /* Varma, milda färger */
-  --warm-cream: oklch(0.97 0.025 85);
-  --warm-peach: oklch(0.92 0.06 55);
-  --warm-coral: oklch(0.78 0.12 25);
-  --warm-gold: oklch(0.82 0.12 80);
-  --warm-sage: oklch(0.75 0.06 155);
-  --warm-sand: oklch(0.90 0.04 75);
-  --warm-rose: oklch(0.88 0.06 10);
-  --warm-teal: oklch(0.70 0.08 195);
+  --radius: 0.75rem;
+  /* Ljusa, milda pastellfärger – färgglatt men dovt */
+  --warm-cream: oklch(0.97 0.02 85);
+  --warm-peach: oklch(0.94 0.05 55);
+  --warm-coral: oklch(0.78 0.10 25);
+  --warm-gold: oklch(0.84 0.10 80);
+  --warm-sage: oklch(0.78 0.05 155);
+  --warm-sand: oklch(0.92 0.03 75);
+  --warm-rose: oklch(0.90 0.05 10);
+  --warm-teal: oklch(0.72 0.07 195);
+  /* Pastellaccenter för kort och sektioner */
+  --pastel-lavender: oklch(0.94 0.04 300);
+  --pastel-mint: oklch(0.94 0.04 165);
+  --pastel-peach: oklch(0.94 0.05 60);
+  --pastel-sage: oklch(0.92 0.04 145);
+  --pastel-sky: oklch(0.94 0.04 230);
+  --pastel-rose: oklch(0.94 0.04 15);
+  --pastel-apricot: oklch(0.94 0.05 75);
+  --pastel-teal: oklch(0.92 0.04 195);
+  /* Accentkanter för kort (något mörkare) */
+  --accent-lavender: oklch(0.65 0.12 300);
+  --accent-mint: oklch(0.60 0.10 165);
+  --accent-peach: oklch(0.65 0.10 55);
+  --accent-sage: oklch(0.58 0.08 155);
   /* Knappfärger 500-spelet */
-  --btn-kasta: oklch(0.78 0.10 18);
-  --btn-kasta-foreground: oklch(0.38 0.08 18);
-  --btn-nöjd: oklch(0.72 0.08 155);
-  --btn-nöjd-foreground: oklch(0.32 0.06 155);
-  /* Tema färger – använder våra varma färger */
-  --background: oklch(0.98 0.015 90);
-  --foreground: oklch(0.28 0.03 45);
-  --card: oklch(1 0.008 90);
-  --card-foreground: oklch(0.28 0.03 45);
-  --popover: oklch(1 0.008 90);
-  --popover-foreground: oklch(0.28 0.03 45);
-  --primary: oklch(0.48 0.12 45);
-  --primary-foreground: oklch(0.99 0.01 90);
-  --secondary: oklch(0.93 0.05 85);
-  --secondary-foreground: oklch(0.35 0.05 45);
-  --muted: oklch(0.93 0.04 80);
-  --muted-foreground: oklch(0.50 0.04 55);
-  --accent: oklch(0.88 0.08 55);
-  --accent-foreground: oklch(0.35 0.05 45);
-  --destructive: oklch(0.58 0.22 25);
-  --border: oklch(0.88 0.03 80);
-  --input: oklch(0.90 0.03 80);
-  --ring: oklch(0.65 0.12 55);
-  --chart-1: oklch(0.70 0.15 25);
-  --chart-2: oklch(0.72 0.10 155);
-  --chart-3: oklch(0.75 0.12 80);
-  --chart-4: oklch(0.68 0.10 195);
-  --chart-5: oklch(0.78 0.08 10);
-  --sidebar: oklch(0.96 0.03 85);
-  --sidebar-foreground: oklch(0.28 0.03 45);
-  --sidebar-primary: oklch(0.48 0.12 45);
-  --sidebar-primary-foreground: oklch(0.99 0.01 90);
-  --sidebar-accent: oklch(0.90 0.06 85);
-  --sidebar-accent-foreground: oklch(0.35 0.05 45);
-  --sidebar-border: oklch(0.88 0.03 80);
-  --sidebar-ring: oklch(0.65 0.12 55);
+  --btn-kasta: oklch(0.72 0.08 25);
+  --btn-kasta-foreground: oklch(0.38 0.06 25);
+  --btn-nöjd: oklch(0.65 0.08 165);
+  --btn-nöjd-foreground: oklch(0.30 0.05 165);
+  /* Tema – milda, ljusa färger */
+  --background: oklch(0.98 0.015 95);
+  --foreground: oklch(0.30 0.03 45);
+  --card: oklch(0.99 0.01 95);
+  --card-foreground: oklch(0.30 0.03 45);
+  --popover: oklch(0.99 0.01 95);
+  --popover-foreground: oklch(0.30 0.03 45);
+  --primary: oklch(0.55 0.10 195);
+  --primary-foreground: oklch(0.99 0.01 95);
+  --secondary: oklch(0.94 0.04 165);
+  --secondary-foreground: oklch(0.35 0.05 165);
+  --muted: oklch(0.94 0.03 85);
+  --muted-foreground: oklch(0.52 0.04 55);
+  --accent: oklch(0.92 0.06 55);
+  --accent-foreground: oklch(0.38 0.06 55);
+  --destructive: oklch(0.58 0.18 25);
+  --border: oklch(0.90 0.02 85);
+  --input: oklch(0.92 0.02 85);
+  --ring: oklch(0.60 0.10 195);
+  --chart-1: oklch(0.72 0.12 25);
+  --chart-2: oklch(0.68 0.10 165);
+  --chart-3: oklch(0.75 0.10 80);
+  --chart-4: oklch(0.65 0.10 230);
+  --chart-5: oklch(0.70 0.08 300);
+  --sidebar: oklch(0.96 0.025 95);
+  --sidebar-foreground: oklch(0.30 0.03 45);
+  --sidebar-primary: oklch(0.55 0.10 195);
+  --sidebar-primary-foreground: oklch(0.99 0.01 95);
+  --sidebar-accent: oklch(0.92 0.05 165);
+  --sidebar-accent-foreground: oklch(0.35 0.05 165);
+  --sidebar-border: oklch(0.90 0.02 85);
+  --sidebar-ring: oklch(0.60 0.10 195);
+  --sidebar-bg-gradient: var(--warm-cream);
 }
 
 .dark {
@@ -125,6 +148,18 @@
   --warm-sand: oklch(0.32 0.04 65);
   --warm-rose: oklch(0.55 0.08 15);
   --warm-teal: oklch(0.58 0.08 200);
+  --pastel-lavender: oklch(0.28 0.04 300);
+  --pastel-mint: oklch(0.28 0.04 165);
+  --pastel-peach: oklch(0.30 0.05 60);
+  --pastel-sage: oklch(0.28 0.04 145);
+  --pastel-sky: oklch(0.28 0.04 230);
+  --pastel-rose: oklch(0.28 0.04 15);
+  --pastel-apricot: oklch(0.30 0.05 75);
+  --pastel-teal: oklch(0.28 0.04 195);
+  --accent-lavender: oklch(0.55 0.10 300);
+  --accent-mint: oklch(0.52 0.08 165);
+  --accent-peach: oklch(0.55 0.10 55);
+  --accent-sage: oklch(0.50 0.08 155);
   --btn-kasta: oklch(0.65 0.12 18);
   --btn-kasta-foreground: oklch(0.92 0.02 85);
   --btn-nöjd: oklch(0.58 0.08 165);
@@ -160,6 +195,7 @@
   --sidebar-accent-foreground: oklch(0.95 0.02 85);
   --sidebar-border: oklch(0.35 0.04 55);
   --sidebar-ring: oklch(0.65 0.12 55);
+  --sidebar-bg-gradient: var(--background);
 }
 
 @layer base {
@@ -171,7 +207,7 @@
   }
   body {
     @apply text-foreground min-h-[100dvh];
-    background: linear-gradient(160deg, var(--background) 0%, var(--warm-cream) 100%);
+    background: linear-gradient(145deg, var(--pastel-sky) 0%, var(--pastel-mint) 35%, var(--pastel-peach) 70%, var(--warm-cream) 100%);
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
     padding-left: env(safe-area-inset-left);

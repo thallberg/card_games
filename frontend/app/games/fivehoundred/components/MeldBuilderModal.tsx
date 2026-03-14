@@ -203,6 +203,7 @@ export function MeldBuilderModal({
             <p className="text-destructive mt-2 text-xs">Välj olika kort för varje 2:a så att kombinationen blir giltig.</p>
           )}
           <Button
+            variant="outlinePrimary"
             className="mt-2 w-full"
             onClick={handleLayNew}
             disabled={!canLayNew}
@@ -260,7 +261,7 @@ export function MeldBuilderModal({
                             <Button
                               key={handIndex}
                               size="sm"
-                              variant="secondary"
+                              variant="outlineSecondary"
                               onClick={() => {
                                 onAddToExistingMeld(meld.id, handIndex, autoOpt ?? undefined);
                                 onOpenChange(false);
@@ -275,7 +276,7 @@ export function MeldBuilderModal({
                             <Button
                               key={handIndex}
                               size="sm"
-                              variant="secondary"
+                              variant="outlineSecondary"
                               onClick={() => setPendingAddWild({ meldId: meld.id, handIndex })}
                             >
                               Lägg {cardLabel(card)}
@@ -290,6 +291,7 @@ export function MeldBuilderModal({
                                 <Button
                                   key={`${opt.suit}-${opt.rank}`}
                                   size="sm"
+                                  variant="outlinePrimary"
                                   onClick={() => {
                                     onAddToExistingMeld(meld.id, handIndex, opt);
                                     setPendingAddWild(null);
@@ -309,7 +311,7 @@ export function MeldBuilderModal({
                           <Button
                             key={handIndex}
                             size="sm"
-                            variant="secondary"
+                            variant="outlineSecondary"
                             onClick={() => {
                               onAddToExistingMeld(meld.id, handIndex);
                               onOpenChange(false);

@@ -115,7 +115,7 @@ export function LayoutClient({
         pendingFriendRequestsCount={pendingFriendRequestsCount}
       />
       <SidebarInset>
-        <header className="sticky top-0 z-40 flex h-14 min-h-[44px] shrink-0 items-center gap-2 border-b border-border bg-[var(--warm-cream)]/95 px-3 backdrop-blur supports-backdrop-filter:bg-[var(--warm-cream)]/80">
+        <header className="sticky top-0 z-40 flex h-14 min-h-[44px] shrink-0 items-center gap-2 border-b border-border bg-[var(--warm-cream)] px-3">
           <SidebarTrigger className="-ml-1">
             <Menu className="size-5" aria-hidden />
           </SidebarTrigger>

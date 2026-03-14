@@ -327,7 +327,7 @@ export function AppSidebar({
                   <SidebarMenuItem>
                     <SidebarMenuButton
                       onClick={() => { onLoginClick(); closeSidebar(); }}
-                      className="bg-[var(--sidebar-primary)] text-[var(--sidebar-primary-foreground)] hover:opacity-90"
+                      className="border border-primary bg-transparent text-primary hover:bg-[var(--sidebar-accent)] hover:text-[var(--sidebar-accent-foreground)]"
                     >
                       <LogIn className="size-4 shrink-0" />
                       Logga in
@@ -339,7 +339,7 @@ export function AppSidebar({
                       <Link
                         href="/logga-in"
                         onClick={closeSidebar}
-                        className="bg-[var(--sidebar-primary)] text-[var(--sidebar-primary-foreground)] hover:opacity-90"
+                        className="border border-primary bg-transparent text-primary hover:bg-[var(--sidebar-accent)] hover:text-[var(--sidebar-accent-foreground)]"
                       >
                         <LogIn className="size-4 shrink-0" />
                         Logga in

@@ -196,6 +196,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
             </div>
             <div className="flex justify-end pt-2">
               <Button
+                variant="outlinePrimary"
                 onClick={() => {
                   if (!isSecondView) setSkitgubbeShowOnlySkitgubbe(true);
                   else setSkitgubbeModalClosed(true);
@@ -239,7 +240,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
                 Ingen blev skitgubbe – alla plockade minst {threshold} kort.
               </p>
             )}
-            <Button onClick={continueToPlay}>Fortsätt till utspelet</Button>
+            <Button variant="outlinePrimary" onClick={continueToPlay}>Fortsätt till utspelet</Button>
           </div>
         </section>
       </div>
@@ -253,7 +254,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
           <p className="font-medium">
             {state.winnerId ? playerLabel(state.winnerId) + (playerAvatarEmojis?.[state.winnerId] ? " " + playerAvatarEmojis[state.winnerId] : "") + " vann!" : ""}
           </p>
-          <Button onClick={resetGame} className="mt-4">
+          <Button variant="outlinePrimary" onClick={resetGame} className="mt-4">
             Spela igen
           </Button>
         </section>
@@ -447,7 +448,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
           })}
         </div>
         {state.phase === "play" && isHumanTurn && isTrickSelectionValid && (
-          <Button onClick={confirmTrickPlay} className="mt-3">
+          <Button variant="outlinePrimary" onClick={confirmTrickPlay} className="mt-3">
             Lägg ut
           </Button>
         )}

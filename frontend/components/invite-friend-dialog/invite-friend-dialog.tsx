@@ -81,7 +81,7 @@ export function InviteFriendDialog({
             </p>
           )}
           <DialogFooter>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" variant="outlinePrimary" disabled={loading}>
               {loading ? "Skickar..." : "Skicka inbjudan"}
             </Button>
           </DialogFooter>

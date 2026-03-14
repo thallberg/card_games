@@ -67,12 +67,11 @@ export function TableMelds({ melds, lastLaidMeldIds = [] }: TableMeldsProps) {
                   : "border-border bg-card"
               )}
             >
-              <div className="flex items-end">
+              <div className="flex items-end gap-1">
                 {getMeldDisplayCards(meld).map((item, i) => (
                   <div
                     key={`${meld.id}-${i}`}
-                    className="flex flex-col items-center shrink-0 first:ml-0 -ml-[65.8px]"
-                    style={{ zIndex: i }}
+                    className="flex flex-col items-center shrink-0"
                   >
                     {item.represents != null && (
                       <span className="text-[10px] text-muted-foreground mb-0.5 whitespace-nowrap">

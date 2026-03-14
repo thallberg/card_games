@@ -94,7 +94,7 @@ export function GameBoard({ sessionId, playerCount = 2 }: GameBoardProps) {
                 <div className="flex flex-col items-center gap-2 min-w-0">
                   <span className="text-muted-foreground text-xs">Öppet kort</span>
                   <PlayingCard card={state.drawPick.openCard} faceUp onClick={() => chooseDrawnCard("open")} />
-                  <Button size="sm" onClick={() => chooseDrawnCard("open")}>
+                  <Button size="sm" variant="outlinePrimary" onClick={() => chooseDrawnCard("open")}>
                     Ta öppet kort
                   </Button>
                 </div>
@@ -135,18 +135,23 @@ export function GameBoard({ sessionId, playerCount = 2 }: GameBoardProps) {
               </div>
               <div className="mt-3 flex flex-col sm:flex-row flex-wrap gap-2">
                 {canFreeSwapAllFive && (
-                  <Button variant="secondary" onClick={freeSwapAllFive} className="min-h-11 w-full sm:w-auto">
+                  <Button variant="outlineSecondary" onClick={freeSwapAllFive} className="min-h-11 w-full sm:w-auto">
                     Byt alla 5 (gratis, endast omgång 1, max {3 - (state.freeSwapUsedCount ?? 0)} kvar)
                   </Button>
                 )}
                 <Button
+                  variant="outlinePrimary"
                   onClick={confirmDiscard}
                   disabled={!canConfirmDiscard}
                   className="min-h-11 w-full sm:w-auto"
                 >
                   Kasta {selectedToDiscard.size} kort och plocka nya
                 </Button>
-                <Button variant="outline" onClick={doneWithDraw} className="min-h-11 w-full sm:w-auto">
+                <Button
+                  variant="outline"
+                  onClick={doneWithDraw}
+                  className="min-h-11 w-full sm:w-auto border-green-500 text-green-700 hover:bg-[var(--sidebar-accent)] hover:text-[var(--sidebar-accent-foreground)] hover:border-[var(--sidebar-accent)]"
+                >
                   Nöjd
                 </Button>
               </div>
@@ -287,7 +292,7 @@ export function GameBoard({ sessionId, playerCount = 2 }: GameBoardProps) {
             </div>
           </div>
           <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row justify-center gap-2">
-            <Button onClick={startNewRound} className="min-h-11 w-full sm:w-auto">Nästa rond</Button>
+            <Button variant="outlinePrimary" onClick={startNewRound} className="min-h-11 w-full sm:w-auto">Nästa rond</Button>
             {!useMulti && (
               <Button variant="outline" onClick={resetGame} className="min-h-11 w-full sm:w-auto">Börja om</Button>
             )}
@@ -300,7 +305,7 @@ export function GameBoard({ sessionId, playerCount = 2 }: GameBoardProps) {
         <div className="rounded-lg border border-[var(--border)] bg-[var(--warm-peach)]/50 p-6 text-center">
           <p className="font-medium">Spelet är slut.</p>
           {!useMulti && (
-            <Button onClick={resetGame} className="mt-2">Spela igen</Button>
+            <Button variant="outlinePrimary" onClick={resetGame} className="mt-2">Spela igen</Button>
           )}
         </div>
       )}
