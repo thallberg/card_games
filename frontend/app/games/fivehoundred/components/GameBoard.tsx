@@ -22,14 +22,14 @@ import {
 } from "@/components/ui/dialog";
 import { getCardPoints } from "../scoring";
 
-type GameBoardProps = { sessionId?: string };
+type GameBoardProps = { sessionId?: string; playerCount?: number };
 
-export function GameBoard({ sessionId }: GameBoardProps) {
+export function GameBoard({ sessionId, playerCount = 2 }: GameBoardProps) {
   const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
   const [meldBuilderOpen, setMeldBuilderOpen] = useState(false);
   const [takeDiscardDialogOpen, setTakeDiscardDialogOpen] = useState(false);
 
-  const single = useGameState();
+  const single = useGameState(playerCount);
   const multi = useGameStateMultiplayer(sessionId);
   const useMulti = !!sessionId;
   const {

@@ -4,18 +4,13 @@ import { useState, useCallback, useEffect } from "react";
 import type { Card, PlayerId } from "../types";
 import type { GameState } from "../game-state";
 import { RANK_VALUE } from "../types";
-import { getNextPlayerId } from "../game-state";
+import { getNextPlayerId, getTrickWinner } from "../game-state";
 import { sortHand } from "../deck";
 import { getHandPoints, getHandDescription } from "../hand-score";
 import { fetchChicagoState, sendChicagoAction, startChicagoNewRound } from "../api/chicagoApi";
 import { getPlayerIds } from "../game-state";
 import { useGameSessionPoll } from "@/hooks/useGameSessionPoll";
 
-function getTrickWinner(lead: Card, follow: Card, leader: PlayerId): PlayerId {
-  if (follow.suit !== lead.suit) return leader;
-  if (RANK_VALUE[follow.rank] > RANK_VALUE[lead.rank]) return getNextPlayerId(leader);
-  return leader;
-}
 
 export function useChicagoGameMultiplayer(sessionId: string | undefined) {
   const [state, setState] = useState<GameState | null>(null);
@@ -53,7 +48,7 @@ export function useChicagoGameMultiplayer(sessionId: string | undefined) {
   const playableCardIndices = (() => {
     if (!state || state.phase !== "play") return new Set<number>();
     const isLeader = state.trickCards === null;
-    const active = isLeader ? state.trickLeader : getNextPlayerId(state.trickLeader);
+    const active = isLeader ? state.trickLeader : getNextPlayerId(state.trickLeader, state);
     if (active !== myPlayerId) return new Set<number>();
     const hand = state.playerHands[myPlayerId];
     if (!hand?.length) return new Set<number>();
@@ -195,7 +190,7 @@ export function useChicagoGameMultiplayer(sessionId: string | undefined) {
     (handIndex: number) => {
       if (!state || state.phase !== "play" || !sessionId) return;
       const isLeader = state.trickCards === null;
-      const activePlayer = isLeader ? state.trickLeader : getNextPlayerId(state.trickLeader);
+      const activePlayer = isLeader ? state.trickLeader : getNextPlayerId(state.trickLeader, state);
       if (activePlayer !== myPlayerId) return;
       const hand = state.playerHands[myPlayerId];
       if (handIndex < 0 || handIndex >= hand.length) return;
@@ -214,7 +209,7 @@ export function useChicagoGameMultiplayer(sessionId: string | undefined) {
       }
 
       const [leadCard] = state.trickCards!;
-      const trickWinner = getTrickWinner(leadCard, card, state.trickLeader);
+      const trickWinner = getTrickWinner(leadCard, card, state.trickLeader, state);
       const nextTrick = state.trickNumber + 1;
       const isLastTrick = nextTrick >= 5;
       const newScores = { ...state.playerScores };
@@ -222,13 +217,13 @@ export function useChicagoGameMultiplayer(sessionId: string | undefined) {
       if (isLastTrick) {
         newScores[trickWinner] = (newScores[trickWinner] ?? 0) + 1;
         const handsForScoring = state.playPhaseHands?.p1?.length === 5 ? state.playPhaseHands : state.playerHands;
-        const p1Hand = handsForScoring.p1 ?? [];
-        const p2Hand = handsForScoring.p2 ?? [];
-        const p1Points = getHandPoints(p1Hand);
-        const p2Points = getHandPoints(p2Hand);
-        roundHandPoints = { p1: p1Points, p2: p2Points };
-        newScores.p1 = (newScores.p1 ?? 0) + p1Points;
-        newScores.p2 = (newScores.p2 ?? 0) + p2Points;
+        const ids = getPlayerIds(state);
+        roundHandPoints = { ...state.roundHandPoints };
+        for (const id of ids) {
+          const h = handsForScoring[id] ?? [];
+          roundHandPoints[id] = getHandPoints(h);
+          newScores[id] = (newScores[id] ?? 0) + roundHandPoints[id];
+        }
       }
 
       const completed = [
@@ -286,7 +281,7 @@ export function useChicagoGameMultiplayer(sessionId: string | undefined) {
     playCard,
     startNewRound,
     resetGame,
-    getPlayerIds,
+    getPlayerIds: () => (state ? getPlayerIds(state) : []),
     getHandDescription,
     canConfirmDiscard,
     canFreeSwapAllFive,

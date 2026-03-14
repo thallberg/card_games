@@ -1,4 +1,5 @@
 import type { Card, PlayerId } from "./types";
+import { RANK_VALUE } from "./types";
 import { createDeck, shuffle, sortHand } from "./deck";
 import { HAND_SIZE, MAX_DRAW_ROUNDS } from "./constants";
 
@@ -48,15 +49,31 @@ export type GameState = {
   lastOpponentDiscardCount?: number;
 };
 
-const PLAYER_IDS: PlayerId[] = ["p1", "p2"];
+function getPlayerIdsFromState(state: GameState): PlayerId[] {
+  return Object.keys(state.playerHands) as PlayerId[];
+}
 
-export function createInitialState(): GameState {
+export function createInitialState(numPlayers: number = 2): GameState {
+  const playerIds: PlayerId[] = Array.from(
+    { length: numPlayers },
+    (_, i) => `p${i + 1}` as PlayerId
+  );
   const deck = shuffle(createDeck());
-  const hands: Record<PlayerId, Card[]> = {
-    p1: sortHand(deck.slice(0, HAND_SIZE)),
-    p2: sortHand(deck.slice(HAND_SIZE, HAND_SIZE * 2)),
-  };
-  const deckRemaining = deck.slice(HAND_SIZE * 2);
+  const hands: Record<PlayerId, Card[]> = {} as Record<PlayerId, Card[]>;
+  let idx = 0;
+  for (const id of playerIds) {
+    hands[id] = sortHand(deck.slice(idx, idx + HAND_SIZE));
+    idx += HAND_SIZE;
+  }
+  const deckRemaining = deck.slice(HAND_SIZE * playerIds.length);
+  const scores: Record<PlayerId, number> = {} as Record<PlayerId, number>;
+  const roundPoints: Record<PlayerId, number> = {} as Record<PlayerId, number>;
+  const playHands: Record<PlayerId, Card[]> = {} as Record<PlayerId, Card[]>;
+  for (const id of playerIds) {
+    scores[id] = 0;
+    roundPoints[id] = 0;
+    playHands[id] = [];
+  }
   return {
     phase: "draw",
     deck: deckRemaining,
@@ -66,22 +83,36 @@ export function createInitialState(): GameState {
     freeSwapUsedCount: 0,
     currentPlayerId: "p1",
     trickNumber: 0,
-    trickLeader: "p2",
+    trickLeader: playerIds[1] ?? "p2",
     trickCards: null,
     completedTricks: [],
-    playerScores: { p1: 0, p2: 0 },
+    playerScores: scores,
     roundUtspeletWinner: null,
-    roundHandPoints: { p1: 0, p2: 0 },
-    playPhaseHands: { p1: [], p2: [] },
+    roundHandPoints: roundPoints,
+    playPhaseHands: playHands,
     rondNumber: 1,
     lastOpponentDiscardCount: undefined,
   };
 }
 
-export function getPlayerIds(): PlayerId[] {
-  return [...PLAYER_IDS];
+export function getPlayerIds(state: GameState): PlayerId[] {
+  return getPlayerIdsFromState(state);
 }
 
-export function getNextPlayerId(current: PlayerId): PlayerId {
-  return current === "p1" ? "p2" : "p1";
+export function getNextPlayerId(current: PlayerId, state: GameState): PlayerId {
+  const ids = getPlayerIdsFromState(state);
+  const i = ids.indexOf(current);
+  return ids[(i + 1) % ids.length];
+}
+
+/** Winner of a two-card trick (leader vs follower). */
+export function getTrickWinner(
+  lead: Card,
+  follow: Card,
+  leader: PlayerId,
+  state: GameState
+): PlayerId {
+  if (follow.suit !== lead.suit) return leader;
+  if (RANK_VALUE[follow.rank] > RANK_VALUE[lead.rank]) return getNextPlayerId(leader, state);
+  return leader;
 }

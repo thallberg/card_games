@@ -6,7 +6,7 @@ import type { Rank } from "@/lib/cards";
 export type { Card, Suit, Rank } from "@/lib/cards";
 export { SUITS, RANKS } from "@/lib/cards";
 
-export type PlayerId = "p1" | "p2";
+export type PlayerId = `p${number}`;
 
 /** Rank order: 2 low, ace high (for trick comparison). */
 export const RANK_VALUE: Record<Rank, number> = {

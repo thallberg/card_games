@@ -24,5 +24,5 @@ export function ChicagoClient() {
     );
   }
 
-  return <GameBoard sessionId={sessionId} />;
+  return <GameBoard sessionId={sessionId} playerCount={sessionId ? undefined : (playerCount ?? 2)} />;
 }
