@@ -13,6 +13,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { LoadingPage } from "@/components/ui/loading-page";
+import { Spinner } from "@/components/ui/spinner";
 import { apiFetch } from "@/lib/api";
 import { getGameTypeFromId } from "@/lib/game-type";
 import { cn } from "@/lib/utils";
@@ -137,8 +139,8 @@ function VannerPageContent() {
 
   if (loading) {
     return (
-      <main className="flex-1 p-4 sm:p-6">
-        <p className="text-muted-foreground">Laddar vänner...</p>
+      <main className="flex-1">
+        <LoadingPage />
       </main>
     );
   }
@@ -321,7 +323,7 @@ function VannerPageContent() {
                 Avbryt
               </Button>
               <Button variant="outlinePrimary" onClick={handleInviteToGame} disabled={creating} className="min-h-10">
-                {creating ? "Skapar..." : "Skicka inbjudan"}
+                {creating ? <Spinner size="sm" /> : "Skicka inbjudan"}
               </Button>
             </div>
           </div>
@@ -334,8 +336,8 @@ function VannerPageContent() {
 export default function VannerPage() {
   return (
     <Suspense fallback={
-      <main className="flex-1 p-4 sm:p-6">
-        <p className="text-muted-foreground">Laddar...</p>
+      <main className="flex-1">
+        <LoadingPage />
       </main>
     }>
       <VannerPageContent />

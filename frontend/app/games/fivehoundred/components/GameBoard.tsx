@@ -12,6 +12,7 @@ import {
   MeldBuilderModal,
 } from "./index";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import {
   Dialog,
   DialogContent,
@@ -148,8 +149,8 @@ export function GameBoard({ sessionId, playerCount = 2 }: GameBoardProps) {
       );
     }
     return (
-      <div className="flex min-h-[200px] items-center justify-center">
-        <p className="text-muted-foreground">{loading ? "Laddar spel..." : "Kunde inte ladda spelet."}</p>
+      <div className="flex min-h-[200px] flex-1 items-center justify-center">
+        {loading ? <Spinner size="lg" /> : <p className="text-muted-foreground">Kunde inte ladda spelet.</p>}
       </div>
     );
   }

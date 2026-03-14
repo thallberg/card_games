@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { LoadingPage } from "@/components/ui/loading-page";
+import { Spinner } from "@/components/ui/spinner";
 import { apiFetch } from "@/lib/api";
 
 type Friend = { id: string; displayName: string; email: string; friendsSince: string };
@@ -202,10 +204,8 @@ function SpelPageContent() {
 
   if (loading || creatingFromInvite) {
     return (
-      <main className="flex-1 p-4 sm:p-6">
-        <p className="text-muted-foreground">
-          {creatingFromInvite ? "Skapar spel och bjuder in..." : "Laddar spel..."}
-        </p>
+      <main className="flex-1">
+        <LoadingPage />
       </main>
     );
   }
@@ -277,7 +277,7 @@ function SpelPageContent() {
                                     onClick={() => handleStart(s.id)}
                                     disabled={starting === s.id}
                                   >
-                                    {starting === s.id ? "Startar..." : "Starta spelet"}
+                                    {starting === s.id ? <Spinner size="sm" /> : "Starta spelet"}
                                   </Button>
                                 )
                               ) : (
@@ -294,7 +294,7 @@ function SpelPageContent() {
                             onClick={() => handleLeave(s.id)}
                             disabled={leaving === s.id}
                           >
-                            {leaving === s.id ? "Avslutar..." : "Avsluta"}
+                            {leaving === s.id ? <Spinner size="sm" /> : "Avsluta"}
                           </Button>
                         </div>
                       </li>
@@ -337,7 +337,7 @@ function SpelPageContent() {
                           onClick={() => handleLeave(s.id)}
                           disabled={leaving === s.id}
                         >
-                          {leaving === s.id ? "Avslutar..." : "Avsluta"}
+                          {leaving === s.id ? <Spinner size="sm" /> : "Avsluta"}
                         </Button>
                       </div>
                     </li>
@@ -375,7 +375,7 @@ function SpelPageContent() {
                       onClick={() => handleInviteToSession(inviteMoreFor.id, f.id)}
                       disabled={inviting === f.id}
                     >
-                      {inviting === f.id ? "Skickar..." : "Bjud in till spel"}
+                      {inviting === f.id ? <Spinner size="sm" /> : "Bjud in till spel"}
                     </Button>
                   </div>
                 ))}
@@ -452,7 +452,7 @@ function SpelPageContent() {
                   Avbryt
                 </Button>
                 <Button type="submit" variant="outlinePrimary" disabled={starting === texasSetup.sessionId}>
-                  {starting === texasSetup.sessionId ? "Startar..." : "Starta spelet"}
+                  {starting === texasSetup.sessionId ? <Spinner size="sm" /> : "Starta spelet"}
                 </Button>
               </DialogFooter>
             </form>
@@ -466,8 +466,8 @@ function SpelPageContent() {
 export default function SpelPage() {
   return (
     <Suspense fallback={
-      <main className="flex-1 p-4 sm:p-6">
-        <p className="text-muted-foreground">Laddar...</p>
+      <main className="flex-1">
+        <LoadingPage />
       </main>
     }>
       <SpelPageContent />

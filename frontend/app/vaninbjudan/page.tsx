@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -106,7 +107,7 @@ export default function VaninbjudanPage() {
               className="h-auto px-3 text-sm font-normal border-primary text-primary hover:bg-primary/5 hover:text-primary"
             >
               <Search className="mr-1 h-3.5 w-3.5" />
-              {loading ? "Söker..." : "Sök användare"}
+              {loading ? <Spinner size="sm" /> : "Sök användare"}
             </Button>
             <Button
               asChild
@@ -156,7 +157,7 @@ export default function VaninbjudanPage() {
                 onClick={() => handleInvite(u.id, u.displayName)}
                 disabled={invitingId === u.id}
               >
-                {invitingId === u.id ? "Skickar..." : "Bjud in"}
+                {invitingId === u.id ? <Spinner size="sm" /> : "Bli vän"}
               </Button>
             </div>
           ))}

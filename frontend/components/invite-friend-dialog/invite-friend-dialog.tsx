@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { apiFetch } from "@/lib/api";
@@ -82,7 +83,7 @@ export function InviteFriendDialog({
           )}
           <DialogFooter>
             <Button type="submit" variant="outlinePrimary" disabled={loading}>
-              {loading ? "Skickar..." : "Skicka inbjudan"}
+              {loading ? <Spinner size="sm" /> : "Skicka inbjudan"}
             </Button>
           </DialogFooter>
         </form>

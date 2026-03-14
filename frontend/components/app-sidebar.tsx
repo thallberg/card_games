@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/collapsible";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import { Spinner } from "@/components/ui/spinner";
 import { User, UserPlus, Users, Gamepad2, LogOut, LogIn, UserPlus as RegisterIcon, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiFetch } from "@/lib/api";
@@ -162,7 +163,9 @@ function SidebarMyGamesSection({ closeSidebar }: { closeSidebar: () => void }) {
       <SidebarMenu>
         {loading && (
           <SidebarMenuItem>
-            <span className="text-xs text-muted-foreground">Laddar spel...</span>
+            <div className="flex items-center justify-center py-2">
+              <Spinner size="sm" />
+            </div>
           </SidebarMenuItem>
         )}
         {!loading && (sessions == null || sessions.length === 0) && (

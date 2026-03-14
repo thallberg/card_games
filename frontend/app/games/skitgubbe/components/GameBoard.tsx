@@ -16,6 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { MIN_PLAYERS, MAX_PLAYERS } from "../constants";
+import { Spinner } from "@/components/ui/spinner";
 import { SinglePlayerIntro } from "@/components/single-player-intro";
 
 const SUIT_LABELS: Record<string, string> = {
@@ -75,8 +76,8 @@ export function GameBoard({ sessionId }: GameBoardProps) {
 
   if (loading) {
     return (
-      <div className="flex min-h-[200px] items-center justify-center">
-        <p className="text-muted-foreground">Laddar Skitgubbe…</p>
+      <div className="flex min-h-[200px] flex-1 items-center justify-center">
+        <Spinner size="lg" />
       </div>
     );
   }

@@ -6,6 +6,7 @@ import { getNextPlayerId } from "../game-state";
 import { getHandHighlightIndices } from "../hand-score";
 import { PlayingCard } from "@/components/playing-card";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 
 const RANK_LABELS: Record<string, string> = {
   "2": "2", "3": "3", "4": "4", "5": "5", "6": "6", "7": "7", "8": "8",
@@ -43,8 +44,8 @@ export function GameBoard({ sessionId, playerCount = 2 }: GameBoardProps) {
 
   if (!state) {
     return (
-      <div className="flex min-h-[200px] items-center justify-center">
-        <p className="text-muted-foreground">{useMulti && !multi.isReady ? "Laddar Chicago..." : "Laddar Chicago..."}</p>
+      <div className="flex min-h-[200px] flex-1 items-center justify-center">
+        <Spinner size="lg" />
       </div>
     );
   }

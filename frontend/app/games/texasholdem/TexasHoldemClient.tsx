@@ -11,6 +11,7 @@ import {
   raise,
   type TexasHoldemState,
 } from "./game-state";
+import { Spinner } from "@/components/ui/spinner";
 import { fetchTexasHoldemState, sendTexasHoldemAction } from "./api/texasHoldemApi";
 import { SetupForm, GameBoard } from "./components";
 
@@ -150,8 +151,8 @@ export function TexasHoldemClient() {
 
   if (isMultiplayer && multiplayerLoading) {
     return (
-      <div className="flex min-h-[200px] items-center justify-center">
-        <p className="text-muted-foreground">Laddar Texas Hold&apos;em...</p>
+      <div className="flex min-h-[200px] flex-1 items-center justify-center">
+        <Spinner size="lg" />
       </div>
     );
   }

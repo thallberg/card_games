@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -210,7 +211,7 @@ export function AuthModal({
 
           <DialogFooter>
             <Button type="submit" variant="outlinePrimary" disabled={loading}>
-              {loading ? "Vänta..." : isRegister ? "Registrera" : "Logga in"}
+              {loading ? <Spinner size="sm" /> : isRegister ? "Registrera" : "Logga in"}
             </Button>
           </DialogFooter>
         </form>

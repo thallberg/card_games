@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { apiFetch } from "@/lib/api";
@@ -216,8 +217,8 @@ export default function MinMenyPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-xl px-4 py-8">
-        <p className="text-muted-foreground">Laddar…</p>
+      <div className="flex min-h-[200px] flex-1 items-center justify-center">
+        <Spinner size="lg" />
       </div>
     );
   }
