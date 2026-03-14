@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect } from "react";
 import type { Card, PlayerId } from "../types";
 import { RANK_VALUE } from "../types";
 import type { GameState } from "../game-state";
@@ -17,9 +17,7 @@ import {
 } from "./useSkitgubbeGame";
 import { fetchSkitgubbeState, sendSkitgubbeAction, fetchGameSession } from "../api/skitgubbeApi";
 import type { SessionPlayer } from "../api/skitgubbeApi";
-
-const POLL_INTERVAL_MS = 1500;
-const WAITING_POLL_MS = 2000;
+import { useGameSessionPoll } from "@/hooks/useGameSessionPoll";
 
 export function useSkitgubbeGameMultiplayer(sessionId: string | undefined) {
   const [state, setState] = useState<GameState | null>(null);
@@ -28,7 +26,6 @@ export function useSkitgubbeGameMultiplayer(sessionId: string | undefined) {
   const [selectedTrickIndices, setSelectedTrickIndices] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(!!sessionId);
   const [waitingForStart, setWaitingForStart] = useState(false);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const loadState = useCallback(async () => {
     if (!sessionId) return;
@@ -68,35 +65,26 @@ export function useSkitgubbeGameMultiplayer(sessionId: string | undefined) {
   }, [sessionId]);
 
   useEffect(() => {
-    if (!sessionId) return;
-    setLoading(true);
-    setWaitingForStart(false);
-    loadState();
-  }, [sessionId, loadState]);
-
-  useEffect(() => {
-    if (!sessionId || !waitingForStart) return;
-    const interval = setInterval(loadState, WAITING_POLL_MS);
-    return () => clearInterval(interval);
-  }, [sessionId, waitingForStart, loadState]);
-
-  useEffect(() => {
-    if (!sessionId || !state) return;
-    if (state.phase === "gameOver" || state.phase === "setup") return;
-    const isMyTurn = state.currentPlayerId === myPlayerId;
-    if (isMyTurn && !state.stickShowingWinner && !state.trickShowingWinner) {
-      if (pollRef.current) {
-        clearInterval(pollRef.current);
-        pollRef.current = null;
-      }
-      return;
+    if (sessionId) {
+      setLoading(true);
+      setWaitingForStart(false);
     }
-    loadState();
-    pollRef.current = setInterval(loadState, POLL_INTERVAL_MS);
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-    };
-  }, [sessionId, state?.currentPlayerId, state?.phase, state?.stickShowingWinner, state?.trickShowingWinner, myPlayerId, loadState, state]);
+  }, [sessionId]);
+
+  useGameSessionPoll({
+    sessionId,
+    loadState,
+    isWaitingForStart: waitingForStart,
+    waitForStartPollMs: 2000,
+    shouldPausePolling:
+      !state ||
+      state.phase === "gameOver" ||
+      state.phase === "setup" ||
+      (state.currentPlayerId === myPlayerId &&
+        !state.stickShowingWinner &&
+        !state.trickShowingWinner),
+    pollIntervalMs: 1500,
+  });
 
   const sendState = useCallback(
     async (newState: GameState) => {

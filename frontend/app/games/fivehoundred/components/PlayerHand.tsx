@@ -1,7 +1,7 @@
 "use client";
 
 import type { Card } from "../types";
-import { PlayingCard } from "./PlayingCard";
+import { PlayingCard } from "@/components/playing-card";
 import { cn } from "@/lib/utils";
 
 type PlayerHandProps = {

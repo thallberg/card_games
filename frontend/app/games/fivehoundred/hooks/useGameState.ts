@@ -17,31 +17,32 @@ import { getHandPenalty, getMeldPointsByPlayer } from "../scoring";
 import { PICKUP_PENALTY } from "../constants";
 
 const HUMAN_PLAYER: PlayerId = "p1";
-const AI_PLAYER: PlayerId = "p2";
 const AI_DRAW_DELAY_MS = 1000;
 const AI_DISCARD_DELAY_MS = 600;
 
-export function useGameState() {
+export function useGameState(playerCount: number = 2) {
   const [state, setState] = useState<GameState | null>(null);
   const [lastDrawnCards, setLastDrawnCards] = useState<Card[]>([]);
   const lastDrawnRef = useRef<Card | Card[] | null>(null);
   const aiTurnRef = useRef(false);
 
   useEffect(() => {
-    setState(createInitialState());
-  }, []);
+    setState(createInitialState(playerCount));
+  }, [playerCount]);
 
   // Auto-play AI turn i single player – samma flöde som att vänta på motståndare i multiplayer
   useEffect(() => {
     if (!state || state.phase === "roundEnd" || state.phase === "gameOver") return;
-    if (state.currentPlayerId !== AI_PLAYER) return;
+    if (state.currentPlayerId === HUMAN_PLAYER) return;
     if (aiTurnRef.current) return;
 
     if (state.phase === "draw") {
       aiTurnRef.current = true;
       const t = setTimeout(() => {
         setState((s) => {
-          if (s == null || s.phase !== "draw" || s.currentPlayerId !== AI_PLAYER) return s;
+          if (s == null) return s;
+          const aiId = s.currentPlayerId;
+          if (aiId == null || aiId === HUMAN_PLAYER || s.phase !== "draw") return s;
           if (s.stock.length > 0) {
             const card = s.stock[s.stock.length - 1];
             return {
@@ -49,18 +50,18 @@ export function useGameState() {
               stock: s.stock.slice(0, -1),
               playerHands: {
                 ...s.playerHands,
-                [AI_PLAYER]: sortHand([...s.playerHands[AI_PLAYER], card]),
+                [aiId]: sortHand([...(s.playerHands[aiId] ?? []), card]),
               },
               phase: "meldOrDiscard",
               lastDraw: "stock",
             };
           }
           if (s.discard.length > 0) {
-            const newHand = sortHand([...s.playerHands[AI_PLAYER], ...s.discard]);
+            const newHand = sortHand([...(s.playerHands[aiId] ?? []), ...s.discard]);
             return {
               ...s,
               discard: [],
-              playerHands: { ...s.playerHands, [AI_PLAYER]: newHand },
+              playerHands: { ...s.playerHands, [aiId]: newHand },
               phase: "meldOrDiscard",
               lastDraw: "discard",
             };
@@ -76,8 +77,10 @@ export function useGameState() {
       aiTurnRef.current = true;
       const t = setTimeout(() => {
         setState((s) => {
-          if (s == null || s.phase !== "meldOrDiscard" || s.currentPlayerId !== AI_PLAYER) return s;
-          let hand = s.playerHands[AI_PLAYER];
+          if (s == null) return s;
+          const aiId = s.currentPlayerId;
+          if (aiId == null || aiId === HUMAN_PLAYER || s.phase !== "meldOrDiscard") return s;
+          let hand = s.playerHands[aiId] ?? [];
           let melds = s.melds;
           let cardsLaidThisTurn = s.cardsLaidThisTurn ?? 0;
 
@@ -96,7 +99,7 @@ export function useGameState() {
                   id: aiLaidMeldId,
                   cards,
                   type,
-                  ownerId: AI_PLAYER,
+                  ownerId: aiId,
                   ...(Object.keys(choice.wildRepresents).length > 0
                     ? { wildRepresents: choice.wildRepresents }
                     : undefined),
@@ -111,25 +114,25 @@ export function useGameState() {
               ...s,
               melds,
               cardsLaidThisTurn,
-              playerHands: { ...s.playerHands, [AI_PLAYER]: hand },
+              playerHands: { ...s.playerHands, [aiId]: hand },
               lastLaidMeldIds: aiLaidMeldId ? [aiLaidMeldId] : [],
             };
             if (s.lastDraw === "discard" && cardsLaidThisTurn < 3) {
               updated.playerScores = {
                 ...updated.playerScores,
-                [AI_PLAYER]: (updated.playerScores[AI_PLAYER] ?? 0) - PICKUP_PENALTY,
+                [aiId]: (updated.playerScores[aiId] ?? 0) - PICKUP_PENALTY,
               };
             }
-            const meldByPlayer = getMeldPointsByPlayer(updated.melds, getPlayerIds());
+            const meldByPlayer = getMeldPointsByPlayer(updated.melds, getPlayerIds(updated));
             const newScores = { ...updated.playerScores };
-            newScores[AI_PLAYER] = (newScores[AI_PLAYER] ?? 0) + meldByPlayer[AI_PLAYER];
+            newScores[aiId] = (newScores[aiId] ?? 0) + meldByPlayer[aiId];
             newScores[HUMAN_PLAYER] = (newScores[HUMAN_PLAYER] ?? 0) + meldByPlayer[HUMAN_PLAYER] - getHandPenalty(updated.playerHands[HUMAN_PLAYER] ?? []);
             const gameWinner = checkGameOver(newScores);
             return {
               ...updated,
               playerScores: newScores,
               phase: gameWinner != null ? ("gameOver" as const) : ("roundEnd" as const),
-              winnerId: gameWinner ?? AI_PLAYER,
+              winnerId: gameWinner ?? aiId,
               lastLaidMeldIds: [],
             };
           }
@@ -142,7 +145,7 @@ export function useGameState() {
             melds,
             cardsLaidThisTurn,
             discard: newDiscard,
-            playerHands: { ...s.playerHands, [AI_PLAYER]: newHand },
+            playerHands: { ...s.playerHands, [aiId]: newHand },
             lastLaidMeldIds: aiLaidMeldId ? [aiLaidMeldId] : [],
           };
           if (s.lastDraw === "discard" && cardsLaidThisTurn < 3) {
@@ -150,26 +153,26 @@ export function useGameState() {
               ...updated,
               playerScores: {
                 ...updated.playerScores,
-                [AI_PLAYER]: (updated.playerScores[AI_PLAYER] ?? 0) - PICKUP_PENALTY,
+                [aiId]: (updated.playerScores[aiId] ?? 0) - PICKUP_PENALTY,
               },
             };
           }
           if (newHand.length === 0) {
-            const meldByPlayer = getMeldPointsByPlayer(updated.melds, getPlayerIds());
+            const meldByPlayer = getMeldPointsByPlayer(updated.melds, getPlayerIds(updated));
             const newScores = { ...updated.playerScores };
-            newScores[AI_PLAYER] = (newScores[AI_PLAYER] ?? 0) + meldByPlayer[AI_PLAYER];
+            newScores[aiId] = (newScores[aiId] ?? 0) + meldByPlayer[aiId];
             newScores[HUMAN_PLAYER] = (newScores[HUMAN_PLAYER] ?? 0) + meldByPlayer[HUMAN_PLAYER] - getHandPenalty(updated.playerHands[HUMAN_PLAYER] ?? []);
             const gameWinner = checkGameOver(newScores);
             return {
               ...updated,
               playerScores: newScores,
               phase: gameWinner != null ? ("gameOver" as const) : ("roundEnd" as const),
-              winnerId: gameWinner ?? AI_PLAYER,
+              winnerId: gameWinner ?? aiId,
               lastLaidMeldIds: [],
             };
           }
           const gameWinner = checkGameOver(s.playerScores);
-          const nextId = getNextPlayerId(updated.currentPlayerId!);
+          const nextId = getNextPlayerId(updated.currentPlayerId!, updated);
           const next = {
             ...updated,
             currentPlayerId: nextId,
@@ -243,7 +246,7 @@ export function useGameState() {
 
   const advanceTurn = useCallback((s: GameState): GameState => {
     if (s.currentPlayerId == null) return s;
-    const nextId = getNextPlayerId(s.currentPlayerId);
+    const nextId = getNextPlayerId(s.currentPlayerId, s);
     return {
       ...s,
       currentPlayerId: nextId,
@@ -285,7 +288,7 @@ export function useGameState() {
         };
       }
       if (newHand.length === 0) {
-        const ids = getPlayerIds();
+        const ids = getPlayerIds(updated);
         const meldByPlayer = getMeldPointsByPlayer(updated.melds, ids);
         const newScores = { ...updated.playerScores };
         newScores[HUMAN_PLAYER] = (newScores[HUMAN_PLAYER] ?? 0) + meldByPlayer[HUMAN_PLAYER];
@@ -361,7 +364,7 @@ export function useGameState() {
         lastLaidMeldIds: [newMeld.id],
       };
       if (newHand.length === 0) {
-        const ids = getPlayerIds();
+        const ids = getPlayerIds(next);
         const meldByPlayer = getMeldPointsByPlayer(next.melds, ids);
         const newScores = { ...next.playerScores };
         newScores[HUMAN_PLAYER] = (newScores[HUMAN_PLAYER] ?? 0) + meldByPlayer[HUMAN_PLAYER];
@@ -418,7 +421,7 @@ export function useGameState() {
         lastLaidMeldIds: [meldId],
       };
       if (newHand.length === 0) {
-        const ids = getPlayerIds();
+        const ids = getPlayerIds(next);
         const meldByPlayer = getMeldPointsByPlayer(next.melds, ids);
         const newScores = { ...next.playerScores };
         newScores[HUMAN_PLAYER] = (newScores[HUMAN_PLAYER] ?? 0) + meldByPlayer[HUMAN_PLAYER];
@@ -450,8 +453,8 @@ export function useGameState() {
   }, [advanceTurn]);
 
   const resetGame = useCallback(() => {
-    setState(createInitialState());
-  }, []);
+    setState(createInitialState(playerCount));
+  }, [playerCount]);
 
   const startNewRound = useCallback(() => {
     lastDrawnRef.current = null;
@@ -489,7 +492,7 @@ export function useGameState() {
     advanceToNextTurn,
     resetGame,
     startNewRound,
-    getPlayerIds,
+    getPlayerIds: () => (state ? getPlayerIds(state) : []),
     playerDisplayNames: {} as Record<string, string>,
     playerAvatarEmojis: {} as Record<string, string | null>,
     myPlayerId: HUMAN_PLAYER,

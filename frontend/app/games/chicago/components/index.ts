@@ -1,2 +1,2 @@
 export { GameBoard } from "./GameBoard";
-export { PlayingCard } from "./PlayingCard";
+export { PlayingCard } from "@/components/playing-card";

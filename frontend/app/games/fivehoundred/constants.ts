@@ -1,15 +1,14 @@
 /**
- * Spelkonstanter för 500.
+ * Game constants for 500.
  */
 
-/** Poäng för att vinna matchen. */
+export { CARD_IMAGE_BASE } from "@/lib/cards";
+
+/** Points to win the match. */
 export const POINTS_TO_WIN = 500;
 
-/** Antal kort per spelare i handen (svensk variant). */
+/** Cards per player in hand (Swedish variant). */
 export const HAND_SIZE = 7;
 
-/** Straffpoäng om man plockar kast högen men inte lägger ut minst 3 kort den tur. */
+/** Penalty points if you pick up the discard pile but don't lay at least 3 cards that turn. */
 export const PICKUP_PENALTY = 50;
-
-/** Bas-URL för kortbilder (SVG i public). */
-export const CARD_IMAGE_BASE = "/playing-cards/svg-cards";
