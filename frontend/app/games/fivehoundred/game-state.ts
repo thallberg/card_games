@@ -19,31 +19,33 @@ export type GameState = {
   winnerId: PlayerId | null;
 };
 
-const PLAYER_IDS: PlayerId[] = ["p1", "p2"];
-
-function createInitialScores(): Record<PlayerId, number> {
-  const o: Record<string, number> = {};
-  for (const id of PLAYER_IDS) o[id] = 0;
-  return o as Record<PlayerId, number>;
+function getPlayerIdsFromState(state: GameState): PlayerId[] {
+  return Object.keys(state.playerHands) as PlayerId[];
 }
 
-export function createInitialState(): GameState {
+export function createInitialState(numPlayers: number = 2): GameState {
+  const playerIds: PlayerId[] = Array.from(
+    { length: numPlayers },
+    (_, i) => `p${i + 1}` as PlayerId
+  );
   const deck = shuffle(createDeck());
-  const hands: Record<PlayerId, Card[]> = {};
+  const hands: Record<PlayerId, Card[]> = {} as Record<PlayerId, Card[]>;
   let idx = 0;
-  for (const id of PLAYER_IDS) {
+  for (const id of playerIds) {
     hands[id] = sortHand(deck.slice(idx, idx + HAND_SIZE));
     idx += HAND_SIZE;
   }
-  const stock = deck.slice(HAND_SIZE * PLAYER_IDS.length);
+  const stock = deck.slice(HAND_SIZE * playerIds.length);
   const discard = stock.length > 0 ? [stock.pop()!] : [];
+  const scores: Record<PlayerId, number> = {} as Record<PlayerId, number>;
+  for (const id of playerIds) scores[id] = 0;
   return {
     stock,
     discard,
     melds: [],
-    currentPlayerId: PLAYER_IDS[0],
+    currentPlayerId: playerIds[0],
     playerHands: hands,
-    playerScores: createInitialScores(),
+    playerScores: scores,
     phase: "draw",
     lastDraw: null,
     cardsLaidThisTurn: 0,
@@ -52,40 +54,42 @@ export function createInitialState(): GameState {
   };
 }
 
-export function getPlayerIds(): PlayerId[] {
-  return [...PLAYER_IDS];
+export function getPlayerIds(state: GameState): PlayerId[] {
+  return getPlayerIdsFromState(state);
 }
 
-export function getNextPlayerId(current: PlayerId): PlayerId {
-  const i = PLAYER_IDS.indexOf(current);
-  return PLAYER_IDS[(i + 1) % PLAYER_IDS.length];
+export function getNextPlayerId(current: PlayerId, state: GameState): PlayerId {
+  const ids = getPlayerIdsFromState(state);
+  const i = ids.indexOf(current);
+  return ids[(i + 1) % ids.length];
 }
 
 export function checkGameOver(scores: Record<PlayerId, number>): PlayerId | null {
-  for (const id of PLAYER_IDS) {
+  for (const id of Object.keys(scores) as PlayerId[]) {
     if (scores[id] >= POINTS_TO_WIN) return id;
   }
   return null;
 }
 
-/** Ny rond: behåller poäng och roundNumber, ny kortlek och giv. Varannan rond: p1 börjar, varannan p2. */
+/** New round: keep scores and roundNumber, new deck and deal. First player rotates by round. */
 export function createNewRoundState(current: GameState): GameState {
+  const playerIds = getPlayerIdsFromState(current);
   const deck = shuffle(createDeck());
   const hands: Record<PlayerId, Card[]> = {} as Record<PlayerId, Card[]>;
   let idx = 0;
-  for (const id of PLAYER_IDS) {
+  for (const id of playerIds) {
     hands[id] = sortHand(deck.slice(idx, idx + HAND_SIZE));
     idx += HAND_SIZE;
   }
-  const stock = deck.slice(HAND_SIZE * PLAYER_IDS.length);
+  const stock = deck.slice(HAND_SIZE * playerIds.length);
   const discard = stock.length > 0 ? [stock.pop()!] : [];
   const newRoundNumber = current.roundNumber + 1;
-  const firstPlayerIndex = (newRoundNumber - 1) % PLAYER_IDS.length;
+  const firstPlayerIndex = (newRoundNumber - 1) % playerIds.length;
   return {
     stock,
     discard,
     melds: [],
-    currentPlayerId: PLAYER_IDS[firstPlayerIndex],
+    currentPlayerId: playerIds[firstPlayerIndex],
     playerHands: hands,
     playerScores: { ...current.playerScores },
     phase: "draw",

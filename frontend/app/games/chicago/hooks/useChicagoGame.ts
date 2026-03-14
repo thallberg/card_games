@@ -8,28 +8,28 @@ import {
   createInitialState,
   getPlayerIds,
   getNextPlayerId,
+  getTrickWinner,
 } from "../game-state";
 import { createDeck, shuffle, sortHand } from "../deck";
 import { getHandPoints, getHandDescription } from "../hand-score";
 import { HAND_SIZE, MAX_DRAW_ROUNDS } from "../constants";
 
 const HUMAN: PlayerId = "p1";
-const AI: PlayerId = "p2";
 
-export function useChicagoGame() {
+export function useChicagoGame(playerCount: number = 2) {
   const [state, setState] = useState<GameState | null>(null);
   const [selectedToDiscard, setSelectedToDiscard] = useState<Set<number>>(new Set());
   const aiThinking = useRef(false);
 
   useEffect(() => {
-    setState(createInitialState());
-  }, []);
+    setState(createInitialState(playerCount));
+  }, [playerCount]);
 
   const humanHand = state?.playerHands[HUMAN] ?? [];
   const playableCardIndices = (() => {
     if (!state || state.phase !== "play") return new Set<number>();
     const isLeader = state.trickCards === null;
-    const active = isLeader ? state.trickLeader : getNextPlayerId(state.trickLeader);
+    const active = isLeader ? state.trickLeader : getNextPlayerId(state.trickLeader, state);
     if (active !== HUMAN) return new Set<number>();
     const hand = state.playerHands[HUMAN];
     if (hand.length === 0) return new Set<number>();
@@ -89,7 +89,7 @@ export function useChicagoGame() {
         ...s,
         deck: newDeck,
         playerHands: { ...s.playerHands, [HUMAN]: newHand },
-        currentPlayerId: AI,
+        currentPlayerId: getNextPlayerId(HUMAN, s),
         lastOpponentDiscardCount: undefined,
       };
     });
@@ -111,7 +111,7 @@ export function useChicagoGame() {
           deck: deckWithBack,
           drawPick: null,
           playerHands: { ...s.playerHands, [HUMAN]: sortHand(newTempHand) },
-          currentPlayerId: isFreeSwap ? HUMAN : AI,
+          currentPlayerId: isFreeSwap ? HUMAN : getNextPlayerId(HUMAN, s),
         };
       }
 
@@ -153,7 +153,7 @@ export function useChicagoGame() {
   const doneWithDraw = useCallback(() => {
     setState((s) => {
       if (!s || s.phase !== "draw" || s.currentPlayerId !== HUMAN) return s;
-      return { ...s, currentPlayerId: AI };
+      return { ...s, currentPlayerId: getNextPlayerId(HUMAN, s) };
     });
     setSelectedToDiscard(new Set());
   }, []);
@@ -162,7 +162,7 @@ export function useChicagoGame() {
     setState((s) => {
       if (!s || s.phase !== "play") return s;
       const isLeader = s.trickCards === null;
-      const activePlayer = isLeader ? s.trickLeader : getNextPlayerId(s.trickLeader);
+      const activePlayer = isLeader ? s.trickLeader : getNextPlayerId(s.trickLeader, s);
       if (activePlayer !== HUMAN) return s;
       const hand = s.playerHands[HUMAN];
       if (handIndex < 0 || handIndex >= hand.length) return s;
@@ -184,7 +184,7 @@ export function useChicagoGame() {
       }
 
       const [leadCard, _] = s.trickCards!;
-      const trickWinner = getTrickWinner(leadCard, card, s.trickLeader);
+      const trickWinner = getTrickWinner(leadCard, card, s.trickLeader, s);
       const nextTrick = s.trickNumber + 1;
       const isLastTrick = nextTrick >= 5;
       const newScores = { ...s.playerScores };
@@ -192,13 +192,13 @@ export function useChicagoGame() {
       if (isLastTrick) {
         newScores[trickWinner] = (newScores[trickWinner] ?? 0) + 1;
         const handsForScoring = s.playPhaseHands?.p1?.length === 5 ? s.playPhaseHands : s.playerHands;
-        const humanHand = handsForScoring[HUMAN] ?? [];
-        const aiHand = handsForScoring[AI] ?? [];
-        const humanPoints = getHandPoints(humanHand);
-        const aiPoints = getHandPoints(aiHand);
-        roundHandPoints = { p1: humanPoints, p2: aiPoints };
-        newScores[HUMAN] = (newScores[HUMAN] ?? 0) + humanPoints;
-        newScores[AI] = (newScores[AI] ?? 0) + aiPoints;
+        const ids = getPlayerIds(s);
+        roundHandPoints = { ...s.roundHandPoints };
+        for (const id of ids) {
+          const h = handsForScoring[id] ?? [];
+          roundHandPoints[id] = getHandPoints(h);
+          newScores[id] = (newScores[id] ?? 0) + roundHandPoints[id];
+        }
       }
 
       const completed = [
@@ -233,27 +233,36 @@ export function useChicagoGame() {
   const startNewRound = useCallback(() => {
     setState((s) => {
       if (!s || s.phase !== "roundEnd") return s;
+      const playerIds = getPlayerIds(s);
       const fullDeck = shuffle(createDeck());
-      const hands = {
-        p1: sortHand(fullDeck.slice(0, HAND_SIZE)),
-        p2: sortHand(fullDeck.slice(HAND_SIZE, HAND_SIZE * 2)),
-      };
+      const hands: Record<PlayerId, Card[]> = {} as Record<PlayerId, Card[]>;
+      let idx = 0;
+      for (const id of playerIds) {
+        hands[id] = sortHand(fullDeck.slice(idx, idx + HAND_SIZE));
+        idx += HAND_SIZE;
+      }
+      const roundPoints: Record<PlayerId, number> = {} as Record<PlayerId, number>;
+      const playHands: Record<PlayerId, Card[]> = {} as Record<PlayerId, Card[]>;
+      for (const id of playerIds) {
+        roundPoints[id] = 0;
+        playHands[id] = [];
+      }
       return {
         ...s,
         phase: "draw",
-        deck: fullDeck.slice(HAND_SIZE * 2),
+        deck: fullDeck.slice(HAND_SIZE * playerIds.length),
         playerHands: hands,
         drawRound: 0,
         drawPick: null,
         freeSwapUsedCount: 0,
         currentPlayerId: HUMAN,
         trickNumber: 0,
-        trickLeader: "p2",
+        trickLeader: playerIds[1] ?? "p2",
         trickCards: null,
         completedTricks: [],
         roundUtspeletWinner: null,
-        roundHandPoints: { p1: 0, p2: 0 },
-        playPhaseHands: { p1: [], p2: [] },
+        roundHandPoints: roundPoints,
+        playPhaseHands: playHands,
         rondNumber: s.rondNumber + 1,
         lastOpponentDiscardCount: undefined,
       };
@@ -262,19 +271,21 @@ export function useChicagoGame() {
   }, []);
 
   const resetGame = useCallback(() => {
-    setState(createInitialState());
+    setState(createInitialState(playerCount));
     setSelectedToDiscard(new Set());
-  }, []);
+  }, [playerCount]);
 
   useEffect(() => {
-    if (!state || state.phase !== "draw" || state.currentPlayerId !== AI) return;
+    if (!state || state.phase !== "draw" || state.currentPlayerId === HUMAN) return;
     if (aiThinking.current) return;
     aiThinking.current = true;
     const t = setTimeout(() => {
       setState((s) => {
-        if (!s || s.phase !== "draw" || s.currentPlayerId !== AI) return s;
-        const hand = s.playerHands[AI];
+        if (!s || s.phase !== "draw" || s.currentPlayerId === HUMAN) return s;
+        const aiId = s.currentPlayerId;
+        const hand = s.playerHands[aiId] ?? [];
         const toDiscard = Math.min(2, Math.floor(Math.random() * 4));
+        const playerIds = getPlayerIds(s);
         if (toDiscard === 0 || s.deck.length < toDiscard) {
           const nextRound = s.drawRound + 1;
           const allRoundsDone = nextRound >= MAX_DRAW_ROUNDS;
@@ -282,7 +293,7 @@ export function useChicagoGame() {
             ...s,
             drawRound: nextRound,
             phase: allRoundsDone ? "play" : s.phase,
-            trickLeader: allRoundsDone ? "p2" : s.trickLeader,
+            trickLeader: allRoundsDone ? (playerIds[1] ?? s.trickLeader) : s.trickLeader,
             currentPlayerId: HUMAN,
             playPhaseHands: allRoundsDone ? { ...s.playerHands } : s.playPhaseHands,
             lastOpponentDiscardCount: 0,
@@ -299,7 +310,7 @@ export function useChicagoGame() {
         for (let i = 0; i < toDiscard && newDeck.length > 0; i++) {
           newHand.push(newDeck.pop()!);
         }
-        const nextHands = { ...s.playerHands, [AI]: sortHand(newHand) };
+        const nextHands = { ...s.playerHands, [aiId]: sortHand(newHand) };
         const nextRound = s.drawRound + 1;
         const allRoundsDone = nextRound >= MAX_DRAW_ROUNDS;
         return {
@@ -308,7 +319,7 @@ export function useChicagoGame() {
           playerHands: nextHands,
           drawRound: nextRound,
           phase: allRoundsDone ? "play" : s.phase,
-          trickLeader: allRoundsDone ? "p2" : s.trickLeader,
+          trickLeader: allRoundsDone ? (playerIds[1] ?? s.trickLeader) : s.trickLeader,
           currentPlayerId: HUMAN,
           playPhaseHands: allRoundsDone ? nextHands : s.playPhaseHands,
           lastOpponentDiscardCount: discardedCards.length,
@@ -322,17 +333,18 @@ export function useChicagoGame() {
   useEffect(() => {
     if (!state || state.phase !== "play") return;
     const isLeader = state.trickCards === null;
-    const active = isLeader ? state.trickLeader : getNextPlayerId(state.trickLeader);
-    if (active !== AI) return;
+    const active = isLeader ? state.trickLeader : getNextPlayerId(state.trickLeader, state);
+    if (active === HUMAN) return;
     if (aiThinking.current) return;
     aiThinking.current = true;
     const t = setTimeout(() => {
       setState((s) => {
         if (!s || s.phase !== "play") return s;
         const isLead = s.trickCards === null;
-        const activePlayer = isLead ? s.trickLeader : getNextPlayerId(s.trickLeader);
-        if (activePlayer !== AI) return s;
-        const hand = s.playerHands[AI];
+        const activePlayer = isLead ? s.trickLeader : getNextPlayerId(s.trickLeader, s);
+        if (activePlayer === HUMAN) return s;
+        const aiId = activePlayer;
+        const hand = s.playerHands[aiId] ?? [];
         if (hand.length === 0) return s;
         let playIndex = 0;
         if (!isLead && s.trickCards) {
@@ -350,7 +362,7 @@ export function useChicagoGame() {
         }
         const card = hand[playIndex];
         const newHand = hand.filter((_, i) => i !== playIndex);
-        const newPlayerHands = { ...s.playerHands, [AI]: newHand };
+        const newPlayerHands = { ...s.playerHands, [aiId]: newHand };
 
         if (isLead) {
           return {
@@ -361,21 +373,20 @@ export function useChicagoGame() {
         }
 
         const [leadCard] = s.trickCards!;
-        const trickWinner = getTrickWinner(leadCard, card, s.trickLeader);
+        const trickWinner = getTrickWinner(leadCard, card, s.trickLeader, s);
         const nextTrick = s.trickNumber + 1;
         const isLastTrick = nextTrick >= 5;
         const newScores = { ...s.playerScores };
-        let roundHandPoints = s.roundHandPoints;
+        let roundHandPoints = { ...s.roundHandPoints };
         if (isLastTrick) {
           newScores[trickWinner] = (newScores[trickWinner] ?? 0) + 1;
           const handsForScoring = s.playPhaseHands?.p1?.length === 5 ? s.playPhaseHands : s.playerHands;
-          const humanHand = handsForScoring[HUMAN] ?? [];
-          const aiHand = handsForScoring[AI] ?? [];
-          const humanPoints = getHandPoints(humanHand);
-          const aiPoints = getHandPoints(aiHand);
-          roundHandPoints = { p1: humanPoints, p2: aiPoints };
-          newScores[HUMAN] = (newScores[HUMAN] ?? 0) + humanPoints;
-          newScores[AI] = (newScores[AI] ?? 0) + aiPoints;
+          const ids = getPlayerIds(s);
+          for (const id of ids) {
+            const h = handsForScoring[id] ?? [];
+            roundHandPoints[id] = getHandPoints(h);
+            newScores[id] = (newScores[id] ?? 0) + roundHandPoints[id];
+          }
         }
 
         const completed = [
@@ -414,17 +425,9 @@ export function useChicagoGame() {
     playCard,
     startNewRound,
     resetGame,
-    getPlayerIds,
+    getPlayerIds: () => (state ? getPlayerIds(state) : []),
     getHandDescription,
     canConfirmDiscard,
     canFreeSwapAllFive,
   };
-}
-
-function getTrickWinner(lead: Card, follow: Card, leader: PlayerId): PlayerId {
-  const leadSuit = lead.suit;
-  const followSuit = follow.suit;
-  if (followSuit !== leadSuit) return leader;
-  if (RANK_VALUE[follow.rank] > RANK_VALUE[lead.rank]) return getNextPlayerId(leader);
-  return leader;
 }

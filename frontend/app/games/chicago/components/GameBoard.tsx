@@ -15,10 +15,10 @@ const SUIT_LABELS: Record<string, string> = {
   hearts: "hjärter", diamonds: "ruter", clubs: "klöver", spades: "spader",
 };
 
-type GameBoardProps = { sessionId?: string };
+type GameBoardProps = { sessionId?: string; playerCount?: number };
 
-export function GameBoard({ sessionId }: GameBoardProps) {
-  const single = useChicagoGame();
+export function GameBoard({ sessionId, playerCount = 2 }: GameBoardProps) {
+  const single = useChicagoGame(playerCount);
   const multi = useChicagoGameMultiplayer(sessionId);
   const useMulti = !!sessionId;
   const myPlayerId = useMulti ? multi.myPlayerId : "p1";
@@ -53,7 +53,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
     state.phase === "play" &&
     (state.trickCards === null
       ? state.trickLeader === myPlayerId
-      : getNextPlayerId(state.trickLeader) === myPlayerId);
+      : getNextPlayerId(state.trickLeader, state) === myPlayerId);
 
   return (
     <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6 px-1 sm:px-0">
