@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useSkitgubbeGame } from "../hooks/useSkitgubbeGame";
 import { useSkitgubbeGameMultiplayer } from "../hooks/useSkitgubbeGameMultiplayer";
-import { PlayingCard } from "./PlayingCard";
+import { PlayingCard } from "@/components/playing-card";
 import { StockPile } from "./StockPile";
 import { WonPile } from "./WonPile";
 import { Button } from "@/components/ui/button";

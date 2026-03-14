@@ -1,7 +1,7 @@
 "use client";
 
 import type { Card } from "../types";
-import { PlayingCard } from "./PlayingCard";
+import { PlayingCard } from "@/components/playing-card";
 
 /** 10 olika vinklar – varje kort i högen får sin vinkel så de staplas med kanter som syns. */
 const CARD_ANGLES = [-6, 4, -3, 7, -5, 2, -8, 5, -4, 6];

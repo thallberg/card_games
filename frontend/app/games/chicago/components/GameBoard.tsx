@@ -4,7 +4,7 @@ import { useChicagoGame } from "../hooks/useChicagoGame";
 import { useChicagoGameMultiplayer } from "../hooks/useChicagoGameMultiplayer";
 import { getNextPlayerId } from "../game-state";
 import { getHandHighlightIndices } from "../hand-score";
-import { PlayingCard } from "./PlayingCard";
+import { PlayingCard } from "@/components/playing-card";
 import { Button } from "@/components/ui/button";
 
 const RANK_LABELS: Record<string, string> = {

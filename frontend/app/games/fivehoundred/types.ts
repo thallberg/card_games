@@ -1,42 +1,21 @@
 /**
- * Grundtyper för spelet 500 (Femhundra).
+ * Base types for 500 (Five Hundred). Card/Suit/Rank from shared lib.
  */
 
-export const SUITS = ["hearts", "diamonds", "clubs", "spades"] as const;
-export type Suit = (typeof SUITS)[number];
+import type { Card } from "@/lib/cards";
+export type { Card, Suit, Rank } from "@/lib/cards";
+export { SUITS, RANKS } from "@/lib/cards";
 
-export const RANKS = [
-  "2",
-  "3",
-  "4",
-  "5",
-  "6",
-  "7",
-  "8",
-  "9",
-  "10",
-  "jack",
-  "queen",
-  "king",
-  "ace",
-] as const;
-export type Rank = (typeof RANKS)[number];
-
-export type Card = {
-  suit: Suit;
-  rank: Rank;
-};
-
-/** En utlagd kombination: tretal/fyrtal eller stege. */
+/** A laid combination: set (three/four of a kind) or run. */
 export type Meld = {
   id: string;
   cards: Card[];
   type: "set" | "run";
-  /** 2:or är valfritt kort: index i cards → vilket kort 2:an ska vara (och räknas som vid byggande). 2:an ger fortfarande 25 poäng. */
+  /** 2s are wild: index in cards → which card the 2 represents (for building). 2 still scores 25. */
   wildRepresents?: Record<number, Card>;
-  /** Spelare som lade ut melden (för poäng vid rundavslut). */
+  /** Player who laid the meld (for scoring at round end). */
   ownerId?: string;
-  /** Index i cards → spelare som lade till det kortet (addcardtomeld). Om saknas, räknas kortet till ownerId. */
+  /** Index in cards → player who added that card (addCardToMeld). If missing, counted as ownerId. */
   cardContributors?: Record<number, string>;
 };
 

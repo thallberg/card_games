@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect } from "react";
 import type { Card, PlayerId } from "../types";
 import type { GameState } from "../game-state";
 import { RANK_VALUE } from "../types";
@@ -9,8 +9,7 @@ import { sortHand } from "../deck";
 import { getHandPoints, getHandDescription } from "../hand-score";
 import { fetchChicagoState, sendChicagoAction, startChicagoNewRound } from "../api/chicagoApi";
 import { getPlayerIds } from "../game-state";
-
-const POLL_INTERVAL_MS = 1500;
+import { useGameSessionPoll } from "@/hooks/useGameSessionPoll";
 
 function getTrickWinner(lead: Card, follow: Card, leader: PlayerId): PlayerId {
   if (follow.suit !== lead.suit) return leader;
@@ -23,7 +22,6 @@ export function useChicagoGameMultiplayer(sessionId: string | undefined) {
   const [myPlayerId, setMyPlayerId] = useState<PlayerId>("p1");
   const [selectedToDiscard, setSelectedToDiscard] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(!!sessionId);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const loadState = useCallback(async () => {
     if (!sessionId) return;
@@ -36,29 +34,20 @@ export function useChicagoGameMultiplayer(sessionId: string | undefined) {
   }, [sessionId]);
 
   useEffect(() => {
-    if (!sessionId) return;
-    setLoading(true);
-    loadState();
-  }, [sessionId, loadState]);
+    if (sessionId) setLoading(true);
+  }, [sessionId]);
 
-  useEffect(() => {
-    if (!sessionId || !state) return;
-    if (state.phase === "roundEnd" || state.phase === "gameOver") return;
-    if (state.drawPick) return;
-    const isMyTurn = state.currentPlayerId === myPlayerId;
-    if (isMyTurn) {
-      if (pollRef.current) {
-        clearInterval(pollRef.current);
-        pollRef.current = null;
-      }
-      return;
-    }
-    loadState();
-    pollRef.current = setInterval(loadState, POLL_INTERVAL_MS);
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-    };
-  }, [sessionId, state?.currentPlayerId, state?.phase, state?.drawPick, myPlayerId, loadState]);
+  useGameSessionPoll({
+    sessionId,
+    loadState,
+    shouldPausePolling:
+      !state ||
+      state.phase === "roundEnd" ||
+      state.phase === "gameOver" ||
+      !!state.drawPick ||
+      state.currentPlayerId === myPlayerId,
+    pollIntervalMs: 1500,
+  });
 
   const humanHand = state?.playerHands[myPlayerId] ?? [];
   const playableCardIndices = (() => {

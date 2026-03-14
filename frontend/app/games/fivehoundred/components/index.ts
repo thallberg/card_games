@@ -1,4 +1,4 @@
-export { PlayingCard } from "./PlayingCard";
+export { PlayingCard } from "@/components/playing-card";
 export { StockPile } from "./StockPile";
 export { DiscardPile } from "./DiscardPile";
 export { PlayerHand } from "./PlayerHand";
