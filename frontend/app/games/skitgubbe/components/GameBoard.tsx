@@ -109,19 +109,29 @@ export function GameBoard({ sessionId }: GameBoardProps) {
   }
 
   if (!state) {
+    const loadFailed = useMulti && !loading && !waitingForStart;
     return (
       <div className="flex min-h-[200px] flex-col items-center justify-center gap-4">
         <p className="text-muted-foreground text-center">Kunde inte ladda spelet.</p>
-        {useMulti && (
+        {loadFailed && multi.loadState ? (
+          <div className="flex flex-wrap justify-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => multi.loadState?.()}>
+              Försök igen
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link href="/spel">Mina spel</Link>
+            </Button>
+          </div>
+        ) : useMulti ? (
           <>
             <p className="text-muted-foreground text-sm text-center">
               Kontrollera att partiledaren har klickat &quot;Starta spelet&quot; i Mina spel.
             </p>
-            <Button asChild variant="outline">
+            <Button asChild variant="outline" size="sm">
               <Link href="/spel">Gå till Mina spel</Link>
             </Button>
           </>
-        )}
+        ) : null}
       </div>
     );
   }

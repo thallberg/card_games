@@ -25,7 +25,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
-import { User, UserPlus, Users, Gamepad2, LogOut, LogIn, UserPlus as RegisterIcon, ChevronDown } from "lucide-react";
+import { User, UserPlus, Users, Gamepad2, UserCircle, LogOut, LogIn, UserPlus as RegisterIcon, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { apiFetch } from "@/lib/api";
 
@@ -410,7 +410,7 @@ export function AppSidebar({
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
                       <Link href="/min-meny" onClick={closeSidebar} className="flex items-center gap-2">
-                        <User className="size-4 shrink-0" />
+                        <UserCircle className="size-4 shrink-0" />
                         <span className="truncate">Min profil</span>
                       </Link>
                     </SidebarMenuButton>

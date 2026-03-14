@@ -1,3 +1,5 @@
+import { User, Users, Gamepad2, UserCircle, Rocket } from "lucide-react";
+
 export default function Home() {
   const cards = [
     {
@@ -6,6 +8,7 @@ export default function Home() {
       highlight: "Single player",
       color: "bg-[var(--pastel-lavender)] border-[var(--pastel-lavender)]/50",
       accent: "border-l-4 border-l-[var(--accent-lavender)]",
+      icon: User,
     },
     {
       title: "Multiplayer med vänner",
@@ -13,6 +16,7 @@ export default function Home() {
       highlight: "Mina vänner",
       color: "bg-[var(--pastel-mint)] border-[var(--pastel-mint)]/50",
       accent: "border-l-4 border-l-[var(--accent-mint)]",
+      icon: Users,
     },
     {
       title: "Mina spel",
@@ -20,6 +24,7 @@ export default function Home() {
       highlight: "Mina spel",
       color: "bg-[var(--pastel-peach)] border-[var(--pastel-peach)]/50",
       accent: "border-l-4 border-l-[var(--accent-peach)]",
+      icon: Gamepad2,
     },
     {
       title: "Din profil & avatar",
@@ -27,6 +32,7 @@ export default function Home() {
       highlight: "Min meny",
       color: "bg-[var(--pastel-sage)] border-[var(--pastel-sage)]/50",
       accent: "border-l-4 border-l-[var(--accent-sage)]",
+      icon: UserCircle,
     },
   ];
 
@@ -44,23 +50,36 @@ export default function Home() {
         </header>
 
         <section className="grid gap-4 sm:grid-cols-2">
-          {cards.map((c) => (
+          {cards.map((c) => {
+            const Icon = c.icon;
+            return (
             <article
               key={c.title}
               className={`rounded-xl border p-5 shadow-sm space-y-2 transition-shadow hover:shadow-md ${c.color} ${c.accent}`}
             >
-              <h2 className="text-base sm:text-lg font-semibold text-foreground">{c.title}</h2>
+              <div className="flex items-center gap-3">
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-foreground/10">
+                  <Icon className="size-5 text-foreground" aria-hidden />
+                </div>
+                <h2 className="text-base sm:text-lg font-semibold text-foreground">{c.title}</h2>
+              </div>
               <p className="text-sm text-muted-foreground leading-relaxed">
                 {c.desc.split(c.highlight)[0]}
                 <span className="font-semibold text-foreground/90">{c.highlight}</span>
                 {c.desc.split(c.highlight)[1]}
               </p>
             </article>
-          ))}
+          );
+          })}
         </section>
 
         <section className="rounded-xl bg-[var(--pastel-sky)]/60 border border-[var(--pastel-sky)]/40 p-5 space-y-3">
-          <h2 className="text-base sm:text-lg font-semibold text-foreground">Så kommer du igång</h2>
+          <div className="flex items-center gap-3">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-foreground/10">
+              <Rocket className="size-5 text-foreground" aria-hidden />
+            </div>
+            <h2 className="text-base sm:text-lg font-semibold text-foreground">Så kommer du igång</h2>
+          </div>
           <ol className="list-decimal pl-5 space-y-2 text-sm text-muted-foreground">
             <li>Registrera ett konto eller logga in via knapparna i sidomenyn.</li>
             <li>Lägg till vänner genom sidan &quot;Bjud in vän&quot;.</li>

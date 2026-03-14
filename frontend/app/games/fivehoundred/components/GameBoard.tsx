@@ -58,6 +58,8 @@ export function GameBoard({ sessionId, playerCount = 2 }: GameBoardProps) {
     hasLaidFirstMeld,
   } = useMulti ? multi : single;
 
+  const loadState = useMulti ? multi.loadState : undefined;
+
   const playerLabel = (id: string) => {
     if (id === myPlayerId) return (useMulti && playerDisplayNames?.[id]) ? `${playerDisplayNames[id]} (Du)` : "Du";
     if (useMulti && playerDisplayNames?.[id]) return playerDisplayNames[id];
@@ -149,8 +151,24 @@ export function GameBoard({ sessionId, playerCount = 2 }: GameBoardProps) {
       );
     }
     return (
-      <div className="flex min-h-[200px] flex-1 items-center justify-center">
-        {loading ? <Spinner size="lg" /> : <p className="text-muted-foreground">Kunde inte ladda spelet.</p>}
+      <div className="flex min-h-[200px] flex-1 flex-col items-center justify-center gap-4">
+        {loading ? (
+          <Spinner size="lg" />
+        ) : (
+          <>
+            <p className="text-muted-foreground text-center">Kunde inte ladda spelet.</p>
+            {useMulti && loadState && (
+              <div className="flex flex-wrap justify-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => { loadState(); }}>
+                  Försök igen
+                </Button>
+                <Button variant="outline" size="sm" asChild>
+                  <Link href="/spel">Mina spel</Link>
+                </Button>
+              </div>
+            )}
+          </>
+        )}
       </div>
     );
   }

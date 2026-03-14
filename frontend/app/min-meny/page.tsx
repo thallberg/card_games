@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
-import { ChevronDown } from "lucide-react";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { ChevronDown, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Input } from "@/components/ui/input";
@@ -76,6 +77,37 @@ export default function MinMenyPage() {
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState(false);
 
+  const [finishedSessions, setFinishedSessions] = useState<Array<{
+    id: string;
+    gameType: string;
+    leaderDisplayName: string;
+    createdAt: string;
+  }>>([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
+
+  const loadFinishedSessions = useCallback(async () => {
+    setHistoryLoading(true);
+    try {
+      const res = await apiFetch("/api/gamesessions");
+      if (res.status === 401) return;
+      const data = await res.json().catch(() => []);
+      const list = Array.isArray(data) ? data : [];
+      const finished = list.filter((s: { status?: string }) => s.status === "Finished");
+      setFinishedSessions(
+        finished.map((s: { id: string; gameType: string; leaderDisplayName?: string; createdAt?: string }) => ({
+          id: s.id,
+          gameType: s.gameType === "FiveHundred" ? "500" : s.gameType === "TexasHoldem" ? "Texas Hold'em" : s.gameType === "Chicago" ? "Chicago" : s.gameType === "Skitgubbe" ? "Skitgubbe" : s.gameType,
+          leaderDisplayName: s.leaderDisplayName ?? "—",
+          createdAt: s.createdAt ?? "",
+        }))
+      );
+    } catch {
+      /* ignore */
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     const u = getUserFromStorage();
     if (!u) {
@@ -119,6 +151,10 @@ export default function MinMenyPage() {
     return () => window.removeEventListener("user-updated", onUpdated);
   }, []);
 
+  useEffect(() => {
+    loadFinishedSessions();
+  }, [loadFinishedSessions]);
+
   const handleSaveDisplayName = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = displayName.trim();
@@ -137,14 +173,18 @@ export default function MinMenyPage() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setDisplayNameError((data as { error?: string }).error ?? "Kunde inte spara.");
+        const msg = (data as { error?: string }).error ?? "Kunde inte spara.";
+        setDisplayNameError(msg);
+        toast.error(msg);
         return;
       }
       updateUserInStorage({ displayName: trimmed });
       setDisplayNameSuccess(true);
+      toast.success("Visningsnamn sparat");
       setTimeout(() => setDisplayNameSuccess(false), 3000);
     } catch {
       setDisplayNameError("Nätverksfel.");
+      toast.error("Nätverksfel.");
     } finally {
       setDisplayNameSaving(false);
     }
@@ -168,9 +208,11 @@ export default function MinMenyPage() {
       setSelectedEmoji(emoji);
       updateUserInStorage({ avatarEmoji: emoji });
       setAvatarSuccess(true);
+      toast.success("Avatar sparat");
       setTimeout(() => setAvatarSuccess(false), 3000);
     } catch {
       setAvatarError("Nätverksfel.");
+      toast.error("Nätverksfel.");
     } finally {
       setAvatarSaving(false);
     }
@@ -200,16 +242,20 @@ export default function MinMenyPage() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setPasswordError((data as { error?: string }).error ?? "Kunde inte byta lösenord.");
+        const msg = (data as { error?: string }).error ?? "Kunde inte byta lösenord.";
+        setPasswordError(msg);
+        toast.error(msg);
         return;
       }
       setPasswordSuccess(true);
+      toast.success("Lösenord bytt");
       setCurrentPassword("");
       setNewPassword("");
       setNewPasswordConfirm("");
       setTimeout(() => setPasswordSuccess(false), 3000);
     } catch {
       setPasswordError("Nätverksfel.");
+      toast.error("Nätverksfel.");
     } finally {
       setPasswordSaving(false);
     }
@@ -487,6 +533,37 @@ export default function MinMenyPage() {
             </CollapsibleContent>
           </Collapsible>
         </div>
+      </div>
+
+      <div className="w-full rounded-xl border border-[var(--pastel-sky)]/40 bg-[var(--pastel-sky)]/60 p-4 sm:p-5">
+        <div className="mb-3 flex items-center gap-3">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-foreground/10">
+            <History className="size-5 text-foreground" aria-hidden />
+          </div>
+          <h2 className="text-base sm:text-lg font-semibold text-foreground">Spelade partier</h2>
+        </div>
+        {historyLoading ? (
+          <p className="text-muted-foreground text-sm">Laddar...</p>
+        ) : finishedSessions.length === 0 ? (
+          <p className="text-muted-foreground text-sm">Inga avslutade spel än.</p>
+        ) : (
+          <ul className="space-y-2">
+            {finishedSessions.slice(0, 20).map((s) => (
+              <li
+                key={s.id}
+                className="flex items-center justify-between gap-2 rounded border border-[var(--border)] bg-background/60 px-3 py-2 text-sm"
+              >
+                <span className="font-medium">{s.gameType}</span>
+                <span className="text-muted-foreground truncate">Ledd av {s.leaderDisplayName}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+        {finishedSessions.length > 0 && (
+          <p className="mt-3 text-muted-foreground text-xs">
+            Visar senaste {Math.min(20, finishedSessions.length)} avslutade spel.
+          </p>
+        )}
       </div>
 
       <p className="text-muted-foreground text-sm">

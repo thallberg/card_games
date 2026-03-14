@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import Link from "next/link";
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -42,13 +43,16 @@ export default function VaninbjudanPage() {
       const res = await apiFetch(`/api/users/search?q=${encodeURIComponent(trimmed)}`);
       const data = await res.json().catch(() => []);
       if (!res.ok) {
-        setError((data as { error?: string }).error ?? "Kunde inte söka efter användare.");
+        const msg = (data as { error?: string }).error ?? "Kunde inte söka efter användare.";
+        setError(msg);
+        toast.error(msg);
         setResults([]);
         return;
       }
       setResults(Array.isArray(data) ? data : []);
     } catch {
       setError("Kunde inte ansluta till servern.");
+      toast.error("Kunde inte ansluta till servern.");
       setResults([]);
     } finally {
       setLoading(false);
@@ -67,13 +71,17 @@ export default function VaninbjudanPage() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError((data as { error?: string }).error ?? "Kunde inte skicka vänförfrågan.");
+        const msg = (data as { error?: string }).error ?? "Kunde inte skicka vänförfrågan.";
+        setError(msg);
+        toast.error(msg);
         return;
       }
       setSuccessMessage(`Vänförfrågan skickad till ${displayName}.`);
+      toast.success(`Vänförfrågan skickad till ${displayName}`);
       window.dispatchEvent(new Event("friend-requests-changed"));
     } catch {
       setError("Kunde inte ansluta till servern.");
+      toast.error("Kunde inte ansluta till servern.");
     } finally {
       setInvitingId(null);
     }
@@ -121,9 +129,14 @@ export default function VaninbjudanPage() {
         </form>
 
         {error && (
-          <p className="mb-3 text-destructive text-sm" role="alert">
-            {error}
-          </p>
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <p className="text-destructive text-sm" role="alert">
+              {error}
+            </p>
+            <Button variant="outline" size="sm" onClick={() => { setError(null); }}>
+              Stäng
+            </Button>
+          </div>
         )}
         {successMessage && (
           <p className="mb-3 text-sm text-green-600 dark:text-green-400">{successMessage}</p>

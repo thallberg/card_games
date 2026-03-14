@@ -270,6 +270,8 @@ export function useChicagoGameMultiplayer(sessionId: string | undefined) {
 
   return {
     state,
+    loading,
+    loadState,
     humanHand,
     playableCardIndices,
     selectedToDiscard,

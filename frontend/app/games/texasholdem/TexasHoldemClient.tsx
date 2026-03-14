@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { Button } from "@/components/ui/button";
 import {
   createInitialSetupState,
   startNewGame,
@@ -159,8 +161,16 @@ export function TexasHoldemClient() {
 
   if (isMultiplayer && multiplayerError) {
     return (
-      <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
-        <p className="text-destructive">{multiplayerError}</p>
+      <div className="flex min-h-[200px] flex-col items-center justify-center gap-4 rounded-lg border border-destructive/50 bg-destructive/10 p-6">
+        <p className="text-destructive text-center">{multiplayerError}</p>
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => { setMultiplayerError(null); setMultiplayerLoading(true); loadMultiplayerState(); }}>
+            Försök igen
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/spel">Mina spel</Link>
+          </Button>
+        </div>
       </div>
     );
   }

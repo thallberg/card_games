@@ -283,6 +283,7 @@ export function useSkitgubbeGameMultiplayer(sessionId: string | undefined) {
 
   return {
     state,
+    loadState,
     playerCount,
     humanHand,
     isHumanTurn,

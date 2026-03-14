@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useState, useEffect, useCallback } from "react";
+import { toast } from "sonner";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,8 @@ import {
 import { LoadingPage } from "@/components/ui/loading-page";
 import { Spinner } from "@/components/ui/spinner";
 import { apiFetch } from "@/lib/api";
+import { SectionCard } from "@/components/section-card";
+import { Users, UserPlus } from "lucide-react";
 import { getGameTypeFromId } from "@/lib/game-type";
 import { cn } from "@/lib/utils";
 
@@ -74,6 +77,7 @@ function VannerPageContent() {
       setReceivedRequests(Array.isArray(requestsData) ? requestsData : []);
     } catch {
       setError("Kunde inte hämta data.");
+      toast.error("Kunde inte hämta data.");
     }
   }, [router]);
 
@@ -93,8 +97,11 @@ function VannerPageContent() {
     if (res.ok) {
       await loadData();
       if (typeof window !== "undefined") window.dispatchEvent(new Event("friend-requests-changed"));
+      toast.success(accept ? "Vänförfrågan accepterad" : "Vänförfrågan avvisad");
     } else {
-      setError(accept ? "Kunde inte acceptera." : "Kunde inte avvisa.");
+      const msg = accept ? "Kunde inte acceptera." : "Kunde inte avvisa.";
+      setError(msg);
+      toast.error(msg);
     }
   };
 
@@ -112,7 +119,9 @@ function VannerPageContent() {
       });
       if (!createRes.ok) {
         const err = await createRes.json().catch(() => ({}));
-        setError(err.error ?? "Kunde inte skapa spel.");
+        const msg = err.error ?? "Kunde inte skapa spel.";
+        setError(msg);
+        toast.error(msg);
         return;
       }
       const session = await createRes.json();
@@ -124,14 +133,18 @@ function VannerPageContent() {
         });
         if (!inviteRes.ok) {
           const err = await inviteRes.json().catch(() => ({}));
-          setError(err.error ?? "Spelet skapades men några inbjudan misslyckades.");
+          const msg = err.error ?? "Spelet skapades men några inbjudan misslyckades.";
+          setError(msg);
+          toast.warning(msg);
           break;
         }
       }
       setInviteDialogOpen(false);
+      toast.success("Spel skapat och inbjudningar skickade");
       router.push("/spel");
     } catch {
       setError("Kunde inte skapa spel.");
+      toast.error("Kunde inte skapa spel.");
     } finally {
       setCreating(false);
     }
@@ -147,22 +160,29 @@ function VannerPageContent() {
 
   return (
     <main className="flex-1 p-3 sm:p-6">
-      <section className="mx-auto max-w-2xl">
-        <h1 className="mb-4 text-lg sm:text-xl font-semibold">Mina vänner</h1>
+      <section className="mx-auto max-w-2xl space-y-6">
+        <header>
+          <h1 className="text-2xl sm:text-3xl font-semibold text-foreground">Mina vänner</h1>
+          <p className="mt-2 text-muted-foreground text-sm sm:text-base">
+            Hantera vänförfrågningar och bjud in till spel.
+          </p>
+        </header>
         {currentInviteGameLabel && (
           <p className="mb-3 text-muted-foreground text-sm">
             Du bjuder in till <span className="font-medium text-foreground">{currentInviteGameLabel}</span>. Välj vänner med kryssrutan eller bjud in alla – klicka sedan på knappen och välj spel i popupen.
           </p>
         )}
         {error && (
-          <p className="mb-4 text-destructive text-sm">{error}</p>
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <p className="text-destructive text-sm">{error}</p>
+            <Button variant="outline" size="sm" onClick={() => { setError(null); loadData(); }}>
+              Försök igen
+            </Button>
+          </div>
         )}
 
         {receivedRequests.length > 0 && (
-          <div className="mb-6 rounded-lg border border-[var(--border)] bg-[var(--warm-peach)]/30 p-4">
-            <h2 className="mb-3 text-sm font-medium text-muted-foreground">
-              Vänförfrågningar ({receivedRequests.length})
-            </h2>
+          <SectionCard variant="peach" icon={UserPlus} title={`Vänförfrågningar (${receivedRequests.length})`}>
             <ul className="space-y-2">
               {receivedRequests.map((req) => (
                 <li
@@ -190,7 +210,7 @@ function VannerPageContent() {
                 </li>
               ))}
             </ul>
-          </div>
+          </SectionCard>
         )}
 
         {friends.length === 0 ? (
@@ -205,7 +225,7 @@ function VannerPageContent() {
             för att komma igång.
           </p>
         ) : (
-          <>
+          <SectionCard variant="mint" icon={Users} title="Dina vänner">
             <ul className="grid gap-2">
               {friends.map((f) => (
                 <li
@@ -244,7 +264,7 @@ function VannerPageContent() {
                 </li>
               ))}
             </ul>
-            <div className="mt-4 flex flex-wrap items-center gap-2">
+            <div className="mt-4 flex flex-wrap items-center gap-2 pt-2">
               <Button
                 variant="outline"
                 size="sm"
@@ -269,7 +289,7 @@ function VannerPageContent() {
               </Link>
               .
             </p>
-          </>
+          </SectionCard>
         )}
       </section>
 

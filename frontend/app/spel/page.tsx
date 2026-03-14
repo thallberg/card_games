@@ -1,9 +1,12 @@
 "use client";
 
 import { Suspense, useState, useEffect, useCallback } from "react";
+import { toast } from "sonner";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { SectionCard } from "@/components/section-card";
+import { Gamepad2, Clock } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -143,6 +146,7 @@ function SpelPageContent() {
         body: body ? JSON.stringify(body) : undefined,
       });
       if (res.ok) {
+        toast.success("Spelet startat");
         const session = sessions.find((s) => s.id === sessionId);
         const gamePath =
           session?.gameType === "Chicago"
@@ -156,6 +160,8 @@ function SpelPageContent() {
         setTexasSetup(null);
         return;
       }
+      const err = await res.json().catch(() => ({}));
+      toast.error((err as { error?: string }).error ?? "Kunde inte starta spelet.");
     } finally {
       setStarting(null);
     }
@@ -174,6 +180,7 @@ function SpelPageContent() {
         body: JSON.stringify({ userId: friendId }),
       });
       if (res.ok) {
+        toast.success("Inbjudan skickad");
         const listRes = await apiFetch("/api/gamesessions");
         const data = await listRes.json().catch(() => []);
         const updatedList = Array.isArray(data) ? data : [];
@@ -182,6 +189,9 @@ function SpelPageContent() {
           if (!prev || prev.id !== sessionId) return prev;
           return updatedList.find((s: Session) => s.id === sessionId) ?? prev;
         });
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast.error((err as { error?: string }).error ?? "Kunde inte bjuda in.");
       }
     } finally {
       setInviting(null);
@@ -195,7 +205,11 @@ function SpelPageContent() {
         method: "POST",
       });
       if (res.ok) {
+        toast.success("Du har lämnat spelet");
         setSessions((prev) => prev.filter((s) => s.id !== sessionId));
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast.error((err as { error?: string }).error ?? "Kunde inte lämna spelet.");
       }
     } finally {
       setLeaving(null);
@@ -215,8 +229,13 @@ function SpelPageContent() {
 
   return (
     <main className="flex-1 p-3 sm:p-6">
-      <section className="mx-auto max-w-2xl">
-        <h1 className="mb-4 text-lg sm:text-xl font-semibold">Mina spel</h1>
+      <section className="mx-auto max-w-2xl space-y-6">
+        <header>
+          <h1 className="text-2xl sm:text-3xl font-semibold text-foreground">Mina spel</h1>
+          <p className="mt-2 text-muted-foreground text-sm sm:text-base">
+            Dina pågående partier och väntande inbjudningar.
+          </p>
+        </header>
         {sessions.length === 0 ? (
           <p className="text-muted-foreground">
             Du har inga spel än. Gå till <Link href="/vanner" className="underline">Vänner</Link> och skapa ett spel med en vän.
@@ -224,8 +243,7 @@ function SpelPageContent() {
         ) : (
           <div className="space-y-6">
             {waiting.length > 0 && (
-              <div>
-                <h2 className="mb-2 font-medium text-muted-foreground">Väntar på start</h2>
+              <SectionCard variant="peach" icon={Clock} title="Väntar på start">
                 <ul className="grid gap-2">
                   {waiting.map((s) => {
                     const isLeader = currentUserId != null && s.leaderId === currentUserId;
@@ -301,11 +319,10 @@ function SpelPageContent() {
                     );
                   })}
                 </ul>
-              </div>
+              </SectionCard>
             )}
             {inProgress.length > 0 && (
-              <div>
-                <h2 className="mb-2 font-medium text-muted-foreground">Pågående</h2>
+              <SectionCard variant="mint" icon={Gamepad2} title="Pågående">
                 <ul className="grid gap-2">
                   {inProgress.map((s) => (
                     <li
@@ -343,7 +360,7 @@ function SpelPageContent() {
                     </li>
                   ))}
                 </ul>
-              </div>
+              </SectionCard>
             )}
           </div>
         )}

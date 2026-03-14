@@ -1,6 +1,7 @@
 /** Kortspel – root layout */
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { Toaster } from "sonner";
 import { LayoutClient } from "@/components/layout-client";
 
 export const metadata: Metadata = {
@@ -24,6 +25,7 @@ export default function RootLayout({
     <html lang="sv">
       <body className="antialiased">
         <LayoutClient>{children}</LayoutClient>
+        <Toaster richColors position="top-center" closeButton />
       </body>
     </html>
   );

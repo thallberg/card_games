@@ -4,6 +4,7 @@ import { useChicagoGame } from "../hooks/useChicagoGame";
 import { useChicagoGameMultiplayer } from "../hooks/useChicagoGameMultiplayer";
 import { getNextPlayerId } from "../game-state";
 import { getHandHighlightIndices } from "../hand-score";
+import Link from "next/link";
 import { PlayingCard } from "@/components/playing-card";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -42,10 +43,30 @@ export function GameBoard({ sessionId, playerCount = 2 }: GameBoardProps) {
     canFreeSwapAllFive,
   } = useMulti ? multi : single;
 
+  const loading = useMulti ? multi.loading : false;
+  const loadState = useMulti ? multi.loadState : undefined;
+
   if (!state) {
+    const loadFailed = useMulti && !loading;
     return (
-      <div className="flex min-h-[200px] flex-1 items-center justify-center">
-        <Spinner size="lg" />
+      <div className="flex min-h-[200px] flex-1 flex-col items-center justify-center gap-4">
+        {loading || !useMulti ? (
+          <Spinner size="lg" />
+        ) : loadFailed && loadState ? (
+          <>
+            <p className="text-muted-foreground text-center">Kunde inte ladda spelet.</p>
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => loadState()}>
+                Försök igen
+              </Button>
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/spel">Mina spel</Link>
+              </Button>
+            </div>
+          </>
+        ) : (
+          <Spinner size="lg" />
+        )}
       </div>
     );
   }
