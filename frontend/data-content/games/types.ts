@@ -1,5 +1,5 @@
 /**
- * Data för ett kortspel som visas på framsidan och i game-card.
+ * Data för ett kortspel (t.ex. för framsida eller spelkort).
  */
 export type GameCardData = {
   id: string;
