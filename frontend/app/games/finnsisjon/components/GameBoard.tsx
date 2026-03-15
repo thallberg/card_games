@@ -52,16 +52,17 @@ export function GameBoard({ sessionId }: GameBoardProps) {
   const waitingForStart = useMulti && multi.waitingForStart;
 
   const [selectedRank, setSelectedRank] = useState<string | null>(null);
-  const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
+  const [selectedPlayer, setSelectedPlayer] = useState<PlayerId | null>(null);
 
   const toggleRank = (rank: string) => {
     setSelectedRank((r) => (r === rank ? null : rank));
   };
 
   const opponentIds = getPlayerIds().filter((id) => id !== myPlayerId);
+  const opponentIdsStr: string[] = opponentIds;
   useEffect(() => {
-    if (canAsk && opponentIds.length > 0 && (selectedPlayer === null || !opponentIds.includes(selectedPlayer))) {
-      setSelectedPlayer(opponentIds[0]);
+    if (canAsk && opponentIdsStr.length > 0 && (selectedPlayer === null || !opponentIdsStr.includes(selectedPlayer))) {
+      setSelectedPlayer(opponentIds[0] ?? null);
     }
   }, [canAsk, opponentIds, selectedPlayer]);
 
