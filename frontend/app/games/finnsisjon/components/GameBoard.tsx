@@ -407,7 +407,10 @@ export function GameBoard({ sessionId }: GameBoardProps) {
             <span className="text-sm text-muted-foreground">hos</span>
             <select
               value={selectedPlayer ?? ""}
-              onChange={(e) => setSelectedPlayer((e.target.value || null) as PlayerId | null)}
+              onChange={(e) => {
+                const raw = e.target.value || null;
+                setSelectedPlayer(raw ? (opponentIds.find((id) => id === raw) ?? null) : null);
+              }}
               className="rounded-md border border-border bg-background px-2 py-1 text-sm"
             >
               <option value="">Välj spelare</option>
