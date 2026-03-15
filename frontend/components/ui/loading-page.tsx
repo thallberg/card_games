@@ -8,7 +8,7 @@ export function LoadingPage({ className }: { className?: string }) {
       role="status"
       aria-label="Laddar"
     >
-      <Spinner size="lg" />
+      <Spinner size="xl" className="text-primary" />
     </div>
   );
 }

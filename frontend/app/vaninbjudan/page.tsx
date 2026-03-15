@@ -90,33 +90,26 @@ export default function VaninbjudanPage() {
   return (
     <main className="flex-1 p-3 sm:p-6">
       <section className="mx-auto max-w-md">
-        <h1 className="mb-1 text-xl font-semibold">Bjud in vän</h1>
-        <p className="mb-6 text-muted-foreground text-sm">
-          Sök på användarnamn och skicka en vänförfrågan.
-        </p>
+        <h1 className="mb-6 text-xl font-semibold">Bjud in vän</h1>
 
         <form onSubmit={handleSearch} className="grid gap-4 mb-4">
           <div className="grid gap-2">
-            <Label htmlFor="invite-name">Användarnamn</Label>
-            <Input
-              id="invite-name"
-              type="text"
-              placeholder="T.ex. Tobbe"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
+            <Label htmlFor="invite-name">Sök efter användare</Label>
+            <div className="flex min-w-0 items-center border-b-2 border-muted-foreground/60 focus-within:border-b-primary focus-within:border-b-2">
+              <span className="flex h-9 shrink-0 items-center pl-3 text-muted-foreground" aria-hidden>
+                {loading ? <Spinner size="sm" /> : <Search className="h-4 w-4" />}
+              </span>
+              <Input
+                id="invite-name"
+                type="text"
+                placeholder="T.ex. Tobbe"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                className="min-w-0 flex-1 border-0 rounded-none shadow-none focus-visible:ring-0 focus-visible:border-0 pl-1 pr-3"
+              />
+            </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <Button
-              type="submit"
-              variant="outline"
-              size="sm"
-              disabled={loading}
-              className="h-auto px-3 text-sm font-normal border-primary text-primary hover:bg-primary/5 hover:text-primary"
-            >
-              <Search className="mr-1 h-3.5 w-3.5" />
-              {loading ? <Spinner size="sm" /> : "Sök användare"}
-            </Button>
             <Button
               asChild
               variant="outline"

@@ -153,7 +153,7 @@ export function GameBoard({ sessionId, playerCount = 2 }: GameBoardProps) {
     return (
       <div className="flex min-h-[200px] flex-1 flex-col items-center justify-center gap-4">
         {loading ? (
-          <Spinner size="lg" />
+          <Spinner size="xl" className="text-primary" />
         ) : (
           <>
             <p className="text-muted-foreground text-center">Kunde inte ladda spelet.</p>

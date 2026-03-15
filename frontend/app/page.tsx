@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { User, Users, Gamepad2, UserCircle, Rocket } from "lucide-react";
 
 export default function Home() {
@@ -6,6 +7,7 @@ export default function Home() {
       title: "Single player mot datorn",
       desc: "Testa regler, träna taktik eller spela en snabb omgång själv. Välj spel i sidomenyn under Single player och spela mot datorstyrda motståndare.",
       highlight: "Single player",
+      highlightHref: "/games",
       color: "bg-[var(--pastel-lavender)] border-[var(--pastel-lavender)]/50",
       accent: "border-l-4 border-l-[var(--accent-lavender)]",
       icon: User,
@@ -14,6 +16,7 @@ export default function Home() {
       title: "Multiplayer med vänner",
       desc: "Skapa en spelomgång och bjud in dina vänner. Via sidan Mina vänner kan du hålla koll på vänförfrågningar och bjuda in flera till samma spel.",
       highlight: "Mina vänner",
+      highlightHref: "/vanner",
       color: "bg-[var(--pastel-mint)] border-[var(--pastel-mint)]/50",
       accent: "border-l-4 border-l-[var(--accent-mint)]",
       icon: Users,
@@ -22,6 +25,7 @@ export default function Home() {
       title: "Mina spel",
       desc: "Under Mina spel ser du alla pågående partier, väntande inbjudningar och kan hoppa direkt in i nästa giv. Där startar du även spel tillsammans med vänner.",
       highlight: "Mina spel",
+      highlightHref: "/spel",
       color: "bg-[var(--pastel-peach)] border-[var(--pastel-peach)]/50",
       accent: "border-l-4 border-l-[var(--accent-peach)]",
       icon: Gamepad2,
@@ -30,6 +34,7 @@ export default function Home() {
       title: "Din profil & avatar",
       desc: "På sidan Min meny kan du byta visningsnamn, välja en emoji-avatar eller ladda upp en egen bild. Din avatar visas i sidomenyn och i spelet när du spelar mot andra.",
       highlight: "Min meny",
+      highlightHref: "/min-meny",
       color: "bg-[var(--pastel-sage)] border-[var(--pastel-sage)]/50",
       accent: "border-l-4 border-l-[var(--accent-sage)]",
       icon: UserCircle,
@@ -65,7 +70,9 @@ export default function Home() {
               </div>
               <p className="text-sm text-muted-foreground leading-relaxed">
                 {c.desc.split(c.highlight)[0]}
-                <span className="font-semibold text-foreground/90">{c.highlight}</span>
+                <Link href={c.highlightHref} className="font-semibold text-foreground/90 underline underline-offset-2 hover:text-foreground">
+                  {c.highlight}
+                </Link>
                 {c.desc.split(c.highlight)[1]}
               </p>
             </article>
@@ -81,10 +88,21 @@ export default function Home() {
             <h2 className="text-base sm:text-lg font-semibold text-foreground">Så kommer du igång</h2>
           </div>
           <ol className="list-decimal pl-5 space-y-2 text-sm text-muted-foreground">
-            <li>Registrera ett konto eller logga in via knapparna i sidomenyn.</li>
-            <li>Lägg till vänner genom sidan &quot;Bjud in vän&quot;.</li>
-            <li>Gå till &quot;Mina spel&quot; för att starta ett nytt spel och bjuda in dina vänner.</li>
-            <li>Välj Single player om du vill spela själv mot datorn.</li>
+            <li>
+              <Link href="/registrera" className="underline underline-offset-2 hover:text-foreground">Registrera</Link>
+              {" "}ett konto eller{" "}
+              <Link href="/logga-in" className="underline underline-offset-2 hover:text-foreground">logga in</Link>
+              {" "}via knapparna i sidomenyn.
+            </li>
+            <li>Lägg till vänner genom sidan{" "}
+              <Link href="/vaninbjudan" className="underline underline-offset-2 hover:text-foreground">&quot;Bjud in vän&quot;</Link>.
+            </li>
+            <li>Gå till{" "}
+              <Link href="/spel" className="underline underline-offset-2 hover:text-foreground">&quot;Mina spel&quot;</Link>
+              {" "}för att starta ett nytt spel och bjuda in dina vänner.</li>
+            <li>Välj{" "}
+              <Link href="/games" className="underline underline-offset-2 hover:text-foreground">Single player</Link>
+              {" "}om du vill spela själv mot datorn.</li>
           </ol>
         </section>
       </section>

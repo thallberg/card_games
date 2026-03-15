@@ -226,6 +226,21 @@ function VannerPageContent() {
           </p>
         ) : (
           <SectionCard variant="mint" icon={Users} title="Dina vänner">
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setInviteDialogOpen(true)}
+                className="h-auto px-3 text-sm font-normal border-primary text-primary hover:bg-primary/5 hover:text-primary"
+              >
+                {selectedFriendIds.size > 0 ? "Bjud in valda till spel" : "Bjud in alla till spel"}
+              </Button>
+              {selectedFriendIds.size > 0 && (
+                <span className="text-muted-foreground text-sm">
+                  {selectedFriendIds.size} valda
+                </span>
+              )}
+            </div>
             <ul className="grid gap-2">
               {friends.map((f) => (
                 <li
@@ -264,21 +279,6 @@ function VannerPageContent() {
                 </li>
               ))}
             </ul>
-            <div className="mt-4 flex flex-wrap items-center gap-2 pt-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setInviteDialogOpen(true)}
-                className="h-auto px-3 text-sm font-normal border-primary text-primary hover:bg-primary/5 hover:text-primary"
-              >
-                {selectedFriendIds.size > 0 ? "Bjud in valda till spel" : "Bjud in alla till spel"}
-              </Button>
-              {selectedFriendIds.size > 0 && (
-                <span className="text-muted-foreground text-sm">
-                  {selectedFriendIds.size} valda
-                </span>
-              )}
-            </div>
             <p className="mt-3 text-sm text-muted-foreground">
               Vill du lägga till nya vänner?{" "}
               <Link

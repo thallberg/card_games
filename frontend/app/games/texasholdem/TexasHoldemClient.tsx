@@ -154,7 +154,7 @@ export function TexasHoldemClient() {
   if (isMultiplayer && multiplayerLoading) {
     return (
       <div className="flex min-h-[200px] flex-1 items-center justify-center">
-        <Spinner size="lg" />
+        <Spinner size="xl" className="text-primary" />
       </div>
     );
   }

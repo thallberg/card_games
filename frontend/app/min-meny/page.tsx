@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { ChevronDown, History } from "lucide-react";
+import { ChevronDown, BarChart2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { Input } from "@/components/ui/input";
@@ -84,6 +84,7 @@ export default function MinMenyPage() {
     createdAt: string;
   }>>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
+  const [friends, setFriends] = useState<Array<{ id: string; displayName: string; friendsSince: string }>>([]);
 
   const loadFinishedSessions = useCallback(async () => {
     setHistoryLoading(true);
@@ -151,9 +152,29 @@ export default function MinMenyPage() {
     return () => window.removeEventListener("user-updated", onUpdated);
   }, []);
 
+  const loadFriends = useCallback(async () => {
+    try {
+      const res = await apiFetch("/api/friends");
+      if (res.status === 401) return;
+      const data = await res.json().catch(() => []);
+      const list = Array.isArray(data) ? data : [];
+      setFriends(list.map((f: { id: string; displayName?: string; friendsSince?: string }) => ({
+        id: f.id,
+        displayName: f.displayName ?? "—",
+        friendsSince: f.friendsSince ?? "",
+      })));
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
   useEffect(() => {
     loadFinishedSessions();
   }, [loadFinishedSessions]);
+
+  useEffect(() => {
+    loadFriends();
+  }, [loadFriends]);
 
   const handleSaveDisplayName = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -264,7 +285,7 @@ export default function MinMenyPage() {
   if (loading) {
     return (
       <div className="flex min-h-[200px] flex-1 items-center justify-center">
-        <Spinner size="lg" />
+        <Spinner size="xl" className="text-primary" />
       </div>
     );
   }
@@ -535,35 +556,58 @@ export default function MinMenyPage() {
         </div>
       </div>
 
-      <div className="w-full rounded-xl border border-[var(--pastel-sky)]/40 bg-[var(--pastel-sky)]/60 p-4 sm:p-5">
-        <div className="mb-3 flex items-center gap-3">
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-foreground/10">
-            <History className="size-5 text-foreground" aria-hidden />
-          </div>
-          <h2 className="text-base sm:text-lg font-semibold text-foreground">Spelade partier</h2>
+      <div className="w-full">
+        <div className="w-full rounded-lg border border-border bg-card p-4 sm:p-6">
+          <Collapsible>
+            <CollapsibleTrigger className="group flex w-full items-center justify-between text-left">
+              <span className="flex items-center gap-2">
+                <BarChart2 className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                <h2 className="text-lg font-medium">Statistik</h2>
+              </span>
+              <ChevronDown className="h-4 w-4 shrink-0 transition-transform group-data-[state=open]:rotate-180" />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="space-y-3 pt-2">
+                <p className="text-muted-foreground text-xs">
+                  Här visas det senaste av de tre. För mer statistik, gå till statistik-sidan.
+                </p>
+                {historyLoading ? (
+                  <p className="text-muted-foreground text-sm">Laddar...</p>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
+                      <div className="rounded-lg border border-[var(--border)] bg-muted/30 p-3 text-sm">
+                        <p className="text-muted-foreground text-xs font-medium mb-1">Vunna match</p>
+                        <p className="font-medium">—</p>
+                      </div>
+                      <div className="rounded-lg border border-[var(--border)] bg-muted/30 p-3 text-sm">
+                        <p className="text-muted-foreground text-xs font-medium mb-1">Spelade kortspel</p>
+                        <p className="font-medium">{finishedSessions.length > 0 ? finishedSessions[0].gameType : "—"}</p>
+                      </div>
+                      <div className="rounded-lg border border-[var(--border)] bg-muted/30 p-3 text-sm">
+                        <p className="text-muted-foreground text-xs font-medium mb-1">Tillagda vän</p>
+                        <p className="font-medium truncate">
+                          {friends.length > 0
+                            ? (() => {
+                                const sorted = [...friends].sort((a, b) => (b.friendsSince || "").localeCompare(a.friendsSince || ""));
+                                return sorted[0]?.displayName ?? "—";
+                              })()
+                            : "—"}
+                        </p>
+                      </div>
+                    </div>
+                    <Link
+                      href="/statistik"
+                      className="inline-block text-sm font-medium text-primary underline underline-offset-4 hover:text-primary/80"
+                    >
+                      Till statistik →
+                    </Link>
+                  </>
+                )}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         </div>
-        {historyLoading ? (
-          <p className="text-muted-foreground text-sm">Laddar...</p>
-        ) : finishedSessions.length === 0 ? (
-          <p className="text-muted-foreground text-sm">Inga avslutade spel än.</p>
-        ) : (
-          <ul className="space-y-2">
-            {finishedSessions.slice(0, 20).map((s) => (
-              <li
-                key={s.id}
-                className="flex items-center justify-between gap-2 rounded border border-[var(--border)] bg-background/60 px-3 py-2 text-sm"
-              >
-                <span className="font-medium">{s.gameType}</span>
-                <span className="text-muted-foreground truncate">Ledd av {s.leaderDisplayName}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-        {finishedSessions.length > 0 && (
-          <p className="mt-3 text-muted-foreground text-xs">
-            Visar senaste {Math.min(20, finishedSessions.length)} avslutade spel.
-          </p>
-        )}
       </div>
 
       <p className="text-muted-foreground text-sm">

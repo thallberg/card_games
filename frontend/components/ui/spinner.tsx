@@ -7,12 +7,13 @@ function Spinner({
   size = "default",
   ...props
 }: Omit<React.ComponentProps<typeof Loader2>, "size"> & {
-  size?: "sm" | "default" | "lg";
+  size?: "sm" | "default" | "lg" | "xl";
 }) {
   const sizeClasses = {
     sm: "size-4",
     default: "size-6",
     lg: "size-8",
+    xl: "size-12",
   };
   return (
     <Loader2
