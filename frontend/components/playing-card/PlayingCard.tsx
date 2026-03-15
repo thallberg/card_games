@@ -42,15 +42,25 @@ export function PlayingCard({
   const sizeClass = SIZE_CLASSES[size];
 
   if (!faceUp) {
+    const baseClass = cn(
+      "relative shrink-0 overflow-hidden rounded-md border-2 border-border shadow-sm focus:outline-none focus:ring-2 focus:ring-ring",
+      sizeClass,
+      onClick && "cursor-pointer hover:scale-105 hover:border-primary transition-transform",
+      className
+    );
     if (faceDownVariant === "cardback") {
-      return (
-        <div
-          className={cn(
-            "relative shrink-0 overflow-hidden rounded-md border border-border shadow-sm",
-            sizeClass,
-            className
-          )}
-        >
+      return onClick ? (
+        <button type="button" onClick={onClick} className={baseClass}>
+          <Image
+            src="/cardback.png"
+            alt=""
+            fill
+            className="object-cover"
+            unoptimized
+          />
+        </button>
+      ) : (
+        <div className={baseClass}>
           <Image
             src="/cardback.png"
             alt=""
@@ -61,7 +71,20 @@ export function PlayingCard({
         </div>
       );
     }
-    return (
+    return onClick ? (
+      <button
+        type="button"
+        onClick={onClick}
+        className={cn(
+          "flex shrink-0 items-center justify-center rounded-md border-2 border-border bg-muted/80 text-muted-foreground text-xs",
+          sizeClass,
+          "cursor-pointer hover:border-primary",
+          className
+        )}
+      >
+        ?
+      </button>
+    ) : (
       <div
         className={cn(
           "flex shrink-0 items-center justify-center rounded-md border-2 border-border bg-muted/80 text-muted-foreground text-xs",

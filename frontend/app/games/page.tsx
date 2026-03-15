@@ -7,6 +7,7 @@ const GAMES = [
   { id: "fivehoundred", label: "500", singleHref: "/games/fivehoundred", multiHref: "/vanner?inviteGame=fivehoundred", variant: "mint" as const },
   { id: "chicago", label: "Chicago", singleHref: "/games/chicago", multiHref: "/vanner?inviteGame=chicago", variant: "peach" as const },
   { id: "skitgubbe", label: "Skitgubbe", singleHref: "/games/skitgubbe", multiHref: "/vanner?inviteGame=skitgubbe", variant: "sage" as const },
+  { id: "finnsisjon", label: "Finns i sjön", singleHref: "/games/finnsisjon", multiHref: "/vanner?inviteGame=finnsisjon", variant: "sky" as const },
 ];
 
 export default function GamesPage() {

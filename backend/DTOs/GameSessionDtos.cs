@@ -28,4 +28,5 @@ public enum GameTypeDto
     Chicago = 3,
     TexasHoldem = 4,
     Skitgubbe = 5,
+    Finnsisjon = 6,
 }

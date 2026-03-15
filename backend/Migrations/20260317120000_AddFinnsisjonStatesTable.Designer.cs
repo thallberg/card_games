@@ -3,6 +3,7 @@ using System;
 using Backend.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Backend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260317120000_AddFinnsisjonStatesTable")]
+    partial class AddFinnsisjonStatesTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -41,6 +44,27 @@ namespace Backend.Migrations
                     b.HasKey("GameSessionId");
 
                     b.ToTable("ChicagoStates");
+                });
+
+            modelBuilder.Entity("Backend.Models.FinnsisjonState", b =>
+                {
+                    b.Property<Guid>("GameSessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PlayerOrderJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("StateJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("GameSessionId");
+
+                    b.ToTable("FinnsisjonStates");
                 });
 
             modelBuilder.Entity("Backend.Models.FiveHundredState", b =>
@@ -144,27 +168,6 @@ namespace Backend.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("GameSessionPlayers");
-                });
-
-            modelBuilder.Entity("Backend.Models.FinnsisjonState", b =>
-                {
-                    b.Property<Guid>("GameSessionId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("PlayerOrderJson")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("StateJson")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("GameSessionId");
-
-                    b.ToTable("FinnsisjonStates");
                 });
 
             modelBuilder.Entity("Backend.Models.SkitgubbeState", b =>
@@ -272,6 +275,17 @@ namespace Backend.Migrations
                     b.Navigation("GameSession");
                 });
 
+            modelBuilder.Entity("Backend.Models.FinnsisjonState", b =>
+                {
+                    b.HasOne("Backend.Models.GameSession", "GameSession")
+                        .WithMany()
+                        .HasForeignKey("GameSessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("GameSession");
+                });
+
             modelBuilder.Entity("Backend.Models.FiveHundredState", b =>
                 {
                     b.HasOne("Backend.Models.GameSession", "GameSession")
@@ -330,17 +344,6 @@ namespace Backend.Migrations
                     b.Navigation("GameSession");
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("Backend.Models.FinnsisjonState", b =>
-                {
-                    b.HasOne("Backend.Models.GameSession", "GameSession")
-                        .WithMany()
-                        .HasForeignKey("GameSessionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("GameSession");
                 });
 
             modelBuilder.Entity("Backend.Models.SkitgubbeState", b =>

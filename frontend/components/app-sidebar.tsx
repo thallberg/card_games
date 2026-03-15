@@ -32,7 +32,7 @@ import { apiFetch } from "@/lib/api";
 export type AppSidebarUser = { displayName: string; avatarEmoji?: string | null; avatarImageData?: string | null };
 
 type GameLink = {
-  id: "fivehoundred" | "chicago" | "texasholdem" | "skitgubbe";
+  id: "fivehoundred" | "chicago" | "texasholdem" | "skitgubbe" | "finnsisjon";
   label: string;
   singleHref: string;
   multiHref: string;
@@ -62,6 +62,12 @@ const GAME_LINKS: GameLink[] = [
     label: "Skitgubbe",
     singleHref: "/games/skitgubbe",
     multiHref: "/vanner?inviteGame=skitgubbe",
+  },
+  {
+    id: "finnsisjon",
+    label: "Finns i sjön",
+    singleHref: "/games/finnsisjon",
+    multiHref: "/vanner?inviteGame=finnsisjon",
   },
 ];
 
@@ -142,6 +148,8 @@ function SidebarMyGamesSection({ closeSidebar }: { closeSidebar: () => void }) {
         return "Texas Hold'em";
       case "Skitgubbe":
         return "Skitgubbe";
+      case "Finnsisjon":
+        return "Finns i sjön";
       default:
         return gameType;
     }

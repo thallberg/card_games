@@ -19,6 +19,7 @@ public class GameSessionService
         GameTypeDto.Chicago => GameType.Chicago,
         GameTypeDto.TexasHoldem => GameType.TexasHoldem,
         GameTypeDto.Skitgubbe => GameType.Skitgubbe,
+        GameTypeDto.Finnsisjon => GameType.Finnsisjon,
         _ => GameType.Poker,
     };
 

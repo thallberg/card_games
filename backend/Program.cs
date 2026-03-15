@@ -27,6 +27,7 @@ builder.Services.AddScoped<FiveHundredService>();
 builder.Services.AddScoped<ChicagoService>();
 builder.Services.AddScoped<TexasHoldemService>();
 builder.Services.AddScoped<SkitgubbeService>();
+builder.Services.AddScoped<FinnsisjonService>();
 
 builder.Services.AddCors(options =>
 {
@@ -351,7 +352,7 @@ app.MapPost("/api/gamesessions/{id:guid}/leave", async (Guid id, HttpContext ctx
     return Results.Ok();
 }).RequireAuthorization();
 
-app.MapPost("/api/gamesessions/{id:guid}/start", async (Guid id, HttpContext ctx, GameSessionService gameService, FiveHundredService fiveHundredService, ChicagoService chicagoService, TexasHoldemService texasHoldemService, SkitgubbeService skitgubbeService) =>
+app.MapPost("/api/gamesessions/{id:guid}/start", async (Guid id, HttpContext ctx, GameSessionService gameService, FiveHundredService fiveHundredService, ChicagoService chicagoService, TexasHoldemService texasHoldemService, SkitgubbeService skitgubbeService, FinnsisjonService finnsisjonService) =>
 {
     try
     {
@@ -388,6 +389,11 @@ app.MapPost("/api/gamesessions/{id:guid}/start", async (Guid id, HttpContext ctx
         {
             var (initOk, initErr) = await skitgubbeService.CreateInitialStateAsync(id);
             if (!initOk) return Results.BadRequest(new { error = initErr ?? "Kunde inte initiera Skitgubbe." });
+        }
+        if (session.GameType == "Finnsisjon")
+        {
+            var (initOk, initErr) = await finnsisjonService.CreateInitialStateAsync(id);
+            if (!initOk) return Results.BadRequest(new { error = initErr ?? "Kunde inte initiera Finns i sjön." });
         }
         var updated = await gameService.GetByIdAsync(id, userId);
         return Results.Ok(updated);
@@ -490,6 +496,28 @@ app.MapPost("/api/gamesessions/{id:guid}/skitgubbe/action", async (Guid id, Skit
     var (ok, err) = await skitgubbeService.ApplyActionAsync(id, userId.Value, req);
     if (!ok) return Results.BadRequest(new { error = err });
     var (stateJson, myPlayerId) = await skitgubbeService.GetStateForUserAsync(id, userId.Value);
+    if (stateJson == null) return Results.NotFound();
+    var state = System.Text.Json.JsonSerializer.Deserialize<object>(stateJson);
+    return Results.Json(new { state, myPlayerId });
+}).RequireAuthorization();
+
+app.MapGet("/api/gamesessions/{id:guid}/finnsisjon/state", async (Guid id, HttpContext ctx, FinnsisjonService finnsisjonService) =>
+{
+    var userId = GetUserId(ctx.User);
+    if (userId == null) return Results.Unauthorized();
+    var (stateJson, myPlayerId) = await finnsisjonService.GetStateForUserAsync(id, userId.Value);
+    if (stateJson == null) return Results.NotFound();
+    var state = System.Text.Json.JsonSerializer.Deserialize<object>(stateJson);
+    return Results.Json(new { state, myPlayerId });
+}).RequireAuthorization();
+
+app.MapPost("/api/gamesessions/{id:guid}/finnsisjon/action", async (Guid id, FinnsisjonActionRequest req, HttpContext ctx, FinnsisjonService finnsisjonService) =>
+{
+    var userId = GetUserId(ctx.User);
+    if (userId == null) return Results.Unauthorized();
+    var (ok, err) = await finnsisjonService.ApplyActionAsync(id, userId.Value, req);
+    if (!ok) return Results.BadRequest(new { error = err });
+    var (stateJson, myPlayerId) = await finnsisjonService.GetStateForUserAsync(id, userId.Value);
     if (stateJson == null) return Results.NotFound();
     var state = System.Text.Json.JsonSerializer.Deserialize<object>(stateJson);
     return Results.Json(new { state, myPlayerId });

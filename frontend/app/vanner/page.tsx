@@ -43,8 +43,8 @@ function VannerPageContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
-  const [createGameType, setCreateGameType] = useState<2 | 3 | 4 | 5>(() =>
-    inviteGameType ?? 2
+  const [createGameType, setCreateGameType] = useState<2 | 3 | 4 | 5 | 6>(() =>
+    (inviteGameType ?? 2) as 2 | 3 | 4 | 5 | 6
   );
   const [creating, setCreating] = useState(false);
   const [selectedFriendIds, setSelectedFriendIds] = useState<Set<string>>(new Set());
@@ -54,6 +54,7 @@ function VannerPageContent() {
     chicago: "Chicago",
     texasholdem: "Texas Hold'em",
     skitgubbe: "Skitgubbe",
+    finnsisjon: "Finns i sjön",
   };
   const currentInviteGameLabel = inviteGameId ? inviteGameLabel[inviteGameId] ?? null : null;
 
@@ -336,6 +337,14 @@ function VannerPageContent() {
                 className="min-h-10 flex-1 sm:flex-initial"
               >
                 Skitgubbe
+              </Button>
+              <Button
+                variant={createGameType === 6 ? "default" : "outline"}
+                size="sm"
+                onClick={() => setCreateGameType(6)}
+                className="min-h-10 flex-1 sm:flex-initial"
+              >
+                Finns i sjön
               </Button>
             </div>
             <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
