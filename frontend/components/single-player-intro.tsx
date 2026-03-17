@@ -31,7 +31,7 @@ export function SinglePlayerIntro({
         </div>
         <div className="flex flex-wrap gap-2">
           {options.map((n) => (
-            <Button key={n} onClick={() => onSelect(n)}>
+            <Button variant="outlinePrimary" key={n} onClick={() => onSelect(n)}>
               {n} spelare
             </Button>
           ))}
