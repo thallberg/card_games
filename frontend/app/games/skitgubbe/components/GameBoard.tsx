@@ -8,6 +8,7 @@ import { useSkitgubbeGameMultiplayer } from "../hooks/useSkitgubbeGameMultiplaye
 import { PlayingCard } from "@/components/playing-card";
 import { StockPile } from "./StockPile";
 import { WonPile } from "./WonPile";
+import { PlayerInfoCard } from "@/components/player-info-card";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -279,23 +280,15 @@ export function GameBoard({ sessionId }: GameBoardProps) {
   return (
     <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6 px-1 sm:px-0">
       <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-4">
-        <div className="flex gap-4 sm:gap-6 text-xs sm:text-sm">
+        <div className="flex flex-wrap justify-center gap-4 sm:gap-6 text-xs sm:text-sm">
           {getPlayerIds().map((id) => (
-            <div key={id} className="flex flex-col gap-0.5">
-              <div className="flex items-center gap-1.5">
-                {state.currentPlayerId === id && (
-                  <span
-                    className="h-2 w-2 shrink-0 rounded-full bg-green-500 ring-2 ring-green-500/40"
-                    aria-hidden
-                  />
-                )}
-                <span className="font-medium">{playerLabel(id)}</span>
-                {playerAvatarEmojis?.[id] && <span className="ml-0.5" aria-hidden>{playerAvatarEmojis[id]}</span>}
-              </div>
-              <span className="text-muted-foreground">
-                {isSticks ? `Stick: ${state.sticksWon[id] ?? 0}` : `${state.playerHands[id]?.length ?? 0} kort`}
-              </span>
-            </div>
+            <PlayerInfoCard
+              key={id}
+              isActive={state.currentPlayerId === id}
+              name={playerLabel(id)}
+              rightAdornment={playerAvatarEmojis?.[id]}
+              subtitle={isSticks ? `Stick: ${state.sticksWon[id] ?? 0}` : `${state.playerHands[id]?.length ?? 0} kort`}
+            />
           ))}
         </div>
       </div>

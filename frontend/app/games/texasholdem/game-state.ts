@@ -148,6 +148,15 @@ export function getTotalPot(state: TexasHoldemState): number {
   return state.pot + inPot;
 }
 
+function nextSeatWithChips(seats: PlayerSeat[], from: number): number {
+  const n = seats.length;
+  for (let i = 1; i <= n; i++) {
+    const idx = (from + i) % n;
+    if (seats[idx].stack > 0) return idx;
+  }
+  return from;
+}
+
 function nextActiveSeatIndex(state: TexasHoldemState, from: number): number {
   const n = state.numPlayers;
   for (let i = 1; i <= n; i++) {
@@ -380,23 +389,28 @@ export function startNextHand(state: TexasHoldemState): TexasHoldemState {
   }
   const numPlayers = state.numPlayers;
   const dealerIndex = (state.dealerIndex + 1) % numPlayers;
-  const sbIndex = numPlayers === 2 ? dealerIndex : (dealerIndex + 1) % numPlayers;
-  const bbIndex = numPlayers === 2 ? (dealerIndex + 1) % numPlayers : (dealerIndex + 2) % numPlayers;
+  const sbIndex = nextSeatWithChips(state.seats, dealerIndex);
+  const bbIndex = nextSeatWithChips(state.seats, sbIndex);
   const deck = shuffle(createDeck());
   const holeCards: Card[][] = [];
   for (let i = 0; i < numPlayers; i++) {
-    holeCards.push([deck.pop()!, deck.pop()!]);
+    if (state.seats[i].stack > 0) {
+      holeCards.push([deck.pop()!, deck.pop()!]);
+    } else {
+      holeCards.push([]);
+    }
   }
   const seats = state.seats.map((s, i) => {
     let stack = s.stack;
     let betThisHand = 0;
     let actedThisRound = false;
-    if (i === sbIndex) {
+    const eliminated = stack <= 0;
+    if (!eliminated && i === sbIndex) {
       const post = Math.min(state.smallBlind, stack);
       stack -= post;
       betThisHand = post;
       actedThisRound = true;
-    } else if (i === bbIndex) {
+    } else if (!eliminated && i === bbIndex) {
       const post = Math.min(state.bigBlind, stack);
       stack -= post;
       betThisHand = post;
@@ -407,13 +421,22 @@ export function startNextHand(state: TexasHoldemState): TexasHoldemState {
       stack,
       betThisHand,
       actedThisRound,
-      folded: false,
+      folded: eliminated,
       isAllIn: stack <= 0,
     };
   });
   const pot = 0;
-  const currentActorIndex = numPlayers === 2 ? sbIndex : (bbIndex + 1) % numPlayers;
   const activeInHand = seats.map((_, i) => i).filter((i) => !seats[i].folded);
+  const actorBase = bbIndex;
+  const currentActorIndex = nextActiveSeatIndex(
+    {
+      ...state,
+      seats,
+      numPlayers,
+      activeInHand,
+    } as TexasHoldemState,
+    actorBase
+  );
 
   return {
     ...state,

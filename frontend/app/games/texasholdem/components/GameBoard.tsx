@@ -8,11 +8,13 @@ import {
   call,
   raise,
   startNextHand,
+  createInitialSetupState,
   getTotalPot,
 } from "../game-state";
 import type { Card } from "../types";
 import { bestHand, handRankLabel } from "../hand-rankings";
 import { PlayingCard } from "@/components/playing-card";
+import { PlayerInfoCard } from "@/components/player-info-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -59,6 +61,7 @@ export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoar
     }
   };
   const handleNextHand = () => onStateChange(startNextHand(state));
+  const handleRestartToSetup = () => onStateChange(createInitialSetupState());
 
   if (state.phase === "setup") return null;
 
@@ -70,6 +73,11 @@ export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoar
         <p className="text-muted-foreground">
           Vinnare: {winner?.name ?? "—"} med {winner?.stack ?? 0} i stack.
         </p>
+        <div>
+          <Button variant="outlinePrimary" onClick={handleRestartToSetup}>
+            Starta om
+          </Button>
+        </div>
       </div>
     );
   }
@@ -87,9 +95,10 @@ export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoar
     const winningCardKeys = winnerHand
       ? new Set(winnerHand.cards.map(cardKey))
       : new Set<string>();
+    const isHumanBusted = (state.seats[humanSeat]?.stack ?? 0) <= 0;
 
     return (
-      <div className="mx-auto flex max-w-4xl flex-col gap-4 sm:gap-8 px-2 sm:px-0">
+      <div className="mx-auto flex max-w-4xl flex-col gap-4 sm:gap-8 px-1 sm:px-0">
         {/* Längst upp: motståndare med kort (face up), vinnarens kort grönmarkerade */}
         <div className="flex flex-wrap justify-center gap-4">
           {state.seats.map((s, i) => {
@@ -101,18 +110,21 @@ export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoar
                 ? bestHand(holeCards, state.board)
                 : null;
             const isWinner = i === winnerIdx;
+            const isBusted = s.stack <= 0;
             return (
-              <div
+              <PlayerInfoCard
                 key={s.id}
+                name={
+                  <>
+                    {s.name} {isWinner && "👑"}
+                  </>
+                }
+                subtitle={`Stack: ${s.stack}`}
                 className={cn(
-                  "rounded-lg border bg-card p-3 min-w-[120px] sm:min-w-[140px] text-center",
+                  "text-center",
                   isWinner && "ring-2 ring-green-500 bg-green-500/10"
                 )}
               >
-                <p className="font-medium">
-                  {s.name} {isWinner && "👑"}
-                </p>
-                <p className="text-muted-foreground text-xs">Stack: {s.stack}</p>
                 {holeCards.length > 0 ? (
                   <div className="mt-2 flex justify-center gap-1">
                     {holeCards.map((c, j) => (
@@ -136,7 +148,12 @@ export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoar
                 {s.folded && (
                   <p className="mt-1 text-destructive text-xs">Folded</p>
                 )}
-              </div>
+                {isBusted && (
+                  <p className="mt-1 text-destructive text-xs font-medium">
+                    Utslagen - slut på pengar
+                  </p>
+                )}
+              </PlayerInfoCard>
             );
           })}
         </div>
@@ -162,6 +179,11 @@ export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoar
         <div className="rounded-lg border bg-card p-4">
           <p className="mb-2 font-medium">{mySeat?.name} (Du)</p>
           <p className="text-muted-foreground text-sm">Stack: {mySeat?.stack ?? 0}</p>
+          {isHumanBusted && (
+            <p className="mt-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-center text-sm text-destructive">
+              Du har slut på pengar och förlorade.
+            </p>
+          )}
           <div className="mt-3 flex justify-center gap-2">
             {(state.holeCards[humanSeat] ?? []).map((card, i) => (
               <PlayingCard
@@ -179,7 +201,11 @@ export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoar
             </p>
           )}
           <div className="mt-4 text-center">
-            <Button variant="outlinePrimary" onClick={handleNextHand}>Nästa hand</Button>
+            {isHumanBusted ? (
+              <Button variant="outlinePrimary" onClick={handleRestartToSetup}>Starta om</Button>
+            ) : (
+              <Button variant="outlinePrimary" onClick={handleNextHand}>Nästa hand</Button>
+            )}
           </div>
         </div>
       </div>
@@ -187,7 +213,7 @@ export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoar
   }
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-4 sm:gap-8 px-2 sm:px-0">
+    <div className="mx-auto flex max-w-4xl flex-col gap-4 sm:gap-8 px-1 sm:px-0">
       {/* Längst upp: motståndare */}
       <div className="flex flex-wrap justify-center gap-4">
         {state.seats.map((s, i) => {
@@ -197,27 +223,32 @@ export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoar
           const opponentToCall = currentBet - s.betThisHand;
           const isTheirTurn = state.currentActorIndex === i;
           return (
-            <div
+            <PlayerInfoCard
               key={s.id}
+              isActive={isTheirTurn}
+              name={s.name}
+              subtitle={`Stack: ${s.stack}`}
+              meta={s.betThisHand > 0 ? `Betat denna hand: ${s.betThisHand}` : "Betat: 0"}
               className={cn(
-                "rounded-lg border bg-card p-3 min-w-[120px] sm:min-w-[140px] text-center",
-                isTheirTurn && "ring-2 ring-primary"
+                "text-center",
+                isTheirTurn && "ring-1 ring-primary"
               )}
             >
-              <p className="font-medium">{s.name}</p>
-              <p className="text-muted-foreground text-xs">Stack: {s.stack}</p>
-              <p className="text-xs font-medium text-foreground">
-                {s.betThisHand > 0 ? `Betat denna hand: ${s.betThisHand}` : "Betat: 0"}
+              <p
+                className={cn(
+                  "mt-0.5 min-h-6 text-[11px] leading-3 font-medium wrap-break-word",
+                  isTheirTurn && !folded ? "text-primary" : "invisible"
+                )}
+                aria-hidden={!(isTheirTurn && !folded)}
+              >
+                {isTheirTurn && !folded
+                  ? (opponentToCall <= 0 ? "Kan checka" : `Måste betala ${opponentToCall} för att calla`)
+                  : "placeholder"}
               </p>
-              {isTheirTurn && !folded && (
-                <p className="mt-1 text-primary text-xs font-medium">
-                  {opponentToCall <= 0 ? "Kan checka" : `Måste betala ${opponentToCall} för att calla`}
-                </p>
-              )}
               {folded ? (
-                <p className="mt-2 text-destructive text-sm">Folded</p>
+                <p className="mt-1 text-destructive text-sm">Folded</p>
               ) : (
-                <div className="mt-2 flex justify-center gap-1">
+                <div className="mt-1 flex justify-center gap-1">
                   {holeCards.map((c, j) => (
                     <PlayingCard
                       key={j}
@@ -229,7 +260,7 @@ export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoar
                   ))}
                 </div>
               )}
-            </div>
+            </PlayerInfoCard>
           );
         })}
       </div>

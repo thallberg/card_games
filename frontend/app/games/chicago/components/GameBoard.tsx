@@ -6,6 +6,7 @@ import { getNextPlayerId } from "../game-state";
 import { getHandHighlightIndices } from "../hand-score";
 import Link from "next/link";
 import { PlayingCard } from "@/components/playing-card";
+import { PlayerInfoCard } from "@/components/player-info-card";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 
@@ -81,19 +82,20 @@ export function GameBoard({ sessionId, playerCount = 2 }: GameBoardProps) {
     <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6 px-1 sm:px-0">
       <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-4">
         <h1 className="text-lg sm:text-xl font-semibold">Poker Chicago</h1>
-        <div className="flex gap-4 sm:gap-6 text-xs sm:text-sm">
+        <div className="flex flex-wrap justify-end gap-4 sm:gap-6 text-xs sm:text-sm">
           {getPlayerIds().map((id) => (
-            <div key={id} className="flex flex-col gap-0.5">
-              <span className="font-medium">{id === myPlayerId ? "Du" : "Motståndare"}</span>
-              <span className="text-muted-foreground">
-                Poäng: {state.playerScores[id] ?? 0}
-              </span>
+            <PlayerInfoCard
+              key={id}
+              isActive={state.currentPlayerId === id}
+              name={id === myPlayerId ? "Du" : "Motståndare"}
+              subtitle={`Poäng: ${state.playerScores[id] ?? 0}`}
+            >
               {id !== myPlayerId && state.phase !== "roundEnd" && state.phase !== "gameOver" && (
                 <span className="text-muted-foreground text-xs">
                   {state.playerHands[id]?.length ?? 0} kort
                 </span>
               )}
-            </div>
+            </PlayerInfoCard>
           ))}
         </div>
       </div>

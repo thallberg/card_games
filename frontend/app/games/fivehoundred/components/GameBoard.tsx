@@ -11,6 +11,7 @@ import {
   TableMelds,
   MeldBuilderModal,
 } from "./index";
+import { PlayerInfoCard } from "@/components/player-info-card";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import {
@@ -176,35 +177,30 @@ export function GameBoard({ sessionId, playerCount = 2 }: GameBoardProps) {
   return (
     <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6 px-1 sm:px-0">
       <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-4">
-        <div className="flex flex-wrap gap-4 sm:gap-6 text-xs sm:text-sm">
+        <div className="flex flex-wrap justify-center gap-4 sm:gap-6 text-xs sm:text-sm">
           {getPlayerIds().map((id) => {
             const handSize = state.playerHands[id]?.length ?? 0;
             return (
-              <div key={id} className="flex flex-col gap-0.5">
-                <div className="flex items-center gap-1.5">
-                  {state.currentPlayerId === id && (
-                    <span
-                      className="h-2 w-2 shrink-0 rounded-full bg-green-500 ring-2 ring-green-500/40"
-                      aria-hidden
-                    />
-                  )}
-                  <span className="font-medium">{playerLabel(id)}</span>
-                  {playerAvatarEmojis?.[id] && <span className="ml-0.5" aria-hidden>{playerAvatarEmojis[id]}</span>}
-                </div>
+              <PlayerInfoCard
+                key={id}
+                isActive={state.currentPlayerId === id}
+                name={playerLabel(id)}
+                rightAdornment={playerAvatarEmojis?.[id]}
+              >
                 {id !== myPlayerId && state.phase !== "roundEnd" && state.phase !== "gameOver" && (
-                  <span className="text-muted-foreground">
+                  <span className="block text-muted-foreground">
                     {handSize} kort på handen
                   </span>
                 )}
                 {state.phase !== "roundEnd" && state.phase !== "gameOver" && (
-                  <span className="text-muted-foreground">
+                  <span className="block text-muted-foreground">
                     Rundans poäng (utlagda): {roundMeldPoints[id] ?? 0}
                   </span>
                 )}
-                <span className="text-muted-foreground">
+                <span className="block text-muted-foreground">
                   Sammanlagda poäng: {state.playerScores[id] ?? 0}
                 </span>
-              </div>
+              </PlayerInfoCard>
             );
           })}
         </div>

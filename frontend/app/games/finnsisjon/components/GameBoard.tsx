@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { useFinnsisjonGame } from "../hooks/useFinnsisjonGame";
 import { useFinnsisjonGameMultiplayer } from "../hooks/useFinnsisjonGameMultiplayer";
 import { PlayingCard } from "@/components/playing-card";
+import { PlayerInfoCard } from "@/components/player-info-card";
 import { Button } from "@/components/ui/button";
 import { SinglePlayerIntro } from "@/components/single-player-intro";
 import { Spinner } from "@/components/ui/spinner";
@@ -175,11 +176,8 @@ export function GameBoard({ sessionId }: GameBoardProps) {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h1 className="text-lg sm:text-xl font-semibold">Finns i sjön</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Turordning: {getPlayerIds().map((id) => playerLabel(id)).join(" → ")}. Nu: {currentTurnId === myPlayerId ? "din tur" : `${playerLabel(currentTurnId)}s tur`}
-          </p>
         </div>
-        <div className="flex flex-wrap gap-4 text-xs sm:text-sm text-muted-foreground">
+        <div className="flex flex-wrap justify-start gap-4 text-xs sm:text-sm text-muted-foreground">
           {getPlayerIds().map((id) => (
             <span key={id}>
               {playerLabel(id)}: {state.quartetsWon[id] ?? 0} kvartetter, {state.playerHands[id]?.length ?? 0} kort
@@ -189,9 +187,10 @@ export function GameBoard({ sessionId }: GameBoardProps) {
       </div>
 
       {/* 1. Motståndarens kort (längst upp) – en hög per motståndare, sektioner bredvid varandra */}
-      <div className="flex flex-wrap gap-3 sm:gap-4">
+      <div className="flex flex-wrap justify-center gap-3 sm:gap-4">
         {opponentIds.map((id) => {
           const count = state.playerHands[id]?.length ?? 0;
+          const pileCount = Math.ceil(count / 5);
           const isAskingMe = pendingAskFromAI?.from === id;
           const lastAskFromThisToMe = state.lastAsk?.from === id && state.lastAsk?.to === myPlayerId;
           const lastAskFromThisToOtherAi = state.lastAsk?.from === id && state.lastAsk?.to !== myPlayerId && state.lastWasFinnsISjon;
@@ -199,37 +198,45 @@ export function GameBoard({ sessionId }: GameBoardProps) {
           const isThisPlayerTurn = currentTurnId === id;
           const rankLabel = (r: string) => RANK_LABELS[r] ?? r;
           return (
-            <section
+            <PlayerInfoCard
               key={id}
-              className={`rounded-lg border p-2 sm:p-3 shrink-0 ${isThisPlayerTurn ? "border-primary bg-primary/5 ring-1 ring-primary/30" : "border-border bg-muted/30"}`}
+              isActive={isThisPlayerTurn}
+              name={playerLabel(id)}
+              subtitle={`${count} kort`}
+              meta={isThisPlayerTurn ? "Tur" : undefined}
+              className={`${isThisPlayerTurn ? "border-primary bg-primary/5 ring-1 ring-primary/30" : "bg-muted/30"}`}
             >
-              <h2 className="mb-2 text-sm font-medium text-muted-foreground">
-                {playerLabel(id)} · {count} kort
-                {isThisPlayerTurn && <span className="ml-1.5 text-primary font-semibold">(tur)</span>}
-              </h2>
-              <div className="relative min-h-[92px] sm:min-h-[108px] w-[50px] sm:w-[62px] shrink-0">
-                {Array.from({ length: count }, (_, i) => (
-                  <div
-                    key={i}
-                    className="absolute left-0 top-0"
-                    style={{ transform: `translate(0, ${i * 6}px)` }}
-                  >
-                    <PlayingCard
-                      card={state.playerHands[id]?.[i] ?? { suit: "hearts", rank: "2" }}
-                      faceUp={false}
-                      faceDownVariant="cardback"
-                      size="sm"
-                    />
-                  </div>
-                ))}
+              <div className="flex min-h-[92px] sm:min-h-[108px] items-start gap-1.5">
+                {Array.from({ length: pileCount }, (_, pileIdx) => {
+                  const start = pileIdx * 5;
+                  const pileCards = state.playerHands[id]?.slice(start, start + 5) ?? [];
+                  return (
+                    <div key={pileIdx} className="relative w-[50px] sm:w-[62px] shrink-0">
+                      {pileCards.map((card, i) => (
+                        <div
+                          key={`${pileIdx}-${i}`}
+                          className="absolute left-0 top-0"
+                          style={{ transform: `translate(0, ${i * 6}px)` }}
+                        >
+                          <PlayingCard
+                            card={card ?? { suit: "hearts", rank: "2" }}
+                            faceUp={false}
+                            faceDownVariant="cardback"
+                            size="sm"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })}
               </div>
               {isAskingMe && pendingAskFromAI && (
-                <p className="mt-2 rounded-md bg-amber-500/15 px-2 py-1.5 text-sm text-amber-800 dark:text-amber-200 max-w-[180px]">
+                <p className="mt-2 rounded-md bg-amber-500/15 px-2 py-1.5 text-sm text-amber-800 dark:text-amber-200">
                   {playerLabel(id)} frågar efter {rankLabel(pendingAskFromAI.rank)}…
                 </p>
               )}
               {!isAskingMe && lastAskFromThisToMe && state.lastAsk && (
-                <p className="mt-2 rounded-md bg-muted/80 px-2 py-1.5 text-sm text-muted-foreground max-w-[200px]">
+                <p className="mt-2 rounded-md bg-muted/80 px-2 py-1.5 text-sm text-muted-foreground">
                   {state.lastWasFinnsISjon || lastAiAskWasFinnsISjon ? (
                     <>
                       {playerLabel(id)} frågade efter {rankLabel(state.lastAsk.rank)}. {rankLabel(state.lastAsk.rank)} finns i sjön. {playerLabel(id)} plockade ett kort ur sjön.
@@ -242,7 +249,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
                 </p>
               )}
               {!isAskingMe && showAiVsAiStep && (
-                <p className="mt-2 rounded-md bg-muted/80 px-2 py-1.5 text-sm text-muted-foreground max-w-[200px]">
+                <p className="mt-2 rounded-md bg-muted/80 px-2 py-1.5 text-sm text-muted-foreground">
                   {pendingAiDrawStep === 0 && (
                     <>{playerLabel(id)} frågade {playerLabel(state.lastAsk!.to)} efter {rankLabel(state.lastAsk!.rank)}</>
                   )}
@@ -254,7 +261,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
                   )}
                 </p>
               )}
-            </section>
+            </PlayerInfoCard>
           );
         })}
       </div>

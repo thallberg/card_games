@@ -97,7 +97,16 @@ export function TexasHoldemClient() {
     if (state.phase !== "playing" || state.currentActorIndex === mySeatIndex) return;
     const seatIdx = state.currentActorIndex;
     const seat = state.seats[seatIdx];
-    if (!seat || seat.folded || seat.isAllIn) return;
+    if (!seat) return;
+    // Safety: if turn lands on a folded/all-in AI, auto-advance instead of stalling.
+    if (seat.folded) {
+      setState(fold(state, seatIdx));
+      return;
+    }
+    if (seat.isAllIn) {
+      setState(call(state, seatIdx));
+      return;
+    }
 
     const toCall = state.currentBet - seat.betThisHand;
     const canCheck = toCall <= 0;

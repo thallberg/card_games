@@ -47,9 +47,9 @@ export function TableMelds({ melds, lastLaidMeldIds = [] }: TableMeldsProps) {
   });
   return (
     <div className="w-full max-h-[320px] overflow-y-auto overflow-x-hidden rounded-lg border border-dashed border-muted-foreground/20 bg-muted/10">
-      <div className="grid grid-cols-3 gap-3 p-4">
+      <div className="grid grid-cols-1 gap-2 p-2 sm:grid-cols-2 sm:gap-3 sm:p-4 lg:grid-cols-3">
         {melds.length === 0 ? (
-          <p className="col-span-3 flex min-h-[200px] items-center justify-center text-muted-foreground text-sm">
+          <p className="col-span-full flex min-h-[140px] items-center justify-center text-muted-foreground text-sm sm:min-h-[200px]">
             Inga kombinationer utlagda än.
           </p>
         ) : (
@@ -61,13 +61,13 @@ export function TableMelds({ melds, lastLaidMeldIds = [] }: TableMeldsProps) {
               onClick={() => setPopupMeld(meld)}
               onKeyDown={(e) => e.key === "Enter" && setPopupMeld(meld)}
               className={cn(
-                "flex flex-wrap items-center justify-center gap-0.5 rounded-md border-2 p-2 transition-colors text-left cursor-pointer hover:ring-2 hover:ring-primary/50 focus:outline-none focus:ring-2 focus:ring-primary",
+                "flex w-full flex-col rounded-md border-2 p-1.5 text-left transition-colors cursor-pointer hover:ring-2 hover:ring-primary/50 focus:outline-none focus:ring-2 focus:ring-primary sm:p-2",
                 recentSet.has(meld.id)
                   ? "border-green-500 bg-green-500/10"
                   : "border-border bg-card"
               )}
             >
-              <div className="flex items-end gap-1">
+              <div className="flex w-full items-end justify-center gap-1 overflow-x-auto overflow-y-hidden pb-1">
                 {getMeldDisplayCards(meld).map((item, i) => (
                   <div
                     key={`${meld.id}-${i}`}

@@ -80,7 +80,7 @@ export default function Home() {
           })}
         </section>
 
-        <section className="rounded-xl bg-[var(--pastel-sky)]/60 border border-[var(--pastel-sky)]/40 p-5 space-y-3">
+        <section className="rounded-xl bg-[var(--pastel-sky)]/60 p-5 border-l-4 border-l-[var(--accent-sky)] space-y-3">
           <div className="flex items-center gap-3">
             <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-foreground/10">
               <Rocket className="size-5 text-foreground" aria-hidden />
