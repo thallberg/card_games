@@ -18,6 +18,7 @@ import { PlayerInfoCard } from "@/components/player-info-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { GameResultPanel } from "@/components/game/game-result-panel";
+import { GameBoardShell } from "@/components/game/game-board-shell";
 import { cn } from "@/lib/utils";
 
 function cardKey(c: Card): string {
@@ -69,13 +70,13 @@ export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoar
   if (state.phase === "gameOver") {
     const winner = state.seats.find((s) => s.stack > 0);
     return (
-      <div className="mx-auto max-w-2xl">
+      <GameBoardShell maxWidth="2xl" spacingClassName="space-y-0">
         <GameResultPanel
           title="Spelet är slut"
           message={`Vinnare: ${winner?.name ?? "—"} med ${winner?.stack ?? 0} i stack.`}
           actions={[{ label: "Starta om", onClick: handleRestartToSetup, variant: "outlinePrimary" }]}
         />
-      </div>
+      </GameBoardShell>
     );
   }
 

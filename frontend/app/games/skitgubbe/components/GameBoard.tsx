@@ -11,6 +11,7 @@ import { PlayerInfoCard } from "@/components/player-info-card";
 import { Button } from "@/components/ui/button";
 import { PlayerStatusRow } from "@/components/game/player-status-row";
 import { GameResultPanel } from "@/components/game/game-result-panel";
+import { GameBoardShell } from "@/components/game/game-board-shell";
 import {
   Dialog,
   DialogContent,
@@ -114,7 +115,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
     const playerIdsToShow =
       isSecondView && skitgubbeIds.length > 0 ? skitgubbeIds : state.playerIds;
     return (
-      <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6 px-1 sm:px-0">
+      <GameBoardShell>
         <Dialog open={!skitgubbeModalClosed}>
           <DialogContent showCloseButton={false} className="sm:max-w-md">
             <DialogHeader>
@@ -217,7 +218,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
             <Button variant="outlinePrimary" onClick={continueToPlay}>Fortsätt till utspelet</Button>
           </div>
         </section>
-      </div>
+      </GameBoardShell>
     );
   }
 
@@ -237,7 +238,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
   const playableIndices = isSticks ? playableStickIndices : playableTrickIndices;
 
   return (
-    <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6 px-1 sm:px-0">
+    <GameBoardShell>
       <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-4">
         <PlayerStatusRow
           playerIds={getPlayerIds()}
@@ -425,6 +426,6 @@ export function GameBoard({ sessionId }: GameBoardProps) {
         )}
       </section>
 
-    </div>
+    </GameBoardShell>
   );
 }

@@ -10,6 +10,7 @@ import { SinglePlayerIntro } from "@/components/single-player-intro";
 import { MultiplayerStateGate } from "@/components/game/multiplayer-state-gate";
 import { PlayerStatusRow } from "@/components/game/player-status-row";
 import { GameResultPanel } from "@/components/game/game-result-panel";
+import { GameBoardShell } from "@/components/game/game-board-shell";
 import { RANK_LABELS } from "../types";
 import type { PlayerId, Rank } from "../types";
 import type { Card } from "../types";
@@ -137,7 +138,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
   const currentTurnId = state.currentPlayerId;
 
   return (
-    <div className="mx-auto max-w-4xl space-y-3 sm:space-y-4 px-1 sm:px-0">
+    <GameBoardShell spacingClassName="space-y-3 sm:space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h1 className="text-lg sm:text-xl font-semibold">Finns i sjön</h1>
@@ -409,6 +410,6 @@ export function GameBoard({ sessionId }: GameBoardProps) {
       {!isHumanTurn && state.phase === "play" && (
         <p className="text-muted-foreground text-center text-sm">Andra spelares tur…</p>
       )}
-    </div>
+    </GameBoardShell>
   );
 }

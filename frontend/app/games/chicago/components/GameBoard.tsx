@@ -4,13 +4,13 @@ import { useChicagoGame } from "../hooks/useChicagoGame";
 import { useChicagoGameMultiplayer } from "../hooks/useChicagoGameMultiplayer";
 import { getNextPlayerId } from "../game-state";
 import { getHandHighlightIndices } from "../hand-score";
-import Link from "next/link";
 import { PlayingCard } from "@/components/playing-card";
 import { PlayerInfoCard } from "@/components/player-info-card";
 import { Button } from "@/components/ui/button";
-import { Spinner } from "@/components/ui/spinner";
+import { MultiplayerStateGate } from "@/components/game/multiplayer-state-gate";
 import { PlayerStatusRow } from "@/components/game/player-status-row";
 import { GameResultPanel } from "@/components/game/game-result-panel";
+import { GameBoardShell } from "@/components/game/game-board-shell";
 
 const RANK_LABELS: Record<string, string> = {
   "2": "2", "3": "3", "4": "4", "5": "5", "6": "6", "7": "7", "8": "8",
@@ -49,30 +49,15 @@ export function GameBoard({ sessionId, playerCount = 2 }: GameBoardProps) {
   const loading = useMulti ? multi.loading : false;
   const loadState = useMulti ? multi.loadState : undefined;
 
-  if (!state) {
-    const loadFailed = useMulti && !loading;
-    return (
-      <div className="flex min-h-[200px] flex-1 flex-col items-center justify-center gap-4">
-        {loading || !useMulti ? (
-          <Spinner size="xl" className="text-primary" />
-        ) : loadFailed && loadState ? (
-          <>
-            <p className="text-muted-foreground text-center">Kunde inte ladda spelet.</p>
-            <div className="flex flex-wrap justify-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => loadState()}>
-                Försök igen
-              </Button>
-              <Button variant="outline" size="sm" asChild>
-                <Link href="/spel">Mina spel</Link>
-              </Button>
-            </div>
-          </>
-        ) : (
-          <Spinner size="xl" className="text-primary" />
-        )}
-      </div>
-    );
-  }
+  const multiplayerGate = MultiplayerStateGate({
+    useMulti,
+    loading,
+    waitingForStart: false,
+    hasState: !!state,
+    onRetry: loadState,
+  });
+  if (multiplayerGate) return multiplayerGate;
+  if (!state) return null;
 
   const isMyTurnPlay =
     state.phase === "play" &&
@@ -81,7 +66,7 @@ export function GameBoard({ sessionId, playerCount = 2 }: GameBoardProps) {
       : getNextPlayerId(state.trickLeader, state) === myPlayerId);
 
   return (
-    <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6 px-1 sm:px-0">
+    <GameBoardShell>
       <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-4">
         <h1 className="text-lg sm:text-xl font-semibold">Poker Chicago</h1>
         <PlayerStatusRow
@@ -337,6 +322,6 @@ export function GameBoard({ sessionId, playerCount = 2 }: GameBoardProps) {
           actions={!useMulti ? [{ label: "Spela igen", onClick: resetGame, variant: "outlinePrimary" }] : undefined}
         />
       )}
-    </div>
+    </GameBoardShell>
   );
 }

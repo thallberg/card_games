@@ -16,6 +16,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { MultiplayerStateGate } from "@/components/game/multiplayer-state-gate";
 import { PlayerStatusRow } from "@/components/game/player-status-row";
 import { GameResultPanel } from "@/components/game/game-result-panel";
+import { GameBoardShell } from "@/components/game/game-board-shell";
 import {
   Dialog,
   DialogContent,
@@ -155,7 +156,7 @@ export function GameBoard({ sessionId, playerCount = 2 }: GameBoardProps) {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6 px-1 sm:px-0">
+    <GameBoardShell>
       <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-4">
         <PlayerStatusRow
           playerIds={getPlayerIds()}
@@ -353,6 +354,6 @@ export function GameBoard({ sessionId, playerCount = 2 }: GameBoardProps) {
           </Dialog>
         </>
       )}
-    </div>
+    </GameBoardShell>
   );
 }
