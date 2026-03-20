@@ -32,7 +32,7 @@ export function useGameState(playerCount: number = 2) {
 
   // Auto-play AI turn i single player
   useDelayedSingleFlight({
-    enabled: !!state && state.phase === "draw" && state.currentPlayerId !== HUMAN_PLAYER && state.phase !== "roundEnd" && state.phase !== "gameOver",
+    enabled: !!state && state.phase === "draw" && state.currentPlayerId !== HUMAN_PLAYER,
     delayMs: AI_DRAW_DELAY_MS,
     onFire: () => {
       setState((s) => {
@@ -68,7 +68,7 @@ export function useGameState(playerCount: number = 2) {
   });
 
   useDelayedSingleFlight({
-    enabled: !!state && state.phase === "meldOrDiscard" && state.currentPlayerId !== HUMAN_PLAYER && state.phase !== "roundEnd" && state.phase !== "gameOver",
+    enabled: !!state && state.phase === "meldOrDiscard" && state.currentPlayerId !== HUMAN_PLAYER,
     delayMs: AI_DISCARD_DELAY_MS,
     onFire: () => {
       setState((s) => {
