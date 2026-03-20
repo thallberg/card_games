@@ -2,6 +2,7 @@ import type { Card, PlayerId, Rank } from "./types";
 import { createDeck, shuffle, sortHand } from "./deck";
 import { HAND_SIZE_PHASE1, MIN_PLAYERS, MAX_PLAYERS } from "./constants";
 import { RANK_VALUE } from "./types";
+import { dealHandsFromShuffledDeckStart } from "@/lib/deal";
 
 export type SkitgubbePhase =
   | "setup"      // Välj antal spelare
@@ -89,13 +90,12 @@ export function createInitialState(numPlayers: number): GameState {
     Math.max(MIN_PLAYERS, Math.min(MAX_PLAYERS, numPlayers))
   );
   const deck = shuffle(createDeck());
-  const hands: Record<PlayerId, Card[]> = {};
-  let idx = 0;
-  for (const id of playerIds) {
-    hands[id] = sortHand(deck.slice(idx, idx + HAND_SIZE_PHASE1));
-    idx += HAND_SIZE_PHASE1;
-  }
-  const stock = deck.slice(HAND_SIZE_PHASE1 * playerIds.length);
+  const { hands, remainingDeck: stock } = dealHandsFromShuffledDeckStart({
+    deck,
+    playerIds,
+    handSize: HAND_SIZE_PHASE1,
+    sortHand,
+  });
   const sticksWon: Record<PlayerId, number> = {};
   const wonCards: Record<PlayerId, Card[]> = {};
   for (const id of playerIds) {

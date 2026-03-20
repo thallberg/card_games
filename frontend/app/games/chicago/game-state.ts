@@ -2,6 +2,7 @@ import type { Card, PlayerId } from "./types";
 import { RANK_VALUE } from "./types";
 import { createDeck, shuffle, sortHand } from "./deck";
 import { HAND_SIZE, MAX_DRAW_ROUNDS } from "./constants";
+import { dealHandsFromShuffledDeckStart } from "@/lib/deal";
 
 export type ChicagoPhase =
   | "draw"      // Välj kort att kasta, max 3 omgångar
@@ -59,13 +60,12 @@ export function createInitialState(numPlayers: number = 2): GameState {
     (_, i) => `p${i + 1}` as PlayerId
   );
   const deck = shuffle(createDeck());
-  const hands: Record<PlayerId, Card[]> = {} as Record<PlayerId, Card[]>;
-  let idx = 0;
-  for (const id of playerIds) {
-    hands[id] = sortHand(deck.slice(idx, idx + HAND_SIZE));
-    idx += HAND_SIZE;
-  }
-  const deckRemaining = deck.slice(HAND_SIZE * playerIds.length);
+  const { hands, remainingDeck: deckRemaining } = dealHandsFromShuffledDeckStart({
+    deck,
+    playerIds,
+    handSize: HAND_SIZE,
+    sortHand,
+  });
   const scores: Record<PlayerId, number> = {} as Record<PlayerId, number>;
   const roundPoints: Record<PlayerId, number> = {} as Record<PlayerId, number>;
   const playHands: Record<PlayerId, Card[]> = {} as Record<PlayerId, Card[]>;

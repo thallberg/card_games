@@ -1,20 +1,7 @@
 import type { GameState } from "../game-state";
-import type { Card, Suit, Rank } from "../types";
-import { SUITS, RANKS } from "../types";
+import type { Card } from "../types";
 import { apiFetch } from "@/lib/api";
-
-const SUIT_SET = new Set<string>(SUITS);
-const RANK_SET = new Set<string>(RANKS);
-
-function normalizeCard(raw: { suit?: string; rank?: string }): Card {
-  const suit = (SUIT_SET.has(raw.suit ?? "") ? raw.suit : "hearts") as Suit;
-  const rank = (RANK_SET.has(raw.rank ?? "") ? raw.rank : "2") as Rank;
-  return { suit, rank };
-}
-
-function normalizeCards(arr: unknown[]): Card[] {
-  return Array.isArray(arr) ? arr.map((c) => normalizeCard((c as Record<string, string>) ?? {})) : [];
-}
+import { normalizeCard, normalizeCards } from "@/lib/api-card-normalize";
 
 function normalizeState(raw: Record<string, unknown>): GameState {
   const r = raw as Record<string, unknown>;

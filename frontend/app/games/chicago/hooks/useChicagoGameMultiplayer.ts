@@ -10,6 +10,7 @@ import { getHandPoints, getHandDescription } from "../hand-score";
 import { fetchChicagoState, sendChicagoAction, startChicagoNewRound } from "../api/chicagoApi";
 import { getPlayerIds } from "../game-state";
 import { useGameSessionPoll } from "@/hooks/useGameSessionPoll";
+import { sendAndSync } from "@/lib/multiplayer-sync";
 
 
 export function useChicagoGameMultiplayer(sessionId: string | undefined) {
@@ -78,12 +79,14 @@ export function useChicagoGameMultiplayer(sessionId: string | undefined) {
 
   const applyAndSend = useCallback(
     async (nextState: GameState) => {
-      if (!sessionId) return;
-      const result = await sendChicagoAction(sessionId, JSON.stringify(nextState));
-      if (result) {
-        setState(result.state);
-        setMyPlayerId(result.myPlayerId as PlayerId);
-      }
+      await sendAndSync(
+        sessionId,
+        () => sendChicagoAction(sessionId as string, JSON.stringify(nextState)),
+        (result) => {
+          setState(result.state);
+          setMyPlayerId(result.myPlayerId as PlayerId);
+        }
+      );
     },
     [sessionId]
   );

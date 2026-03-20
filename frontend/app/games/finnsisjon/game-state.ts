@@ -1,6 +1,7 @@
 import type { Card, PlayerId, Rank } from "./types";
 import { createDeck, shuffle, sortHand } from "./deck";
 import { INITIAL_HAND_SIZE, MIN_PLAYERS, MAX_PLAYERS, CARDS_PER_QUARTET, DRAW_WHEN_EMPTY } from "./constants";
+import { dealHandsFromShuffledDeckStart } from "@/lib/deal";
 
 export type FinnsisjonPhase = "setup" | "play" | "gameOver";
 
@@ -35,16 +36,12 @@ export function createInitialState(numPlayers: number): GameState {
   const playerIds = createPlayerIds(n);
   const deck = shuffle(createDeck()); // 52 kort
   const handSize = Math.min(INITIAL_HAND_SIZE, Math.floor(deck.length / n));
-  const playerHands: Record<PlayerId, Card[]> = {};
-  let idx = 0;
-  for (const id of playerIds) {
-    const hand: Card[] = [];
-    for (let i = 0; i < handSize; i++) {
-      hand.push(deck[idx++]);
-    }
-    playerHands[id] = sortHand(hand);
-  }
-  const sjön = deck.slice(idx);
+  const { hands: playerHands, remainingDeck: sjön } = dealHandsFromShuffledDeckStart({
+    deck,
+    playerIds,
+    handSize,
+    sortHand,
+  });
   const quartetsWon: Record<PlayerId, number> = {};
   for (const id of playerIds) quartetsWon[id] = 0;
 

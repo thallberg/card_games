@@ -1,6 +1,7 @@
 import type { Card, Meld, PlayerId } from "./types";
 import { createDeck, shuffle, sortHand } from "./deck";
 import { HAND_SIZE, POINTS_TO_WIN } from "./constants";
+import { dealHandsFromShuffledDeckStart } from "@/lib/deal";
 
 export type GameState = {
   stock: Card[];
@@ -29,13 +30,12 @@ export function createInitialState(numPlayers: number = 2): GameState {
     (_, i) => `p${i + 1}` as PlayerId
   );
   const deck = shuffle(createDeck());
-  const hands: Record<PlayerId, Card[]> = {} as Record<PlayerId, Card[]>;
-  let idx = 0;
-  for (const id of playerIds) {
-    hands[id] = sortHand(deck.slice(idx, idx + HAND_SIZE));
-    idx += HAND_SIZE;
-  }
-  const stock = deck.slice(HAND_SIZE * playerIds.length);
+  const { hands, remainingDeck: stock } = dealHandsFromShuffledDeckStart({
+    deck,
+    playerIds,
+    handSize: HAND_SIZE,
+    sortHand,
+  });
   const discard = stock.length > 0 ? [stock.pop()!] : [];
   const scores: Record<PlayerId, number> = {} as Record<PlayerId, number>;
   for (const id of playerIds) scores[id] = 0;
@@ -75,13 +75,12 @@ export function checkGameOver(scores: Record<PlayerId, number>): PlayerId | null
 export function createNewRoundState(current: GameState): GameState {
   const playerIds = getPlayerIdsFromState(current);
   const deck = shuffle(createDeck());
-  const hands: Record<PlayerId, Card[]> = {} as Record<PlayerId, Card[]>;
-  let idx = 0;
-  for (const id of playerIds) {
-    hands[id] = sortHand(deck.slice(idx, idx + HAND_SIZE));
-    idx += HAND_SIZE;
-  }
-  const stock = deck.slice(HAND_SIZE * playerIds.length);
+  const { hands, remainingDeck: stock } = dealHandsFromShuffledDeckStart({
+    deck,
+    playerIds,
+    handSize: HAND_SIZE,
+    sortHand,
+  });
   const discard = stock.length > 0 ? [stock.pop()!] : [];
   const newRoundNumber = current.roundNumber + 1;
   const firstPlayerIndex = (newRoundNumber - 1) % playerIds.length;

@@ -7,6 +7,8 @@ import { getPlayerIds, applyAsk, applyDrawCardFromSjön } from "../game-state";
 import { fetchFinnsisjonState, sendFinnsisjonAction, fetchGameSession } from "../api/finnsisjonApi";
 import type { SessionPlayer } from "../api/finnsisjonApi";
 import { useGameSessionPoll } from "@/hooks/useGameSessionPoll";
+import { getCurrentUserIdFromLocalStorage, isWaitingForStartForUser } from "@/lib/game-session";
+import { sendAndSync } from "@/lib/multiplayer-sync";
 
 function getRanksInHand(hand: { rank: string }[]): Rank[] {
   return [...new Set(hand.map((c) => c.rank))] as Rank[];
@@ -32,22 +34,8 @@ export function useFinnsisjonGameMultiplayer(sessionId: string | undefined) {
         }).catch(() => {});
       } else {
         const session = await fetchGameSession(sessionId).catch(() => null);
-        const raw = typeof window !== "undefined" ? localStorage.getItem("user") : null;
-        let currentUserId: string | null = null;
-        if (raw) {
-          try {
-            const u = JSON.parse(raw) as { id?: string };
-            currentUserId = u?.id ?? null;
-          } catch {}
-        }
-        const isInSession = session?.players?.some(
-          (p) => String(p.userId).toLowerCase() === String(currentUserId ?? "").toLowerCase()
-        );
-        if (session?.status === "Waiting" && isInSession) {
-          setWaitingForStart(true);
-        } else {
-          setWaitingForStart(false);
-        }
+        const currentUserId = getCurrentUserIdFromLocalStorage();
+        setWaitingForStart(isWaitingForStartForUser(session, currentUserId));
       }
     } finally {
       setLoading(false);
@@ -75,12 +63,14 @@ export function useFinnsisjonGameMultiplayer(sessionId: string | undefined) {
 
   const sendState = useCallback(
     async (newState: GameState) => {
-      if (!sessionId) return;
-      const data = await sendFinnsisjonAction(sessionId, newState);
-      if (data) {
-        setState(data.state);
-        setMyPlayerId(data.myPlayerId as PlayerId);
-      }
+      await sendAndSync(
+        sessionId,
+        () => sendFinnsisjonAction(sessionId as string, newState),
+        (data) => {
+          setState(data.state);
+          setMyPlayerId(data.myPlayerId as PlayerId);
+        }
+      );
     },
     [sessionId]
   );

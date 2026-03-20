@@ -7,6 +7,8 @@ import { sortHand } from "../deck";
 import { fetchFiveHundredState, fetchGameSession, sendFiveHundredAction, startFiveHundredNewRound, resetFiveHundredGame } from "../api/fiveHundredApi";
 import type { SessionPlayer } from "../api/fiveHundredApi";
 import { useGameSessionPoll } from "@/hooks/useGameSessionPoll";
+import { sendAndSyncStateOnly } from "@/lib/multiplayer-sync";
+import { getCurrentUserIdFromLocalStorage, isWaitingForStartForUser } from "@/lib/game-session";
 
 export function useGameStateMultiplayer(sessionId: string | undefined) {
   const [state, setState] = useState<GameState | null>(null);
@@ -30,22 +32,8 @@ export function useGameStateMultiplayer(sessionId: string | undefined) {
         }).catch(() => { /* ignore */ });
       } else {
         const session = await fetchGameSession(sessionId).catch(() => null);
-        const raw = typeof window !== "undefined" ? localStorage.getItem("user") : null;
-        let currentUserId: string | null = null;
-        if (raw) {
-          try {
-            const u = JSON.parse(raw) as { id?: string };
-            currentUserId = u?.id ?? null;
-          } catch { /* ignore */ }
-        }
-        const isInSession = session?.players?.some(
-          (p) => String(p.userId).toLowerCase() === String(currentUserId ?? "").toLowerCase()
-        );
-        if (session?.status === "Waiting" && isInSession) {
-          setWaitingForStart(true);
-        } else {
-          setWaitingForStart(false);
-        }
+        const currentUserId = getCurrentUserIdFromLocalStorage();
+        setWaitingForStart(isWaitingForStartForUser(session, currentUserId));
       }
     } finally {
       setLoading(false);
@@ -85,12 +73,14 @@ export function useGameStateMultiplayer(sessionId: string | undefined) {
         wildAs?: Card;
       }
     ) => {
-      if (!sessionId) return;
-      const result = await sendFiveHundredAction(sessionId, action, payload);
-      if (result) {
-        setState(result.state);
-        setLastDrawnCard(result.lastDrawnCard ?? null);
-      }
+      await sendAndSyncStateOnly(
+        sessionId,
+        () => sendFiveHundredAction(sessionId as string, action, payload),
+        (result) => {
+          setState(result.state);
+          setLastDrawnCard((result.lastDrawnCard as Card | null | undefined) ?? null);
+        }
+      );
     },
     [sessionId]
   );

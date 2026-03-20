@@ -1,11 +1,10 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import type { Card, PlayerId } from "../types";
+import type { PlayerId } from "../types";
 import { RANK_VALUE } from "../types";
 import type { GameState } from "../game-state";
 import { getPlayerIds } from "../game-state";
-import { sortHandForPlay } from "../deck";
 import {
   applyTrickCards,
   applyPickUpTrick,
@@ -18,6 +17,8 @@ import {
 import { fetchSkitgubbeState, sendSkitgubbeAction, fetchGameSession } from "../api/skitgubbeApi";
 import type { SessionPlayer } from "../api/skitgubbeApi";
 import { useGameSessionPoll } from "@/hooks/useGameSessionPoll";
+import { getCurrentUserIdFromLocalStorage, isWaitingForStartForUser } from "@/lib/game-session";
+import { sendAndSync } from "@/lib/multiplayer-sync";
 
 export function useSkitgubbeGameMultiplayer(sessionId: string | undefined) {
   const [state, setState] = useState<GameState | null>(null);
@@ -40,24 +41,8 @@ export function useSkitgubbeGameMultiplayer(sessionId: string | undefined) {
         }).catch(() => { /* ignore */ });
       } else {
         const session = await fetchGameSession(sessionId).catch(() => null);
-        const raw = typeof window !== "undefined" ? localStorage.getItem("user") : null;
-        let currentUserId: string | null = null;
-        if (raw) {
-          try {
-            const u = JSON.parse(raw) as { id?: string };
-            currentUserId = u?.id ?? null;
-          } catch {
-            /* ignore */
-          }
-        }
-        const isInSession = session?.players?.some(
-          (p) => String(p.userId).toLowerCase() === String(currentUserId ?? "").toLowerCase()
-        );
-        if (session?.status === "Waiting" && isInSession) {
-          setWaitingForStart(true);
-        } else {
-          setWaitingForStart(false);
-        }
+        const currentUserId = getCurrentUserIdFromLocalStorage();
+        setWaitingForStart(isWaitingForStartForUser(session, currentUserId));
       }
     } finally {
       setLoading(false);
@@ -88,12 +73,14 @@ export function useSkitgubbeGameMultiplayer(sessionId: string | undefined) {
 
   const sendState = useCallback(
     async (newState: GameState) => {
-      if (!sessionId) return;
-      const data = await sendSkitgubbeAction(sessionId, newState);
-      if (data) {
-        setState(data.state);
-        setMyPlayerId(data.myPlayerId as PlayerId);
-      }
+      await sendAndSync(
+        sessionId,
+        () => sendSkitgubbeAction(sessionId as string, newState),
+        (data) => {
+          setState(data.state);
+          setMyPlayerId(data.myPlayerId as PlayerId);
+        }
+      );
     },
     [sessionId]
   );

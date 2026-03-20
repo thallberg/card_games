@@ -15,6 +15,7 @@ import { getMeldType, canAddCardToMeld } from "../melds";
 import { findFirstPossibleMeld } from "../ai-melds";
 import { getHandPenalty, getMeldPointsByPlayer } from "../scoring";
 import { PICKUP_PENALTY } from "../constants";
+import { useDelayedSingleFlight } from "@/hooks/useDelayedSingleFlight";
 
 const HUMAN_PLAYER: PlayerId = "p1";
 const AI_DRAW_DELAY_MS = 1000;
@@ -24,169 +25,169 @@ export function useGameState(playerCount: number = 2) {
   const [state, setState] = useState<GameState | null>(null);
   const [lastDrawnCards, setLastDrawnCards] = useState<Card[]>([]);
   const lastDrawnRef = useRef<Card | Card[] | null>(null);
-  const aiTurnRef = useRef(false);
 
   useEffect(() => {
     setState(createInitialState(playerCount));
   }, [playerCount]);
 
-  // Auto-play AI turn i single player – samma flöde som att vänta på motståndare i multiplayer
-  useEffect(() => {
-    if (!state || state.phase === "roundEnd" || state.phase === "gameOver") return;
-    if (state.currentPlayerId === HUMAN_PLAYER) return;
-    if (aiTurnRef.current) return;
+  // Auto-play AI turn i single player
+  useDelayedSingleFlight({
+    enabled: !!state && state.phase === "draw" && state.currentPlayerId !== HUMAN_PLAYER && state.phase !== "roundEnd" && state.phase !== "gameOver",
+    delayMs: AI_DRAW_DELAY_MS,
+    onFire: () => {
+      setState((s) => {
+        if (s == null) return s;
+        const aiId = s.currentPlayerId;
+        if (aiId == null || aiId === HUMAN_PLAYER || s.phase !== "draw") return s;
+        if (s.stock.length > 0) {
+          const card = s.stock[s.stock.length - 1];
+          return {
+            ...s,
+            stock: s.stock.slice(0, -1),
+            playerHands: {
+              ...s.playerHands,
+              [aiId]: sortHand([...(s.playerHands[aiId] ?? []), card]),
+            },
+            phase: "meldOrDiscard",
+            lastDraw: "stock",
+          };
+        }
+        if (s.discard.length > 0) {
+          const newHand = sortHand([...(s.playerHands[aiId] ?? []), ...s.discard]);
+          return {
+            ...s,
+            discard: [],
+            playerHands: { ...s.playerHands, [aiId]: newHand },
+            phase: "meldOrDiscard",
+            lastDraw: "discard",
+          };
+        }
+        return { ...s, phase: "meldOrDiscard", lastDraw: null };
+      });
+    },
+  });
 
-    if (state.phase === "draw") {
-      aiTurnRef.current = true;
-      const t = setTimeout(() => {
-        setState((s) => {
-          if (s == null) return s;
-          const aiId = s.currentPlayerId;
-          if (aiId == null || aiId === HUMAN_PLAYER || s.phase !== "draw") return s;
-          if (s.stock.length > 0) {
-            const card = s.stock[s.stock.length - 1];
-            return {
-              ...s,
-              stock: s.stock.slice(0, -1),
-              playerHands: {
-                ...s.playerHands,
-                [aiId]: sortHand([...(s.playerHands[aiId] ?? []), card]),
+  useDelayedSingleFlight({
+    enabled: !!state && state.phase === "meldOrDiscard" && state.currentPlayerId !== HUMAN_PLAYER && state.phase !== "roundEnd" && state.phase !== "gameOver",
+    delayMs: AI_DISCARD_DELAY_MS,
+    onFire: () => {
+      setState((s) => {
+        if (s == null) return s;
+        const aiId = s.currentPlayerId;
+        if (aiId == null || aiId === HUMAN_PLAYER || s.phase !== "meldOrDiscard") return s;
+        let hand = s.playerHands[aiId] ?? [];
+        let melds = s.melds;
+        let cardsLaidThisTurn = s.cardsLaidThisTurn ?? 0;
+
+        let aiLaidMeldId: string | null = null;
+        const choice = findFirstPossibleMeld(hand);
+        if (choice && choice.indices.length >= 3) {
+          const indices = [...choice.indices].sort((a, b) => a - b);
+          const cards = indices.map((i) => hand[i]);
+          const type = getMeldType(cards);
+          if (type) {
+            aiLaidMeldId = crypto.randomUUID();
+            hand = hand.filter((_, i) => !indices.includes(i));
+            melds = [
+              ...melds,
+              {
+                id: aiLaidMeldId,
+                cards,
+                type,
+                ownerId: aiId,
+                ...(Object.keys(choice.wildRepresents).length > 0
+                  ? { wildRepresents: choice.wildRepresents }
+                  : undefined),
               },
-              phase: "meldOrDiscard",
-              lastDraw: "stock",
-            };
+            ];
+            cardsLaidThisTurn += cards.length;
           }
-          if (s.discard.length > 0) {
-            const newHand = sortHand([...(s.playerHands[aiId] ?? []), ...s.discard]);
-            return {
-              ...s,
-              discard: [],
-              playerHands: { ...s.playerHands, [aiId]: newHand },
-              phase: "meldOrDiscard",
-              lastDraw: "discard",
-            };
-          }
-          return { ...s, phase: "meldOrDiscard", lastDraw: null };
-        });
-        aiTurnRef.current = false;
-      }, AI_DRAW_DELAY_MS);
-      return () => clearTimeout(t);
-    }
+        }
 
-    if (state.phase === "meldOrDiscard") {
-      aiTurnRef.current = true;
-      const t = setTimeout(() => {
-        setState((s) => {
-          if (s == null) return s;
-          const aiId = s.currentPlayerId;
-          if (aiId == null || aiId === HUMAN_PLAYER || s.phase !== "meldOrDiscard") return s;
-          let hand = s.playerHands[aiId] ?? [];
-          let melds = s.melds;
-          let cardsLaidThisTurn = s.cardsLaidThisTurn ?? 0;
-
-          let aiLaidMeldId: string | null = null;
-          const choice = findFirstPossibleMeld(hand);
-          if (choice && choice.indices.length >= 3) {
-            const indices = [...choice.indices].sort((a, b) => a - b);
-            const cards = indices.map((i) => hand[i]);
-            const type = getMeldType(cards);
-            if (type) {
-              aiLaidMeldId = crypto.randomUUID();
-              hand = hand.filter((_, i) => !indices.includes(i));
-              melds = [
-                ...melds,
-                {
-                  id: aiLaidMeldId,
-                  cards,
-                  type,
-                  ownerId: aiId,
-                  ...(Object.keys(choice.wildRepresents).length > 0
-                    ? { wildRepresents: choice.wildRepresents }
-                    : undefined),
-                },
-              ];
-              cardsLaidThisTurn += cards.length;
-            }
-          }
-
-          if (hand.length === 0) {
-            const updated = {
-              ...s,
-              melds,
-              cardsLaidThisTurn,
-              playerHands: { ...s.playerHands, [aiId]: hand },
-              lastLaidMeldIds: aiLaidMeldId ? [aiLaidMeldId] : [],
-            };
-            if (s.lastDraw === "discard" && cardsLaidThisTurn < 3) {
-              updated.playerScores = {
-                ...updated.playerScores,
-                [aiId]: (updated.playerScores[aiId] ?? 0) - PICKUP_PENALTY,
-              };
-            }
-            const meldByPlayer = getMeldPointsByPlayer(updated.melds, getPlayerIds(updated));
-            const newScores = { ...updated.playerScores };
-            newScores[aiId] = (newScores[aiId] ?? 0) + meldByPlayer[aiId];
-            newScores[HUMAN_PLAYER] = (newScores[HUMAN_PLAYER] ?? 0) + meldByPlayer[HUMAN_PLAYER] - getHandPenalty(updated.playerHands[HUMAN_PLAYER] ?? []);
-            const gameWinner = checkGameOver(newScores);
-            return {
-              ...updated,
-              playerScores: newScores,
-              phase: gameWinner != null ? ("gameOver" as const) : ("roundEnd" as const),
-              winnerId: gameWinner ?? aiId,
-              lastLaidMeldIds: [],
-            };
-          }
-          const handIndex = Math.floor(Math.random() * hand.length);
-          const cardToDiscard = hand[handIndex];
-          const newHand = hand.filter((_, i) => i !== handIndex);
-          const newDiscard = [cardToDiscard, ...s.discard];
-          let updated: GameState = {
+        if (hand.length === 0) {
+          const updated = {
             ...s,
             melds,
             cardsLaidThisTurn,
-            discard: newDiscard,
-            playerHands: { ...s.playerHands, [aiId]: newHand },
+            playerHands: { ...s.playerHands, [aiId]: hand },
             lastLaidMeldIds: aiLaidMeldId ? [aiLaidMeldId] : [],
           };
           if (s.lastDraw === "discard" && cardsLaidThisTurn < 3) {
-            updated = {
-              ...updated,
-              playerScores: {
-                ...updated.playerScores,
-                [aiId]: (updated.playerScores[aiId] ?? 0) - PICKUP_PENALTY,
-              },
+            updated.playerScores = {
+              ...updated.playerScores,
+              [aiId]: (updated.playerScores[aiId] ?? 0) - PICKUP_PENALTY,
             };
           }
-          if (newHand.length === 0) {
-            const meldByPlayer = getMeldPointsByPlayer(updated.melds, getPlayerIds(updated));
-            const newScores = { ...updated.playerScores };
-            newScores[aiId] = (newScores[aiId] ?? 0) + meldByPlayer[aiId];
-            newScores[HUMAN_PLAYER] = (newScores[HUMAN_PLAYER] ?? 0) + meldByPlayer[HUMAN_PLAYER] - getHandPenalty(updated.playerHands[HUMAN_PLAYER] ?? []);
-            const gameWinner = checkGameOver(newScores);
-            return {
-              ...updated,
-              playerScores: newScores,
-              phase: gameWinner != null ? ("gameOver" as const) : ("roundEnd" as const),
-              winnerId: gameWinner ?? aiId,
-              lastLaidMeldIds: [],
-            };
-          }
-          const gameWinner = checkGameOver(s.playerScores);
-          const nextId = getNextPlayerId(updated.currentPlayerId!, updated);
-          const next = {
+          const meldByPlayer = getMeldPointsByPlayer(updated.melds, getPlayerIds(updated));
+          const newScores = { ...updated.playerScores };
+          newScores[aiId] = (newScores[aiId] ?? 0) + meldByPlayer[aiId];
+          newScores[HUMAN_PLAYER] =
+            (newScores[HUMAN_PLAYER] ?? 0) +
+            meldByPlayer[HUMAN_PLAYER] -
+            getHandPenalty(updated.playerHands[HUMAN_PLAYER] ?? []);
+          const gameWinner = checkGameOver(newScores);
+          return {
             ...updated,
-            currentPlayerId: nextId,
-            phase: "draw" as const,
-            lastDraw: null,
-            lastLaidMeldIds: updated.lastLaidMeldIds ?? [],
+            playerScores: newScores,
+            phase: gameWinner != null ? ("gameOver" as const) : ("roundEnd" as const),
+            winnerId: gameWinner ?? aiId,
+            lastLaidMeldIds: [],
           };
-          return gameWinner != null ? { ...next, winnerId: gameWinner } : next;
-        });
-        aiTurnRef.current = false;
-      }, AI_DISCARD_DELAY_MS);
-      return () => clearTimeout(t);
-    }
-  }, [state?.phase, state?.currentPlayerId]);
+        }
+
+        const handIndex = Math.floor(Math.random() * hand.length);
+        const cardToDiscard = hand[handIndex];
+        const newHand = hand.filter((_, i) => i !== handIndex);
+        const newDiscard = [cardToDiscard, ...s.discard];
+        let updated: GameState = {
+          ...s,
+          melds,
+          cardsLaidThisTurn,
+          discard: newDiscard,
+          playerHands: { ...s.playerHands, [aiId]: newHand },
+          lastLaidMeldIds: aiLaidMeldId ? [aiLaidMeldId] : [],
+        };
+        if (s.lastDraw === "discard" && cardsLaidThisTurn < 3) {
+          updated = {
+            ...updated,
+            playerScores: {
+              ...updated.playerScores,
+              [aiId]: (updated.playerScores[aiId] ?? 0) - PICKUP_PENALTY,
+            },
+          };
+        }
+        if (newHand.length === 0) {
+          const meldByPlayer = getMeldPointsByPlayer(updated.melds, getPlayerIds(updated));
+          const newScores = { ...updated.playerScores };
+          newScores[aiId] = (newScores[aiId] ?? 0) + meldByPlayer[aiId];
+          newScores[HUMAN_PLAYER] =
+            (newScores[HUMAN_PLAYER] ?? 0) +
+            meldByPlayer[HUMAN_PLAYER] -
+            getHandPenalty(updated.playerHands[HUMAN_PLAYER] ?? []);
+          const gameWinner = checkGameOver(newScores);
+          return {
+            ...updated,
+            playerScores: newScores,
+            phase: gameWinner != null ? ("gameOver" as const) : ("roundEnd" as const),
+            winnerId: gameWinner ?? aiId,
+            lastLaidMeldIds: [],
+          };
+        }
+
+        const gameWinner = checkGameOver(s.playerScores);
+        const nextId = getNextPlayerId(updated.currentPlayerId!, updated);
+        const next = {
+          ...updated,
+          currentPlayerId: nextId,
+          phase: "draw" as const,
+          lastDraw: null,
+          cardsLaidThisTurn: 0,
+          lastLaidMeldIds: updated.lastLaidMeldIds ?? [],
+        };
+        return gameWinner != null ? { ...next, winnerId: gameWinner } : next;
+      });
+    },
+  });
 
   const flushLastDrawn = useCallback(() => {
     const v = lastDrawnRef.current;

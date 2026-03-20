@@ -2,6 +2,7 @@ import type { Card, PlayerSeat, BettingPhase } from "./types";
 import { createDeck, shuffle } from "./deck";
 import { MIN_PLAYERS, MAX_PLAYERS } from "./constants";
 import { bestHand, compareRankedHands } from "./hand-rankings";
+import { dealCardsFromDeckEndToSeats } from "@/lib/deal";
 
 export type TexasHoldemState = {
   phase: "setup" | "playing" | "handOver" | "gameOver";
@@ -86,10 +87,12 @@ export function startNewGame(
   const smallBlind = Math.floor(bigBlind / 2);
   const seats = createSeats(numPlayers, buyIn);
   const deck = shuffle(createDeck());
-  const holeCards: Card[][] = [];
-  for (let i = 0; i < numPlayers; i++) {
-    holeCards.push([deck.pop()!, deck.pop()!]);
-  }
+  const { hands: holeCards, remainingDeck } = dealCardsFromDeckEndToSeats({
+    deck,
+    numSeats: numPlayers,
+    cardsPerSeat: 2,
+  });
+  const deckAfterDeal = remainingDeck;
   const dealerIndex = 0;
   const sbIndex = numPlayers === 2 ? 0 : 1;
   const bbIndex = numPlayers === 2 ? 1 : 2;
@@ -130,7 +133,7 @@ export function startNewGame(
     bettingPhase: "preflop",
     board: [],
     holeCards,
-    deck,
+    deck: deckAfterDeal,
     pot,
     currentBet: bigBlind,
     minRaise: bigBlind,
@@ -392,14 +395,12 @@ export function startNextHand(state: TexasHoldemState): TexasHoldemState {
   const sbIndex = nextSeatWithChips(state.seats, dealerIndex);
   const bbIndex = nextSeatWithChips(state.seats, sbIndex);
   const deck = shuffle(createDeck());
-  const holeCards: Card[][] = [];
-  for (let i = 0; i < numPlayers; i++) {
-    if (state.seats[i].stack > 0) {
-      holeCards.push([deck.pop()!, deck.pop()!]);
-    } else {
-      holeCards.push([]);
-    }
-  }
+  const { hands: holeCards, remainingDeck: deckAfterDeal } = dealCardsFromDeckEndToSeats({
+    deck,
+    numSeats: numPlayers,
+    cardsPerSeat: 2,
+    seatIsDealt: (seatIndex) => state.seats[seatIndex]?.stack > 0,
+  });
   const seats = state.seats.map((s, i) => {
     let stack = s.stack;
     let betThisHand = 0;
@@ -447,7 +448,7 @@ export function startNextHand(state: TexasHoldemState): TexasHoldemState {
     bettingPhase: "preflop",
     board: [],
     holeCards,
-    deck,
+    deck: deckAfterDeal,
     pot,
     currentBet: state.bigBlind,
     minRaise: state.bigBlind,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useEffect } from "react";
 import type { Card, PlayerId } from "../types";
 import type { GameState } from "../game-state";
 import { RANK_VALUE } from "../types";
@@ -11,15 +11,16 @@ import {
   getTrickWinner,
 } from "../game-state";
 import { createDeck, shuffle, sortHand } from "../deck";
+import { dealHandsFromShuffledDeckStart } from "@/lib/deal";
 import { getHandPoints, getHandDescription } from "../hand-score";
 import { HAND_SIZE, MAX_DRAW_ROUNDS } from "../constants";
+import { useDelayedSingleFlight } from "@/hooks/useDelayedSingleFlight";
 
 const HUMAN: PlayerId = "p1";
 
 export function useChicagoGame(playerCount: number = 2) {
   const [state, setState] = useState<GameState | null>(null);
   const [selectedToDiscard, setSelectedToDiscard] = useState<Set<number>>(new Set());
-  const aiThinking = useRef(false);
 
   useEffect(() => {
     setState(createInitialState(playerCount));
@@ -235,12 +236,12 @@ export function useChicagoGame(playerCount: number = 2) {
       if (!s || s.phase !== "roundEnd") return s;
       const playerIds = getPlayerIds(s);
       const fullDeck = shuffle(createDeck());
-      const hands: Record<PlayerId, Card[]> = {} as Record<PlayerId, Card[]>;
-      let idx = 0;
-      for (const id of playerIds) {
-        hands[id] = sortHand(fullDeck.slice(idx, idx + HAND_SIZE));
-        idx += HAND_SIZE;
-      }
+      const { hands, remainingDeck: deckAfterDeal } = dealHandsFromShuffledDeckStart({
+        deck: fullDeck,
+        playerIds,
+        handSize: HAND_SIZE,
+        sortHand,
+      });
       const roundPoints: Record<PlayerId, number> = {} as Record<PlayerId, number>;
       const playHands: Record<PlayerId, Card[]> = {} as Record<PlayerId, Card[]>;
       for (const id of playerIds) {
@@ -250,7 +251,7 @@ export function useChicagoGame(playerCount: number = 2) {
       return {
         ...s,
         phase: "draw",
-        deck: fullDeck.slice(HAND_SIZE * playerIds.length),
+        deck: deckAfterDeal,
         playerHands: hands,
         drawRound: 0,
         drawPick: null,
@@ -275,11 +276,10 @@ export function useChicagoGame(playerCount: number = 2) {
     setSelectedToDiscard(new Set());
   }, [playerCount]);
 
-  useEffect(() => {
-    if (!state || state.phase !== "draw" || state.currentPlayerId === HUMAN) return;
-    if (aiThinking.current) return;
-    aiThinking.current = true;
-    const t = setTimeout(() => {
+  useDelayedSingleFlight({
+    enabled: !!state && state.phase === "draw" && state.currentPlayerId !== HUMAN,
+    delayMs: 800,
+    onFire: () => {
       setState((s) => {
         if (!s || s.phase !== "draw" || s.currentPlayerId === HUMAN) return s;
         const aiId = s.currentPlayerId;
@@ -325,19 +325,18 @@ export function useChicagoGame(playerCount: number = 2) {
           lastOpponentDiscardCount: discardedCards.length,
         };
       });
-      aiThinking.current = false;
-    }, 800);
-    return () => clearTimeout(t);
-  }, [state?.phase, state?.currentPlayerId, state?.drawRound]);
+    },
+  });
 
-  useEffect(() => {
-    if (!state || state.phase !== "play") return;
-    const isLeader = state.trickCards === null;
-    const active = isLeader ? state.trickLeader : getNextPlayerId(state.trickLeader, state);
-    if (active === HUMAN) return;
-    if (aiThinking.current) return;
-    aiThinking.current = true;
-    const t = setTimeout(() => {
+  useDelayedSingleFlight({
+    enabled: (() => {
+      if (!state || state.phase !== "play") return false;
+      const isLeader = state.trickCards === null;
+      const active = isLeader ? state.trickLeader : getNextPlayerId(state.trickLeader, state);
+      return active !== HUMAN;
+    })(),
+    delayMs: 600,
+    onFire: () => {
       setState((s) => {
         if (!s || s.phase !== "play") return s;
         const isLead = s.trickCards === null;
@@ -407,10 +406,8 @@ export function useChicagoGame(playerCount: number = 2) {
           phase: isLastTrick ? "roundEnd" : s.phase,
         };
       });
-      aiThinking.current = false;
-    }, 600);
-    return () => clearTimeout(t);
-  }, [state?.phase, state?.trickCards, state?.trickLeader, state?.trickNumber]);
+    },
+  });
 
   return {
     state,

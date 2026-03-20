@@ -1,18 +1,7 @@
 import type { Card } from "../types";
 import type { GameState } from "../game-state";
 import { apiFetch } from "@/lib/api";
-
-/** API kan skicka suit/rank eller Suit/Rank – normalisera till camelCase. */
-function normalizeCard(raw: { suit?: string; rank?: string; Suit?: string; Rank?: string }): Card {
-  return {
-    suit: (raw.suit ?? raw.Suit ?? "hearts") as Card["suit"],
-    rank: (raw.rank ?? raw.Rank ?? "2") as Card["rank"],
-  };
-}
-
-function normalizeCards(arr: unknown[]): Card[] {
-  return arr.map((c) => normalizeCard((c as Record<string, string>) ?? {}));
-}
+import { normalizeCard, normalizeCards } from "@/lib/api-card-normalize";
 
 /** Normaliserar state från API så att alla kort har suit/rank (visning + sortering). */
 function apiStateToGameState(raw: Record<string, unknown>): GameState {
@@ -81,22 +70,8 @@ export type FiveHundredStateResponse = { state: GameState; myPlayerId: string };
 
 export type FiveHundredActionResponse = { state: GameState; lastDrawnCard?: Card | null };
 
-export type SessionPlayer = { userId: string; displayName: string; seatOrder: number; avatarEmoji?: string | null };
-export type SessionInfo = { id: string; status: string; players: SessionPlayer[] };
-
-export async function fetchGameSession(sessionId: string): Promise<SessionInfo | null> {
-  const res = await apiFetch(`/api/gamesessions/${sessionId}`);
-  if (!res.ok) return null;
-  const data = await res.json().catch(() => null);
-  if (!data || !Array.isArray(data.players)) return data as SessionInfo;
-  const players: SessionPlayer[] = data.players.map((p: { userId?: string; UserId?: string; displayName?: string; DisplayName?: string; seatOrder?: number; SeatOrder?: number; avatarEmoji?: string | null; AvatarEmoji?: string | null }) => ({
-    userId: String(p.userId ?? p.UserId ?? ""),
-    displayName: String(p.displayName ?? p.DisplayName ?? "").trim() || "Spelare",
-    seatOrder: Number(p.seatOrder ?? p.SeatOrder ?? 0),
-    avatarEmoji: p.avatarEmoji ?? p.AvatarEmoji ?? null,
-  }));
-  return { ...data, players } as SessionInfo;
-}
+export type { SessionPlayer, SessionInfo } from "@/lib/game-session-api";
+export { fetchGameSession } from "@/lib/game-session-api";
 
 export async function fetchFiveHundredState(sessionId: string): Promise<FiveHundredStateResponse | null> {
   const res = await apiFetch(`/api/gamesessions/${sessionId}/500/state`);
