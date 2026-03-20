@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useFinnsisjonGame } from "../hooks/useFinnsisjonGame";
 import { useFinnsisjonGameMultiplayer } from "../hooks/useFinnsisjonGameMultiplayer";
@@ -8,7 +7,9 @@ import { PlayingCard } from "@/components/playing-card";
 import { PlayerInfoCard } from "@/components/player-info-card";
 import { Button } from "@/components/ui/button";
 import { SinglePlayerIntro } from "@/components/single-player-intro";
-import { Spinner } from "@/components/ui/spinner";
+import { MultiplayerStateGate } from "@/components/game/multiplayer-state-gate";
+import { PlayerStatusRow } from "@/components/game/player-status-row";
+import { GameResultPanel } from "@/components/game/game-result-panel";
 import { RANK_LABELS } from "../types";
 import type { PlayerId, Rank } from "../types";
 import type { Card } from "../types";
@@ -67,27 +68,14 @@ export function GameBoard({ sessionId }: GameBoardProps) {
     }
   }, [canAsk, opponentIds, selectedPlayer]);
 
-  if (loading) {
-    return (
-      <div className="flex min-h-[200px] flex-1 items-center justify-center">
-        <Spinner size="xl" className="text-primary" />
-      </div>
-    );
-  }
-
-  if (waitingForStart) {
-    return (
-      <div className="mx-auto max-w-4xl space-y-4 px-1 sm:px-0">
-        <p className="text-muted-foreground">Väntar på att ledaren startar spelet…</p>
-        <p className="text-muted-foreground text-sm">
-          Spelet startar när partiledaren klickar &quot;Starta spelet&quot; i Mina spel.
-        </p>
-        <Button asChild variant="outline">
-          <Link href="/spel">Gå till Mina spel</Link>
-        </Button>
-      </div>
-    );
-  }
+  const multiplayerGate = MultiplayerStateGate({
+    useMulti,
+    loading,
+    waitingForStart,
+    hasState: !!state,
+    onRetry: multi.loadState,
+  });
+  if (multiplayerGate) return multiplayerGate;
 
   if (playerCount === null && !useMulti) {
     return (
@@ -101,33 +89,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
     );
   }
 
-  if (!state) {
-    const loadFailed = useMulti && !loading && !waitingForStart;
-    return (
-      <div className="flex min-h-[200px] flex-col items-center justify-center gap-4">
-        <p className="text-muted-foreground text-center">Kunde inte ladda spelet.</p>
-        {loadFailed && multi.loadState ? (
-          <div className="flex flex-wrap justify-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => multi.loadState?.()}>
-              Försök igen
-            </Button>
-            <Button asChild variant="outline" size="sm">
-              <Link href="/spel">Mina spel</Link>
-            </Button>
-          </div>
-        ) : useMulti ? (
-          <>
-            <p className="text-muted-foreground text-sm text-center">
-              Kontrollera att partiledaren har klickat &quot;Starta spelet&quot; i Mina spel.
-            </p>
-            <Button asChild variant="outline" size="sm">
-              <Link href="/spel">Mina spel</Link>
-            </Button>
-          </>
-        ) : null}
-      </div>
-    );
-  }
+  if (!state) return null;
 
   const playerLabel = (id: string) =>
     id === myPlayerId ? "Du" : (playerDisplayNames[id] ?? `Spelare ${id}`);
@@ -135,26 +97,29 @@ export function GameBoard({ sessionId }: GameBoardProps) {
   if (state.phase === "gameOver") {
     return (
       <div className="mx-auto max-w-4xl space-y-4 px-1 sm:px-0">
-        <section className="rounded-lg border border-border bg-[var(--warm-peach)]/50 p-6 text-center">
-          <h2 className="text-lg font-semibold">Spelet är slut</h2>
-          <p className="mt-2 text-muted-foreground">
-            {state.winnerId
+        <GameResultPanel
+          title="Spelet är slut"
+          message={
+            state.winnerId
               ? `${playerLabel(state.winnerId)} vann med ${state.quartetsWon[state.winnerId] ?? 0} kvartetter!`
-              : "Oavgjort!"}
-          </p>
-          <div className="mt-4 flex flex-wrap justify-center gap-4 text-sm">
-            {getPlayerIds().map((id) => (
-              <span key={id} className="text-muted-foreground">
-                {playerLabel(id)}: {state.quartetsWon[id] ?? 0} kvartetter
-              </span>
-            ))}
-          </div>
-          {!useMulti && (
-            <Button variant="outlinePrimary" onClick={resetGame} className="mt-6">
-              Spela igen
-            </Button>
-          )}
-        </section>
+              : "Oavgjort!"
+          }
+          details={
+            <div className="mt-4 flex flex-wrap justify-center gap-4 text-sm">
+              {getPlayerIds().map((id) => (
+                <span key={id}>
+                  {playerLabel(id)}: {state.quartetsWon[id] ?? 0} kvartetter
+                </span>
+              ))}
+            </div>
+          }
+          className="rounded-lg border border-border bg-[var(--warm-peach)]/50 p-6 text-center"
+          actions={
+            !useMulti
+              ? [{ label: "Spela igen", onClick: resetGame, variant: "outlinePrimary", className: "mt-2" }]
+              : undefined
+          }
+        />
       </div>
     );
   }
@@ -187,15 +152,17 @@ export function GameBoard({ sessionId }: GameBoardProps) {
       </div>
 
       {/* 1. Motståndarens kort (längst upp) – en hög per motståndare, sektioner bredvid varandra */}
-      <div className="flex flex-wrap justify-center gap-3 sm:gap-4">
-        {opponentIds.map((id) => {
+      <PlayerStatusRow
+        playerIds={opponentIds}
+        currentPlayerId={currentTurnId}
+        className="flex flex-wrap justify-center gap-3 sm:gap-4"
+        renderPlayer={(id, { isActive: isThisPlayerTurn }) => {
           const count = state.playerHands[id]?.length ?? 0;
           const pileCount = Math.ceil(count / 5);
           const isAskingMe = pendingAskFromAI?.from === id;
           const lastAskFromThisToMe = state.lastAsk?.from === id && state.lastAsk?.to === myPlayerId;
           const lastAskFromThisToOtherAi = state.lastAsk?.from === id && state.lastAsk?.to !== myPlayerId && state.lastWasFinnsISjon;
           const showAiVsAiStep = lastAskFromThisToOtherAi && state.lastAsk;
-          const isThisPlayerTurn = currentTurnId === id;
           const rankLabel = (r: string) => RANK_LABELS[r] ?? r;
           return (
             <PlayerInfoCard
@@ -263,8 +230,8 @@ export function GameBoard({ sessionId }: GameBoardProps) {
               )}
             </PlayerInfoCard>
           );
-        })}
-      </div>
+        }}
+      />
 
       {/* 2. Motståndarens utlagda kort (kvartetter) – baksida, en hög per kvartett */}
       {opponentIds.map((id) => {

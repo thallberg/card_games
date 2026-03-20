@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useSkitgubbeGame } from "../hooks/useSkitgubbeGame";
@@ -10,6 +9,8 @@ import { StockPile } from "./StockPile";
 import { WonPile } from "./WonPile";
 import { PlayerInfoCard } from "@/components/player-info-card";
 import { Button } from "@/components/ui/button";
+import { PlayerStatusRow } from "@/components/game/player-status-row";
+import { GameResultPanel } from "@/components/game/game-result-panel";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +18,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { MIN_PLAYERS, MAX_PLAYERS } from "../constants";
-import { Spinner } from "@/components/ui/spinner";
+import { MultiplayerStateGate } from "@/components/game/multiplayer-state-gate";
 import { SinglePlayerIntro } from "@/components/single-player-intro";
 
 const SUIT_LABELS: Record<string, string> = {
@@ -75,27 +76,14 @@ export function GameBoard({ sessionId }: GameBoardProps) {
     setSkitgubbeModalClosed(false);
   }, [state?.phase]);
 
-  if (loading) {
-    return (
-      <div className="flex min-h-[200px] flex-1 items-center justify-center">
-        <Spinner size="xl" className="text-primary" />
-      </div>
-    );
-  }
-
-  if (waitingForStart) {
-    return (
-      <div className="mx-auto max-w-4xl space-y-4 px-1 sm:px-0">
-        <p className="text-muted-foreground">Väntar på att ledaren startar spelet…</p>
-        <p className="text-muted-foreground text-sm">
-          Spelet startar när partiledaren klickar &quot;Starta spelet&quot; i Mina spel.
-        </p>
-        <Button asChild variant="outline">
-          <Link href="/spel">Gå till Mina spel</Link>
-        </Button>
-      </div>
-    );
-  }
+  const multiplayerGate = MultiplayerStateGate({
+    useMulti,
+    loading,
+    waitingForStart,
+    hasState: !!state,
+    onRetry: multi.loadState,
+  });
+  if (multiplayerGate) return multiplayerGate;
 
   if (playerCount === null && !useMulti) {
     return (
@@ -109,33 +97,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
     );
   }
 
-  if (!state) {
-    const loadFailed = useMulti && !loading && !waitingForStart;
-    return (
-      <div className="flex min-h-[200px] flex-col items-center justify-center gap-4">
-        <p className="text-muted-foreground text-center">Kunde inte ladda spelet.</p>
-        {loadFailed && multi.loadState ? (
-          <div className="flex flex-wrap justify-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => multi.loadState?.()}>
-              Försök igen
-            </Button>
-            <Button asChild variant="outline" size="sm">
-              <Link href="/spel">Mina spel</Link>
-            </Button>
-          </div>
-        ) : useMulti ? (
-          <>
-            <p className="text-muted-foreground text-sm text-center">
-              Kontrollera att partiledaren har klickat &quot;Starta spelet&quot; i Mina spel.
-            </p>
-            <Button asChild variant="outline" size="sm">
-              <Link href="/spel">Gå till Mina spel</Link>
-            </Button>
-          </>
-        ) : null}
-      </div>
-    );
-  }
+  if (!state) return null;
 
   const playerDisplayNames = useMulti ? multi.playerDisplayNames : undefined;
   const playerAvatarEmojis = useMulti ? multi.playerAvatarEmojis : undefined;
@@ -262,14 +224,11 @@ export function GameBoard({ sessionId }: GameBoardProps) {
   if (state.phase === "gameOver") {
     return (
       <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6 px-1 sm:px-0">
-        <section className="rounded-lg border border-[var(--border)] bg-[var(--warm-peach)]/50 p-6 text-center">
-          <p className="font-medium">
-            {state.winnerId ? playerLabel(state.winnerId) + (playerAvatarEmojis?.[state.winnerId] ? " " + playerAvatarEmojis[state.winnerId] : "") + " vann!" : ""}
-          </p>
-          <Button variant="outlinePrimary" onClick={resetGame} className="mt-4">
-            Spela igen
-          </Button>
-        </section>
+        <GameResultPanel
+          message={state.winnerId ? playerLabel(state.winnerId) + (playerAvatarEmojis?.[state.winnerId] ? " " + playerAvatarEmojis[state.winnerId] : "") + " vann!" : ""}
+          className="rounded-lg border border-[var(--border)] bg-[var(--warm-peach)]/50 p-6 text-center"
+          actions={[{ label: "Spela igen", onClick: resetGame, variant: "outlinePrimary", className: "mt-2" }]}
+        />
       </div>
     );
   }
@@ -280,17 +239,20 @@ export function GameBoard({ sessionId }: GameBoardProps) {
   return (
     <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6 px-1 sm:px-0">
       <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-4">
-        <div className="flex flex-wrap justify-center gap-4 sm:gap-6 text-xs sm:text-sm">
-          {getPlayerIds().map((id) => (
+        <PlayerStatusRow
+          playerIds={getPlayerIds()}
+          currentPlayerId={state.currentPlayerId}
+          className="flex flex-wrap justify-center gap-4 sm:gap-6 text-xs sm:text-sm"
+          renderPlayer={(id, { isActive }) => (
             <PlayerInfoCard
               key={id}
-              isActive={state.currentPlayerId === id}
+              isActive={isActive}
               name={playerLabel(id)}
               rightAdornment={playerAvatarEmojis?.[id]}
               subtitle={isSticks ? `Stick: ${state.sticksWon[id] ?? 0}` : `${state.playerHands[id]?.length ?? 0} kort`}
             />
-          ))}
-        </div>
+          )}
+        />
       </div>
 
       {state.phase === "sticks" && state.trumpSuit && (

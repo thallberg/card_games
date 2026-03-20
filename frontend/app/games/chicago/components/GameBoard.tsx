@@ -9,6 +9,8 @@ import { PlayingCard } from "@/components/playing-card";
 import { PlayerInfoCard } from "@/components/player-info-card";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
+import { PlayerStatusRow } from "@/components/game/player-status-row";
+import { GameResultPanel } from "@/components/game/game-result-panel";
 
 const RANK_LABELS: Record<string, string> = {
   "2": "2", "3": "3", "4": "4", "5": "5", "6": "6", "7": "7", "8": "8",
@@ -82,11 +84,14 @@ export function GameBoard({ sessionId, playerCount = 2 }: GameBoardProps) {
     <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6 px-1 sm:px-0">
       <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-4">
         <h1 className="text-lg sm:text-xl font-semibold">Poker Chicago</h1>
-        <div className="flex flex-wrap justify-end gap-4 sm:gap-6 text-xs sm:text-sm">
-          {getPlayerIds().map((id) => (
+        <PlayerStatusRow
+          playerIds={getPlayerIds()}
+          currentPlayerId={state.currentPlayerId}
+          className="flex flex-wrap justify-end gap-4 sm:gap-6 text-xs sm:text-sm"
+          renderPlayer={(id, { isActive }) => (
             <PlayerInfoCard
               key={id}
-              isActive={state.currentPlayerId === id}
+              isActive={isActive}
               name={id === myPlayerId ? "Du" : "Motståndare"}
               subtitle={`Poäng: ${state.playerScores[id] ?? 0}`}
             >
@@ -96,8 +101,8 @@ export function GameBoard({ sessionId, playerCount = 2 }: GameBoardProps) {
                 </span>
               )}
             </PlayerInfoCard>
-          ))}
-        </div>
+          )}
+        />
       </div>
 
       {state.phase === "draw" && (
@@ -326,12 +331,11 @@ export function GameBoard({ sessionId, playerCount = 2 }: GameBoardProps) {
       })()}
 
       {state.phase === "gameOver" && (
-        <div className="rounded-lg border border-[var(--border)] bg-[var(--warm-peach)]/50 p-6 text-center">
-          <p className="font-medium">Spelet är slut.</p>
-          {!useMulti && (
-            <Button variant="outlinePrimary" onClick={resetGame} className="mt-2">Spela igen</Button>
-          )}
-        </div>
+        <GameResultPanel
+          message="Spelet är slut."
+          className="rounded-lg border border-[var(--border)] bg-[var(--warm-peach)]/50 p-6 text-center"
+          actions={!useMulti ? [{ label: "Spela igen", onClick: resetGame, variant: "outlinePrimary" }] : undefined}
+        />
       )}
     </div>
   );

@@ -17,6 +17,7 @@ import { PlayingCard } from "@/components/playing-card";
 import { PlayerInfoCard } from "@/components/player-info-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { GameResultPanel } from "@/components/game/game-result-panel";
 import { cn } from "@/lib/utils";
 
 function cardKey(c: Card): string {
@@ -68,16 +69,12 @@ export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoar
   if (state.phase === "gameOver") {
     const winner = state.seats.find((s) => s.stack > 0);
     return (
-      <div className="mx-auto max-w-2xl space-y-6 text-center">
-        <h2 className="text-xl font-semibold">Spelet är slut</h2>
-        <p className="text-muted-foreground">
-          Vinnare: {winner?.name ?? "—"} med {winner?.stack ?? 0} i stack.
-        </p>
-        <div>
-          <Button variant="outlinePrimary" onClick={handleRestartToSetup}>
-            Starta om
-          </Button>
-        </div>
+      <div className="mx-auto max-w-2xl">
+        <GameResultPanel
+          title="Spelet är slut"
+          message={`Vinnare: ${winner?.name ?? "—"} med ${winner?.stack ?? 0} i stack.`}
+          actions={[{ label: "Starta om", onClick: handleRestartToSetup, variant: "outlinePrimary" }]}
+        />
       </div>
     );
   }

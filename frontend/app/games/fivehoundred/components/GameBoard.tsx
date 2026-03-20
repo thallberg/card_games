@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
-import Link from "next/link";
 import { useGameState } from "../hooks/useGameState";
 import { useGameStateMultiplayer } from "../hooks/useGameStateMultiplayer";
 import {
@@ -14,6 +13,9 @@ import {
 import { PlayerInfoCard } from "@/components/player-info-card";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
+import { MultiplayerStateGate } from "@/components/game/multiplayer-state-gate";
+import { PlayerStatusRow } from "@/components/game/player-status-row";
+import { GameResultPanel } from "@/components/game/game-result-panel";
 import {
   Dialog,
   DialogContent,
@@ -135,41 +137,19 @@ export function GameBoard({ sessionId, playerCount = 2 }: GameBoardProps) {
     return byPlayer;
   }, [state?.melds, state?.playerHands]);
 
+  const multiplayerGate = MultiplayerStateGate({
+    useMulti,
+    loading,
+    waitingForStart,
+    hasState: !!state,
+    onRetry: loadState,
+  });
+  if (multiplayerGate) return multiplayerGate;
+
   if (!state) {
-    if (useMulti && waitingForStart) {
-      return (
-        <div className="flex min-h-[200px] flex-col items-center justify-center gap-4">
-          <p className="text-muted-foreground text-center">
-            Väntar på att partiledaren startar spelet.
-          </p>
-          <p className="text-muted-foreground text-sm text-center">
-            Spelet startar automatiskt när partiledaren klickar &quot;Starta spelet&quot; i Mina spel.
-          </p>
-          <Button asChild variant="outline">
-            <Link href="/spel">Gå till Mina spel</Link>
-          </Button>
-        </div>
-      );
-    }
     return (
       <div className="flex min-h-[200px] flex-1 flex-col items-center justify-center gap-4">
-        {loading ? (
-          <Spinner size="xl" className="text-primary" />
-        ) : (
-          <>
-            <p className="text-muted-foreground text-center">Kunde inte ladda spelet.</p>
-            {useMulti && loadState && (
-              <div className="flex flex-wrap justify-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => { loadState(); }}>
-                  Försök igen
-                </Button>
-                <Button variant="outline" size="sm" asChild>
-                  <Link href="/spel">Mina spel</Link>
-                </Button>
-              </div>
-            )}
-          </>
-        )}
+        {loading ? <Spinner size="xl" className="text-primary" /> : <p className="text-muted-foreground text-center">Kunde inte ladda spelet.</p>}
       </div>
     );
   }
@@ -177,13 +157,16 @@ export function GameBoard({ sessionId, playerCount = 2 }: GameBoardProps) {
   return (
     <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6 px-1 sm:px-0">
       <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-4">
-        <div className="flex flex-wrap justify-center gap-4 sm:gap-6 text-xs sm:text-sm">
-          {getPlayerIds().map((id) => {
+        <PlayerStatusRow
+          playerIds={getPlayerIds()}
+          currentPlayerId={state.currentPlayerId}
+          className="flex flex-wrap justify-center gap-4 sm:gap-6 text-xs sm:text-sm"
+          renderPlayer={(id, { isActive }) => {
             const handSize = state.playerHands[id]?.length ?? 0;
             return (
               <PlayerInfoCard
                 key={id}
-                isActive={state.currentPlayerId === id}
+                isActive={isActive}
                 name={playerLabel(id)}
                 rightAdornment={playerAvatarEmojis?.[id]}
               >
@@ -202,33 +185,27 @@ export function GameBoard({ sessionId, playerCount = 2 }: GameBoardProps) {
                 </span>
               </PlayerInfoCard>
             );
-          })}
-        </div>
+          }}
+        />
       </div>
 
       {state.phase === "gameOver" && state.winnerId && (
-        <div className="rounded-lg border border-[var(--border)] bg-[var(--warm-peach)]/50 p-4 text-center">
-          <p className="font-medium">
-            {state.winnerId ? playerLabelGenitive(state.winnerId) + (playerAvatarEmojis?.[state.winnerId] ? " " + playerAvatarEmojis[state.winnerId] : "") + " har vunnit spelet!" : ""}
-          </p>
-          <Button variant="outlinePrimary" onClick={resetGame} className="mt-2">
-            Spela igen
-          </Button>
-        </div>
+        <GameResultPanel
+          message={state.winnerId ? playerLabelGenitive(state.winnerId) + (playerAvatarEmojis?.[state.winnerId] ? " " + playerAvatarEmojis[state.winnerId] : "") + " har vunnit spelet!" : ""}
+          actions={[{ label: "Spela igen", onClick: resetGame, variant: "outlinePrimary" }]}
+        />
       )}
 
       {state.phase === "roundEnd" && state.winnerId && (
-        <div className="rounded-lg border border-[var(--border)] bg-[var(--warm-peach)]/50 p-4 text-center">
-          <p className="font-medium">
-            Rundan över! {state.winnerId ? playerLabelGenitive(state.winnerId) + (playerAvatarEmojis?.[state.winnerId] ? " " + playerAvatarEmojis[state.winnerId] : "") + " gick ut." : ""}
-          </p>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Poäng: {getPlayerIds().map((id) => `${playerLabel(id)}${playerAvatarEmojis?.[id] ? " " + playerAvatarEmojis[id] : ""} ${state.playerScores[id] ?? 0}`).join(", ")}
-          </p>
-          <Button variant="outlinePrimary" onClick={startNewRound} className="mt-2">
-            Nästa rond
-          </Button>
-        </div>
+        <GameResultPanel
+          message={`Rundan över! ${state.winnerId ? playerLabelGenitive(state.winnerId) + (playerAvatarEmojis?.[state.winnerId] ? " " + playerAvatarEmojis[state.winnerId] : "") + " gick ut." : ""}`}
+          details={
+            <>
+              Poäng: {getPlayerIds().map((id) => `${playerLabel(id)}${playerAvatarEmojis?.[id] ? " " + playerAvatarEmojis[id] : ""} ${state.playerScores[id] ?? 0}`).join(", ")}
+            </>
+          }
+          actions={[{ label: "Nästa rond", onClick: startNewRound, variant: "outlinePrimary" }]}
+        />
       )}
 
       {state.phase !== "roundEnd" && state.phase !== "gameOver" && (

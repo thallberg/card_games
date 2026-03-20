@@ -3,9 +3,10 @@
  */
 
 export { CARD_IMAGE_BASE } from "@/lib/cards";
+import { GAME_PLAYER_LIMITS } from "@/lib/game-player-limits";
 
-export const MIN_PLAYERS = 2;
-export const MAX_PLAYERS = 6;
+export const MIN_PLAYERS = GAME_PLAYER_LIMITS.texasholdem.min;
+export const MAX_PLAYERS = GAME_PLAYER_LIMITS.texasholdem.max;
 
 /** Minimum big blind (in units). */
 export const MIN_BIG_BLIND = 1;
