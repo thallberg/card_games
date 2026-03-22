@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FriendsInviteMinaSpelNote } from "@/components/game-single-player-intro";
 import { MIN_PLAYERS, MAX_PLAYERS, MIN_BIG_BLIND, DEFAULT_BUY_IN_BB } from "../constants";
 import { getSmallBlind } from "../game-state";
 
@@ -75,6 +76,10 @@ export function SetupForm({ onStart }: SetupFormProps) {
             Starta spelet
           </Button>
         </form>
+        <FriendsInviteMinaSpelNote
+          gameDisplayName="Texas Hold'em"
+          className="mt-6 text-muted-foreground text-xs"
+        />
       </CardContent>
     </Card>
   );

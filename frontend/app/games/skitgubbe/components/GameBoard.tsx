@@ -18,9 +18,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { MIN_PLAYERS, MAX_PLAYERS } from "../constants";
 import { MultiplayerStateGate } from "@/components/game/multiplayer-state-gate";
-import { SinglePlayerIntro } from "@/components/single-player-intro";
+import { GameSinglePlayerIntro } from "@/components/game-single-player-intro";
 
 const SUIT_LABELS: Record<string, string> = {
   hearts: "hjärter",
@@ -88,13 +87,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
 
   if (playerCount === null && !useMulti) {
     return (
-      <SinglePlayerIntro
-        title="Skitgubbe – single player"
-        description="Välj antal spelare (2–6). Du spelar som spelare 1, övriga är datorer."
-        minPlayers={MIN_PLAYERS}
-        maxPlayers={MAX_PLAYERS}
-        onSelect={startGame}
-      />
+      <GameSinglePlayerIntro gameId="skitgubbe" onSelect={startGame} />
     );
   }
 

@@ -6,7 +6,7 @@ import { useFinnsisjonGameMultiplayer } from "../hooks/useFinnsisjonGameMultipla
 import { PlayingCard } from "@/components/playing-card";
 import { PlayerInfoCard } from "@/components/player-info-card";
 import { Button } from "@/components/ui/button";
-import { SinglePlayerIntro } from "@/components/single-player-intro";
+import { GameSinglePlayerIntro } from "@/components/game-single-player-intro";
 import { MultiplayerStateGate } from "@/components/game/multiplayer-state-gate";
 import { PlayerStatusRow } from "@/components/game/player-status-row";
 import { GameResultPanel } from "@/components/game/game-result-panel";
@@ -14,7 +14,7 @@ import { GameBoardShell } from "@/components/game/game-board-shell";
 import { RANK_LABELS } from "../types";
 import type { PlayerId, Rank } from "../types";
 import type { Card } from "../types";
-import { MIN_PLAYERS, MAX_PLAYERS, CARDS_PER_QUARTET } from "../constants";
+import { CARDS_PER_QUARTET } from "../constants";
 
 const RANK_ORDER: Record<string, number> = {
   "2": 0, "3": 1, "4": 2, "5": 3, "6": 4, "7": 5, "8": 6, "9": 7,
@@ -80,13 +80,7 @@ export function GameBoard({ sessionId }: GameBoardProps) {
 
   if (playerCount === null && !useMulti) {
     return (
-      <SinglePlayerIntro
-        title="Finns i sjön – single player"
-        description="Välj antal spelare (2–6). Du spelar som spelare 1, övriga är datorer. Fråga efter valör du har – får du inte kortet säger motståndaren 'finns i sjön' och du drar ett kort från sjön. Vinnaren är den med flest kvartetter när alla kort är slut."
-        minPlayers={MIN_PLAYERS}
-        maxPlayers={MAX_PLAYERS}
-        onSelect={startGame}
-      />
+      <GameSinglePlayerIntro gameId="finnsisjon" onSelect={startGame} />
     );
   }
 
