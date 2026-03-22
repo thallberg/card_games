@@ -181,6 +181,7 @@ export function useChicagoGame(playerCount: number = 2) {
           ...s,
           playerHands: newPlayerHands,
           trickCards: [card, null],
+          currentPlayerId: getNextPlayerId(s.trickLeader, s),
         };
       }
 
@@ -213,6 +214,7 @@ export function useChicagoGame(playerCount: number = 2) {
         trickCards: null,
         trickNumber: nextTrick,
         trickLeader: trickWinner,
+        currentPlayerId: trickWinner,
         completedTricks: completed,
         playerScores: newScores,
         roundUtspeletWinner: isLastTrick ? trickWinner : s.roundUtspeletWinner,
@@ -313,14 +315,15 @@ export function useChicagoGame(playerCount: number = 2) {
         const nextHands = { ...s.playerHands, [aiId]: sortHand(newHand) };
         const nextRound = s.drawRound + 1;
         const allRoundsDone = nextRound >= MAX_DRAW_ROUNDS;
+        const nextTrickLeader = allRoundsDone ? (playerIds[1] ?? s.trickLeader) : s.trickLeader;
         return {
           ...s,
           deck: newDeck,
           playerHands: nextHands,
           drawRound: nextRound,
           phase: allRoundsDone ? "play" : s.phase,
-          trickLeader: allRoundsDone ? (playerIds[1] ?? s.trickLeader) : s.trickLeader,
-          currentPlayerId: HUMAN,
+          trickLeader: nextTrickLeader,
+          currentPlayerId: allRoundsDone ? nextTrickLeader : HUMAN,
           playPhaseHands: allRoundsDone ? nextHands : s.playPhaseHands,
           lastOpponentDiscardCount: discardedCards.length,
         };
@@ -368,6 +371,7 @@ export function useChicagoGame(playerCount: number = 2) {
             ...s,
             playerHands: newPlayerHands,
             trickCards: [card, null],
+            currentPlayerId: getNextPlayerId(s.trickLeader, s),
           };
         }
 
@@ -399,6 +403,7 @@ export function useChicagoGame(playerCount: number = 2) {
           trickCards: null,
           trickNumber: nextTrick,
           trickLeader: trickWinner,
+          currentPlayerId: trickWinner,
           completedTricks: completed,
           playerScores: newScores,
           roundUtspeletWinner: isLastTrick ? trickWinner : s.roundUtspeletWinner,

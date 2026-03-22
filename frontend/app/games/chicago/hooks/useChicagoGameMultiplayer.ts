@@ -11,20 +11,35 @@ import { fetchChicagoState, sendChicagoAction, startChicagoNewRound } from "../a
 import { getPlayerIds } from "../game-state";
 import { useGameSessionPoll } from "@/hooks/useGameSessionPoll";
 import { sendAndSync } from "@/lib/multiplayer-sync";
+import { fetchGameSession } from "@/lib/game-session-api";
 
 
 export function useChicagoGameMultiplayer(sessionId: string | undefined) {
   const [state, setState] = useState<GameState | null>(null);
   const [myPlayerId, setMyPlayerId] = useState<PlayerId>("p1");
+  const [playerDisplayNames, setPlayerDisplayNames] = useState<Partial<Record<PlayerId, string>>>({});
   const [selectedToDiscard, setSelectedToDiscard] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(!!sessionId);
 
   const loadState = useCallback(async () => {
     if (!sessionId) return;
-    const data = await fetchChicagoState(sessionId);
+    const [data, sessionInfo] = await Promise.all([
+      fetchChicagoState(sessionId),
+      fetchGameSession(sessionId).catch(() => null),
+    ]);
     if (data) {
       setState(data.state);
       setMyPlayerId(data.myPlayerId as PlayerId);
+    }
+    if (sessionInfo?.players?.length) {
+      const ordered = [...sessionInfo.players].sort((a, b) => a.seatOrder - b.seatOrder);
+      const map: Partial<Record<PlayerId, string>> = {};
+      const slotIds: PlayerId[] = ["p1", "p2"];
+      ordered.forEach((p, i) => {
+        const pid = slotIds[i];
+        if (pid && p.displayName?.trim()) map[pid] = p.displayName.trim();
+      });
+      setPlayerDisplayNames(map);
     }
     setLoading(false);
   }, [sessionId]);
@@ -32,6 +47,12 @@ export function useChicagoGameMultiplayer(sessionId: string | undefined) {
   useEffect(() => {
     if (sessionId) setLoading(true);
   }, [sessionId]);
+
+  const isAwaitingMyPlay =
+    state?.phase === "play" &&
+    (state.trickCards === null
+      ? state.trickLeader === myPlayerId
+      : getNextPlayerId(state.trickLeader, state) === myPlayerId);
 
   useGameSessionPoll({
     sessionId,
@@ -41,7 +62,8 @@ export function useChicagoGameMultiplayer(sessionId: string | undefined) {
       state.phase === "roundEnd" ||
       state.phase === "gameOver" ||
       !!state.drawPick ||
-      state.currentPlayerId === myPlayerId,
+      (state.phase === "draw" && state.currentPlayerId === myPlayerId) ||
+      (state.phase === "play" && isAwaitingMyPlay),
     pollIntervalMs: 1500,
   });
 
@@ -204,7 +226,12 @@ export function useChicagoGameMultiplayer(sessionId: string | undefined) {
       const newPlayerHands = { ...state.playerHands, [myPlayerId]: newHand };
 
       if (isLeader) {
-        applyAndSend({ ...state, playerHands: newPlayerHands, trickCards: [card, null] });
+        applyAndSend({
+          ...state,
+          playerHands: newPlayerHands,
+          trickCards: [card, null],
+          currentPlayerId: getNextPlayerId(state.trickLeader, state),
+        });
         return;
       }
 
@@ -237,6 +264,7 @@ export function useChicagoGameMultiplayer(sessionId: string | undefined) {
         trickCards: null,
         trickNumber: nextTrick,
         trickLeader: trickWinner,
+        currentPlayerId: trickWinner,
         completedTricks: completed,
         playerScores: newScores,
         roundUtspeletWinner: isLastTrick ? trickWinner : state.roundUtspeletWinner,
@@ -289,5 +317,6 @@ export function useChicagoGameMultiplayer(sessionId: string | undefined) {
     canFreeSwapAllFive,
     isReady: state != null && !loading,
     myPlayerId,
+    playerDisplayNames,
   };
 }

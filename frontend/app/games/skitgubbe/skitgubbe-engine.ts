@@ -5,8 +5,6 @@ import { sortHand, sortHandForPlay } from "./deck";
 import { RANK_VALUE } from "./types";
 import { highestRank } from "./skitgubbe-trick-logic";
 
-const HUMAN_PLAYER: PlayerId = "p1";
-
 export function applyTrickCards(
   s: GameState,
   playerId: PlayerId,
@@ -359,19 +357,20 @@ export function applyPlayCard(
       : [];
   const fightTieRank = highestRankOnTable;
 
-  const doDrawForHuman = () => {
-    if (playerId === HUMAN_PLAYER && handIndex >= 0 && stock.length > 0) {
+  /** Efter att ha lagt från handen: dra ett nytt kort från talongen (samma som single player för alla platser). */
+  const doDrawAfterPlayFromHand = () => {
+    if (handIndex >= 0 && stock.length > 0) {
       const c = stock[stock.length - 1];
       return {
         finalStock: stock.slice(0, -1),
-        finalHands: { ...hands, [HUMAN_PLAYER]: sortHand([...(hands[HUMAN_PLAYER] ?? []), c]) },
+        finalHands: { ...hands, [playerId]: sortHand([...(hands[playerId] ?? []), c]) },
       };
     }
     return { finalStock: stock, finalHands: hands };
   };
 
   if (!allWithRankPlayed && othersWithRank.length > 0) {
-    const { finalStock, finalHands } = doDrawForHuman();
+    const { finalStock, finalHands } = doDrawAfterPlayFromHand();
     return {
       ...s,
       stock: finalStock,
@@ -394,7 +393,7 @@ export function applyPlayCard(
       (id) => id !== playerId && tableStick.filter((sc) => sc.playerId === id).length === 1
     );
     if (otherFighter) {
-      const { finalStock, finalHands } = doDrawForHuman();
+      const { finalStock, finalHands } = doDrawAfterPlayFromHand();
       return {
         ...s,
         stock: finalStock,
@@ -431,7 +430,7 @@ export function applyPlayCard(
             : b
         );
       if (nextFighter) {
-        const { finalStock, finalHands } = doDrawForHuman();
+        const { finalStock, finalHands } = doDrawAfterPlayFromHand();
         return {
           ...s,
           stock: finalStock,
@@ -459,7 +458,7 @@ export function applyPlayCard(
       }
     }
     if (nextId) {
-      const { finalStock, finalHands } = doDrawForHuman();
+      const { finalStock, finalHands } = doDrawAfterPlayFromHand();
       return {
         ...s,
         stock: finalStock,
@@ -477,7 +476,7 @@ export function applyPlayCard(
 
   if (someonePlayedHigher) {
     const winner = getStickWinner(tableStick, highestRankOnTable ?? originalLedRank);
-    const { finalStock, finalHands } = doDrawForHuman();
+    const { finalStock, finalHands } = doDrawAfterPlayFromHand();
     return {
       ...s,
       stock: finalStock,
@@ -515,7 +514,7 @@ export function applyPlayCard(
             : b
         );
       if (nextFighter) {
-        const { finalStock, finalHands } = doDrawForHuman();
+        const { finalStock, finalHands } = doDrawAfterPlayFromHand();
         return {
           ...s,
           stock: finalStock,
@@ -536,7 +535,7 @@ export function applyPlayCard(
     tableStick,
     fightTieRank ?? originalLedRank ?? tableStick[0]?.card.rank ?? ledRank
   );
-  const { finalStock, finalHands } = doDrawForHuman();
+  const { finalStock, finalHands } = doDrawAfterPlayFromHand();
   return {
     ...s,
     stock: finalStock,

@@ -102,7 +102,7 @@ export default function VaninbjudanPage() {
               <Input
                 id="invite-name"
                 type="text"
-                placeholder="T.ex. Tobbe"
+                placeholder="Sök på namn..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 className="min-w-0 flex-1 border-0 rounded-none shadow-none focus-visible:ring-0 focus-visible:border-0 pl-1 pr-3"

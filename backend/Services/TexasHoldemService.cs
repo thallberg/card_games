@@ -25,7 +25,7 @@ public class TexasHoldemService
     public async Task<(bool Ok, string? Error)> CreateInitialStateAsync(Guid sessionId, int? buyIn = null, int? bigBlind = null)
     {
         var session = await _db.GameSessions
-            .Include(g => g.Players)
+            .Include(g => g.Players).ThenInclude(p => p.User)
             .FirstOrDefaultAsync(g => g.Id == sessionId);
         if (session == null) return (false, "Sessionen hittades inte.");
         if (session.GameType != GameType.TexasHoldem) return (false, "Inte ett Texas Hold'em-spel.");
@@ -57,6 +57,10 @@ public class TexasHoldemService
         var seatsArray = new JsonArray();
         for (int i = 0; i < numPlayers; i++)
         {
+            var seatPlayer = ordered[i];
+            var displayName = string.IsNullOrWhiteSpace(seatPlayer.User?.DisplayName)
+                ? $"Spelare {i + 1}"
+                : seatPlayer.User!.DisplayName.Trim();
             int stack = actualBuyIn;
             int betThisHand = 0;
             bool actedThisRound = false;
@@ -65,7 +69,7 @@ public class TexasHoldemService
             seatsArray.Add(new JsonObject
             {
                 ["id"] = $"p{i + 1}",
-                ["name"] = $"Spelare {i + 1}",
+                ["name"] = displayName,
                 ["stack"] = stack,
                 ["betThisHand"] = betThisHand,
                 ["actedThisRound"] = actedThisRound,

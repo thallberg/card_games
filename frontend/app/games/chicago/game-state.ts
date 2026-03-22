@@ -122,7 +122,8 @@ export function advanceChicagoDrawAfterPassingTurn(state: GameState, passerId: P
       drawRound: nextRound,
       phase: allRoundsDone ? "play" : state.phase,
       trickLeader: allRoundsDone ? second : state.trickLeader,
-      currentPlayerId: first,
+      /** I utspelet börjar trickLeader; samma som single player-logik men synkas för multiplayer-poll. */
+      currentPlayerId: allRoundsDone ? second : first,
       playPhaseHands: allRoundsDone ? { ...state.playerHands } : state.playPhaseHands,
     };
   }

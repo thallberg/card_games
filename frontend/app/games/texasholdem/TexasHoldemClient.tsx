@@ -16,8 +16,21 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { fetchTexasHoldemState, sendTexasHoldemAction } from "./api/texasHoldemApi";
 import { SetupForm, GameBoard } from "./components";
+import { fetchGameSession, type SessionPlayer } from "@/lib/game-session-api";
 
 const POLL_MS = 2500;
+
+function mergeSeatDisplayNames(state: TexasHoldemState, players: SessionPlayer[]): TexasHoldemState {
+  if (!state.seats?.length || !players.length) return state;
+  const ordered = [...players].sort((a, b) => a.seatOrder - b.seatOrder);
+  const seats = state.seats.map((s, i) => {
+    const p = ordered[i];
+    const dn = p?.displayName?.trim();
+    if (!dn) return s;
+    return { ...s, name: dn };
+  });
+  return { ...state, seats };
+}
 
 function parseState(data: unknown): TexasHoldemState | null {
   if (data == null || typeof data !== "object") return null;
@@ -62,7 +75,10 @@ export function TexasHoldemClient() {
 
   const loadMultiplayerState = useCallback(async () => {
     if (!sessionId) return;
-    const result = await fetchTexasHoldemState(sessionId);
+    const [result, sessionInfo] = await Promise.all([
+      fetchTexasHoldemState(sessionId),
+      fetchGameSession(sessionId).catch(() => null),
+    ]);
     if (result) {
       setWaitingForStart(!!result.waitingForStart);
       if (result.waitingForStart) {
@@ -70,7 +86,9 @@ export function TexasHoldemClient() {
       } else {
         const parsed = parseState(result.state);
         if (parsed) {
-          setState(parsed);
+          const withNames =
+            sessionInfo?.players?.length ? mergeSeatDisplayNames(parsed, sessionInfo.players) : parsed;
+          setState(withNames);
           setMySeatIndex(result.mySeatIndex);
         }
         setMultiplayerError(null);

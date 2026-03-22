@@ -184,7 +184,8 @@ function allActedThisRound(state: TexasHoldemState): boolean {
   return true;
 }
 
-function advanceBettingPhase(state: TexasHoldemState): TexasHoldemState {
+/** Ett steg: ny gata + ev. nya brädkort. */
+function advanceBettingPhaseOnce(state: TexasHoldemState): TexasHoldemState {
   const addedPot = state.seats.reduce((sum, s) => sum + s.betThisHand, 0);
   const seats = state.seats.map((s) => ({ ...s, actedThisRound: false, betThisHand: 0 }));
   const pot = state.pot + addedPot;
@@ -237,6 +238,28 @@ function advanceBettingPhase(state: TexasHoldemState): TexasHoldemState {
     deck,
     currentActorIndex: firstActor,
   };
+}
+
+/**
+ * När alla kvar i handen är all-in finns ingen som kan agera – kör ut flop/turn/river/showdown automatiskt
+ * så spelet inte fastnar på currentActorIndex hos en all-in spelare.
+ */
+function finalizeAllInRunout(state: TexasHoldemState): TexasHoldemState {
+  let cur = state;
+  for (let guard = 0; guard < 12; guard++) {
+    if (cur.phase !== "playing") return cur;
+    const contenders = cur.activeInHand.filter((i) => !cur.seats[i].folded);
+    if (contenders.length <= 1) return cur;
+    const anyCanBet = contenders.some((i) => !cur.seats[i].isAllIn);
+    if (anyCanBet) return cur;
+    if (cur.bettingPhase === "showdown") return doShowdown(cur);
+    cur = advanceBettingPhaseOnce(cur);
+  }
+  return cur;
+}
+
+function advanceBettingPhase(state: TexasHoldemState): TexasHoldemState {
+  return finalizeAllInRunout(advanceBettingPhaseOnce(state));
 }
 
 function doShowdown(state: TexasHoldemState): TexasHoldemState {

@@ -294,6 +294,15 @@ export function GameBoard({ state, onStateChange, humanSeatIndex = 0 }: GameBoar
           ))}
         </div>
 
+        {/* All-in men inget att betala: måste kunna checka för att gå vidare till nästa gata (multiplayer / runout). */}
+        {isMyTurn && mySeat && !mySeat.folded && mySeat.isAllIn && toCall <= 0 && (
+          <div className="mt-4">
+            <Button size="sm" variant="outlinePrimary" onClick={handleCheck} className="w-full min-h-11">
+              Check
+            </Button>
+          </div>
+        )}
+
         {isMyTurn && mySeat && !mySeat.folded && !mySeat.isAllIn && (
           <div className="mt-4 flex flex-col gap-2">
             <div className="flex w-full gap-2">

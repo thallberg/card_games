@@ -27,6 +27,7 @@ export function GameBoard({ sessionId, playerCount = 2 }: GameBoardProps) {
   const multi = useChicagoGameMultiplayer(sessionId);
   const useMulti = !!sessionId;
   const myPlayerId = useMulti ? multi.myPlayerId : "p1";
+  const playerDisplayNames = useMulti ? multi.playerDisplayNames : {};
   const {
     state,
     humanHand,
@@ -59,6 +60,9 @@ export function GameBoard({ sessionId, playerCount = 2 }: GameBoardProps) {
   if (multiplayerGate) return multiplayerGate;
   if (!state) return null;
 
+  const opponentId = (getPlayerIds().find((id) => id !== myPlayerId) ?? "p2") as "p1" | "p2";
+  const opponentDisplayName = playerDisplayNames[opponentId] ?? "Motståndaren";
+
   const isMyTurnPlay =
     state.phase === "play" &&
     (state.trickCards === null
@@ -77,7 +81,13 @@ export function GameBoard({ sessionId, playerCount = 2 }: GameBoardProps) {
             <PlayerInfoCard
               key={id}
               isActive={isActive}
-              name={id === myPlayerId ? "Du" : "Motståndare"}
+              name={
+                id === myPlayerId
+                  ? "Du"
+                  : useMulti
+                    ? (playerDisplayNames[id] ?? "Motståndare")
+                    : "Motståndare"
+              }
               subtitle={`Poäng: ${state.playerScores[id] ?? 0}`}
             >
               {id !== myPlayerId && state.phase !== "roundEnd" && state.phase !== "gameOver" && (
@@ -93,9 +103,21 @@ export function GameBoard({ sessionId, playerCount = 2 }: GameBoardProps) {
       {state.phase === "draw" && (
         <section className="rounded-lg border border-[var(--border)] bg-[var(--warm-peach)]/30 p-3 sm:p-4">
           {state.currentPlayerId === (useMulti ? (myPlayerId === "p1" ? "p2" : "p1") : "p2") ? (
-            <p className="text-muted-foreground text-center">
-              Omgång {state.drawRound + 1} av 3 – motståndaren kastar kort…
-            </p>
+            <div className="space-y-4">
+              <p className="text-muted-foreground text-center">
+                Omgång {state.drawRound + 1} av 3 – {opponentDisplayName} kastar kort…
+              </p>
+              {humanHand.length > 0 && (
+                <div>
+                  <p className="text-muted-foreground text-xs text-center mb-2">Dina kort</p>
+                  <div className="flex flex-wrap justify-center gap-2 opacity-90">
+                    {humanHand.map((card, i) => (
+                      <PlayingCard key={`wait-${card.suit}-${card.rank}-${i}`} card={card} faceUp />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           ) : state.drawPick ? (
             <div className="space-y-4">
               <h2 className="text-sm font-medium">
@@ -133,7 +155,7 @@ export function GameBoard({ sessionId, playerCount = 2 }: GameBoardProps) {
               )}
               {typeof state.lastOpponentDiscardCount === "number" && (
                 <p className="text-muted-foreground text-xs mb-3 text-center">
-                  Motståndaren kastade {state.lastOpponentDiscardCount} kort
+                  {opponentDisplayName} kastade {state.lastOpponentDiscardCount} kort
                 </p>
               )}
               <div className="flex flex-wrap justify-center gap-2">
