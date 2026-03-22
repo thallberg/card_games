@@ -21,8 +21,8 @@ type IntroCopy = {
   description: string;
   minPlayers: number;
   maxPlayers: number;
-  /** Text före länken till Mina spel; utelämnas om raden inte ska visas */
-  friendsInviteNote?: string;
+  /** Namn i meningen «Vill du spela … med vänner?» (samma som i sidomenyn) */
+  friendsInviteGameName: string;
 };
 
 const COPY: Record<GameSinglePlayerIntroId, IntroCopy> = {
@@ -32,7 +32,7 @@ const COPY: Record<GameSinglePlayerIntroId, IntroCopy> = {
       "Välj antal spelare (2–6). Du spelar som spelare 1, övriga är datorstyrda motståndare.",
     minPlayers: DEFAULT_MIN_PLAYERS,
     maxPlayers: DEFAULT_MAX_PLAYERS,
-    friendsInviteNote: "Vill du spela 500 med vänner? Skapa ett spel via",
+    friendsInviteGameName: "500",
   },
   chicago: {
     title: "Poker Chicago – single player",
@@ -40,7 +40,7 @@ const COPY: Record<GameSinglePlayerIntroId, IntroCopy> = {
       "Välj antal spelare (2–6). Du spelar som spelare 1, övriga är datorstyrda motståndare.",
     minPlayers: DEFAULT_MIN_PLAYERS,
     maxPlayers: DEFAULT_MAX_PLAYERS,
-    friendsInviteNote: "Vill du spela Chicago med vänner? Skapa ett spel via",
+    friendsInviteGameName: "Chicago",
   },
   finnsisjon: {
     title: "Finns i sjön – single player",
@@ -48,6 +48,7 @@ const COPY: Record<GameSinglePlayerIntroId, IntroCopy> = {
       "Välj antal spelare (2–6). Du spelar som spelare 1, övriga är datorer. Fråga efter valör du har – får du inte kortet säger motståndaren 'finns i sjön' och du drar ett kort från sjön. Vinnaren är den med flest kvartetter när alla kort är slut.",
     minPlayers: GAME_PLAYER_LIMITS.finnsisjon.min,
     maxPlayers: GAME_PLAYER_LIMITS.finnsisjon.max,
+    friendsInviteGameName: "Finns i sjön",
   },
   skitgubbe: {
     title: "Skitgubbe – single player",
@@ -55,8 +56,13 @@ const COPY: Record<GameSinglePlayerIntroId, IntroCopy> = {
       "Välj antal spelare (2–6). Du spelar som spelare 1, övriga är datorer.",
     minPlayers: GAME_PLAYER_LIMITS.skitgubbe.min,
     maxPlayers: GAME_PLAYER_LIMITS.skitgubbe.max,
+    friendsInviteGameName: "Skitgubbe",
   },
 };
+
+function friendsInviteNotePrefix(gameName: string) {
+  return `Vill du spela ${gameName} med vänner? Skapa ett spel via`;
+}
 
 export function GameSinglePlayerIntro({
   gameId,
@@ -73,7 +79,7 @@ export function GameSinglePlayerIntro({
       minPlayers={c.minPlayers}
       maxPlayers={c.maxPlayers}
       onSelect={onSelect}
-      note={c.friendsInviteNote}
+      note={friendsInviteNotePrefix(c.friendsInviteGameName)}
     />
   );
 }
