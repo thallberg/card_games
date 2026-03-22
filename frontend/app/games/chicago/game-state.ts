@@ -105,6 +105,30 @@ export function getNextPlayerId(current: PlayerId, state: GameState): PlayerId {
   return ids[(i + 1) % ids.length];
 }
 
+/** Efter att andra spelaren (p2) i kastfasen är klar → nästa drawRound; annars bara byt tur (samma som AI i single player). */
+export function advanceChicagoDrawAfterPassingTurn(state: GameState, passerId: PlayerId): GameState {
+  const ids = getPlayerIdsFromState(state);
+  if (ids.length < 2) {
+    return { ...state, currentPlayerId: getNextPlayerId(passerId, state) };
+  }
+  const first = ids[0]!;
+  const second = ids[1]!;
+  const nextId = getNextPlayerId(passerId, state);
+  if (passerId === second && nextId === first) {
+    const nextRound = state.drawRound + 1;
+    const allRoundsDone = nextRound >= MAX_DRAW_ROUNDS;
+    return {
+      ...state,
+      drawRound: nextRound,
+      phase: allRoundsDone ? "play" : state.phase,
+      trickLeader: allRoundsDone ? second : state.trickLeader,
+      currentPlayerId: first,
+      playPhaseHands: allRoundsDone ? { ...state.playerHands } : state.playPhaseHands,
+    };
+  }
+  return { ...state, currentPlayerId: nextId };
+}
+
 /** Winner of a two-card trick (leader vs follower). */
 export function getTrickWinner(
   lead: Card,

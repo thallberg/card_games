@@ -3,8 +3,13 @@
 import { useState, useCallback, useEffect } from "react";
 import type { PlayerId, Rank } from "../types";
 import type { GameState } from "../game-state";
-import { getPlayerIds, applyAsk, applyDrawCardFromSjön } from "../game-state";
-import { fetchFinnsisjonState, sendFinnsisjonAction, fetchGameSession } from "../api/finnsisjonApi";
+import { getPlayerIds } from "../game-state";
+import {
+  fetchFinnsisjonState,
+  sendFinnsisjonAsk,
+  sendFinnsisjonDraw,
+  fetchGameSession,
+} from "../api/finnsisjonApi";
 import type { SessionPlayer } from "../api/finnsisjonApi";
 import { useGameSessionPoll } from "@/hooks/useGameSessionPoll";
 import { getCurrentUserIdFromLocalStorage, isWaitingForStartForUser } from "@/lib/game-session";
@@ -61,20 +66,6 @@ export function useFinnsisjonGameMultiplayer(sessionId: string | undefined) {
     pollIntervalMs: 1500,
   });
 
-  const sendState = useCallback(
-    async (newState: GameState) => {
-      await sendAndSync(
-        sessionId,
-        () => sendFinnsisjonAction(sessionId as string, newState),
-        (data) => {
-          setState(data.state);
-          setMyPlayerId(data.myPlayerId as PlayerId);
-        }
-      );
-    },
-    [sessionId]
-  );
-
   const humanHand = state?.playerHands[myPlayerId] ?? [];
   const isHumanTurn = state?.phase === "play" && state?.currentPlayerId === myPlayerId;
   const ranksIHave = getRanksInHand(humanHand);
@@ -84,19 +75,31 @@ export function useFinnsisjonGameMultiplayer(sessionId: string | undefined) {
   const askForRank = useCallback(
     (to: PlayerId, rank: Rank) => {
       if (!state || state.phase !== "play" || state.currentPlayerId !== myPlayerId) return;
-      const next = applyAsk(state, myPlayerId, to, rank);
-      sendState(next);
+      void sendAndSync(
+        sessionId,
+        () => sendFinnsisjonAsk(sessionId as string, to, rank),
+        (data) => {
+          setState(data.state);
+          setMyPlayerId(data.myPlayerId as PlayerId);
+        }
+      );
     },
-    [state, myPlayerId, sendState]
+    [state, myPlayerId, sessionId]
   );
 
   const drawCardFromSjön = useCallback(
     (cardIndex: number) => {
       if (!state || state.phase !== "play" || !state.lastWasFinnsISjon || state.currentPlayerId !== myPlayerId) return;
-      const next = applyDrawCardFromSjön(state, myPlayerId, cardIndex);
-      sendState(next);
+      void sendAndSync(
+        sessionId,
+        () => sendFinnsisjonDraw(sessionId as string, cardIndex),
+        (data) => {
+          setState(data.state);
+          setMyPlayerId(data.myPlayerId as PlayerId);
+        }
+      );
     },
-    [state, myPlayerId, sendState]
+    [state, myPlayerId, sessionId]
   );
 
   const playerDisplayNames: Record<string, string> = {};

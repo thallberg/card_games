@@ -39,6 +39,7 @@ public class TexasHoldemService
         var deck = CreateAndShuffleDeck();
         int sbIndex = numPlayers == 2 ? 0 : 1;
         int bbIndex = numPlayers == 2 ? 1 : 2;
+        // Match frontend: blinds sit in betThisHand; pot stays 0 until betting round advances (getTotalPot).
         int pot = 0;
 
         var holeCardsArray = new JsonArray();
@@ -59,8 +60,8 @@ public class TexasHoldemService
             int stack = actualBuyIn;
             int betThisHand = 0;
             bool actedThisRound = false;
-            if (i == sbIndex) { var post = Math.Min(smallBlind, stack); stack -= post; betThisHand = post; actedThisRound = true; pot += post; }
-            else if (i == bbIndex) { var post = Math.Min(actualBigBlind, stack); stack -= post; betThisHand = post; actedThisRound = true; pot += post; }
+            if (i == sbIndex) { var post = Math.Min(smallBlind, stack); stack -= post; betThisHand = post; actedThisRound = true; }
+            else if (i == bbIndex) { var post = Math.Min(actualBigBlind, stack); stack -= post; betThisHand = post; actedThisRound = true; }
             seatsArray.Add(new JsonObject
             {
                 ["id"] = $"p{i + 1}",

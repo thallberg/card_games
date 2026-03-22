@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Backend.Data;
 using Backend.DTOs;
 using Backend.Models;
@@ -225,10 +226,117 @@ public class SkitgubbeService
             if (pid != myPlayerId) otherIds.Add(pid);
         }
         var merged = MergeState(clientDoc.RootElement, dbDoc.RootElement, myPlayerId, otherIds);
-        row.StateJson = merged;
+        row.StateJson = RepairStickTurnFromAuthoritativeHands(merged);
         row.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
         return (true, null);
+    }
+
+    /// <summary>
+    /// Efter merge har alla händer korrekta kort, men currentPlayerId/playersMustPlay kan ha beräknats
+    /// på klienten med maskerade motståndarhänder. Justera stick-fasen så nästa spelare stämmer.
+    /// </summary>
+    private static string RepairStickTurnFromAuthoritativeHands(string mergedJson)
+    {
+        JsonNode? root;
+        try
+        {
+            root = JsonNode.Parse(mergedJson);
+        }
+        catch
+        {
+            return mergedJson;
+        }
+
+        if (root is not JsonObject o)
+            return mergedJson;
+        if (!string.Equals(o["phase"]?.GetValue<string>(), "sticks", StringComparison.OrdinalIgnoreCase))
+            return mergedJson;
+
+        var show = o["stickShowingWinner"]?.GetValue<string>();
+        if (!string.IsNullOrEmpty(show))
+            return mergedJson;
+
+        var fighters = o["stickFighters"] as JsonArray;
+        if (fighters != null && fighters.Count > 0)
+            return mergedJson;
+
+        var table = o["tableStick"] as JsonArray;
+        if (table == null || table.Count == 0)
+            return mergedJson;
+
+        var hands = o["playerHands"] as JsonObject;
+        var playerIds = o["playerIds"] as JsonArray;
+        if (hands == null || playerIds == null)
+            return mergedJson;
+
+        var ledRank = o["stickLedRank"]?.GetValue<string>();
+        if (string.IsNullOrEmpty(ledRank))
+        {
+            var first = table[0]?["card"]?["rank"]?.GetValue<string>();
+            if (string.IsNullOrEmpty(first))
+                return mergedJson;
+            ledRank = first;
+        }
+
+        bool HandHasRank(string pid, string rank) =>
+            hands[pid] is JsonArray ha && ha.Any(c => string.Equals(c?["rank"]?.GetValue<string>(), rank, StringComparison.Ordinal));
+
+        var played = new HashSet<string>();
+        foreach (var entry in table)
+        {
+            var pid = entry?["playerId"]?.GetValue<string>();
+            if (!string.IsNullOrEmpty(pid))
+                played.Add(pid);
+        }
+
+        var orderedPids = playerIds.Select(n => n!.GetValue<string>()).ToList();
+
+        string? next = null;
+        foreach (var pid in orderedPids)
+        {
+            if (played.Contains(pid)) continue;
+            if (HandHasRank(pid, ledRank))
+            {
+                next = pid;
+                break;
+            }
+        }
+
+        if (next == null)
+        {
+            var leader = table[0]?["playerId"]?.GetValue<string>();
+            if (string.IsNullOrEmpty(leader))
+                return mergedJson;
+            var li = orderedPids.IndexOf(leader);
+            if (li < 0)
+                return mergedJson;
+            for (var step = 1; step <= orderedPids.Count; step++)
+            {
+                var cand = orderedPids[(li + step) % orderedPids.Count];
+                if (!played.Contains(cand))
+                {
+                    next = cand;
+                    break;
+                }
+            }
+        }
+
+        if (next == null)
+            return mergedJson;
+
+        o["currentPlayerId"] = next;
+
+        var must = new JsonArray();
+        foreach (var pid in orderedPids)
+        {
+            if (played.Contains(pid)) continue;
+            if (HandHasRank(pid, ledRank))
+                must.Add(pid);
+        }
+        o["playersMustPlay"] = must;
+
+        return JsonSerializer.Serialize(o, JsonOptions);
     }
 
     private static string MergeState(JsonElement client, JsonElement db, string myId, List<string> otherIds)

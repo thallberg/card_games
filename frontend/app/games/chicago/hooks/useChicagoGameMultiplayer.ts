@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import type { Card, PlayerId } from "../types";
 import type { GameState } from "../game-state";
 import { RANK_VALUE } from "../types";
-import { getNextPlayerId, getTrickWinner } from "../game-state";
+import { advanceChicagoDrawAfterPassingTurn, getNextPlayerId, getTrickWinner } from "../game-state";
 import { sortHand } from "../deck";
 import { getHandPoints, getHandDescription } from "../hand-score";
 import { fetchChicagoState, sendChicagoAction, startChicagoNewRound } from "../api/chicagoApi";
@@ -117,12 +117,12 @@ export function useChicagoGameMultiplayer(sessionId: string | undefined) {
       const drawn: Card[] = [];
       for (let i = 0; i < toDiscard; i++) drawn.push(newDeck.pop()!);
       const newHand = sortHand([...tempHand, ...drawn]);
-      nextState = {
+      const afterDiscard = {
         ...state,
         deck: newDeck,
         playerHands: { ...state.playerHands, [myPlayerId]: newHand },
-        currentPlayerId: getNextPlayerId(myPlayerId, state),
       };
+      nextState = advanceChicagoDrawAfterPassingTurn(afterDiscard, myPlayerId);
     }
     setSelectedToDiscard(new Set());
     applyAndSend(nextState);
@@ -139,13 +139,13 @@ export function useChicagoGameMultiplayer(sessionId: string | undefined) {
 
       let nextState: GameState;
       if (picksLeft === 0) {
-        nextState = {
+        const base = {
           ...state,
           deck: deckWithBack,
           drawPick: null,
           playerHands: { ...state.playerHands, [myPlayerId]: sortHand(newTempHand) },
-          currentPlayerId: isFreeSwap ? myPlayerId : getNextPlayerId(myPlayerId, state),
         };
+        nextState = isFreeSwap ? { ...base, currentPlayerId: myPlayerId } : advanceChicagoDrawAfterPassingTurn(base, myPlayerId);
       } else {
         if (deckWithBack.length < 2) return;
         const d = [...deckWithBack];
@@ -182,7 +182,7 @@ export function useChicagoGameMultiplayer(sessionId: string | undefined) {
 
   const doneWithDraw = useCallback(() => {
     if (!state || state.phase !== "draw" || state.currentPlayerId !== myPlayerId || !sessionId) return;
-    applyAndSend({ ...state, currentPlayerId: getNextPlayerId(myPlayerId, state) });
+    applyAndSend(advanceChicagoDrawAfterPassingTurn(state, myPlayerId));
     setSelectedToDiscard(new Set());
   }, [state, myPlayerId, sessionId, applyAndSend]);
 

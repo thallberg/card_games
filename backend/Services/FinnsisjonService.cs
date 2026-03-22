@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Backend.Data;
 using Backend.DTOs;
 using Backend.Models;
@@ -19,6 +20,7 @@ public class FinnsisjonService
     private const int InitialHandSize = 7;
     private const int MinPlayers = 2;
     private const int MaxPlayers = 6;
+    private const int CardsPerQuartet = 4;
 
     private readonly ApplicationDbContext _db;
 
@@ -178,52 +180,235 @@ public class FinnsisjonService
         }
         if (myPlayerId == null) return (false, "Du är inte med i detta spel.");
 
-        var newStateJson = request.NewStateJson;
-        if (string.IsNullOrWhiteSpace(newStateJson)) return (false, "NewStateJson saknas.");
-
-        using var clientDoc = JsonDocument.Parse(newStateJson);
-        using var dbDoc = JsonDocument.Parse(row.StateJson);
-        var otherIds = new List<string>();
-        for (int i = 0; i < Math.Min(playerOrder.Count, MaxPlayers); i++)
+        var action = request.Action?.Trim().ToLowerInvariant();
+        if (action == "ask")
         {
-            var pid = $"p{i + 1}";
-            if (pid != myPlayerId) otherIds.Add(pid);
+            if (string.IsNullOrEmpty(request.AskTo) || string.IsNullOrEmpty(request.AskRank))
+                return (false, "askTo och askRank krävs.");
+            var (ok, err, json) = TryApplyAsk(row.StateJson, myPlayerId, request.AskTo, request.AskRank);
+            if (!ok || json == null) return (false, err);
+            row.StateJson = json;
+            row.UpdatedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync();
+            return (true, null);
         }
-        var merged = MergeState(clientDoc.RootElement, dbDoc.RootElement, myPlayerId, otherIds);
-        row.StateJson = merged;
-        row.UpdatedAt = DateTime.UtcNow;
-        await _db.SaveChangesAsync();
-        return (true, null);
+
+        if (action == "draw")
+        {
+            if (request.DrawCardIndex is not int idx)
+                return (false, "drawCardIndex krävs.");
+            var (ok, err, json) = TryApplyDrawFromSjon(row.StateJson, myPlayerId, idx);
+            if (!ok || json == null) return (false, err);
+            row.StateJson = json;
+            row.UpdatedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync();
+            return (true, null);
+        }
+
+        return (false, "Ange action \"ask\" eller \"draw\" (klienten ska inte skicka hela state).");
     }
 
-    private static string MergeState(JsonElement client, JsonElement db, string myId, List<string> otherIds)
+    private static (bool Ok, string? Error, string? NewJson) TryApplyAsk(string stateJson, string fromId, string toId, string rank)
     {
-        using var stream = new MemoryStream();
-        using (var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = false }))
+        JsonNode? root;
+        try
         {
-            writer.WriteStartObject();
-            foreach (var prop in client.EnumerateObject())
-            {
-                if (prop.Name == "playerHands" && prop.Value.ValueKind == JsonValueKind.Object)
-                {
-                    writer.WritePropertyName("playerHands");
-                    writer.WriteStartObject();
-                    foreach (var hand in prop.Value.EnumerateObject())
-                    {
-                        writer.WritePropertyName(hand.Name);
-                        if (otherIds.Contains(hand.Name) && db.TryGetProperty("playerHands", out var dbHands) && dbHands.TryGetProperty(hand.Name, out var otherHand))
-                            otherHand.WriteTo(writer);
-                        else
-                            hand.Value.WriteTo(writer);
-                    }
-                    writer.WriteEndObject();
-                }
-                else
-                    prop.WriteTo(writer);
-            }
-            writer.WriteEndObject();
+            root = JsonNode.Parse(stateJson);
         }
-        stream.Position = 0;
-        return new StreamReader(stream).ReadToEnd();
+        catch
+        {
+            return (false, "Ogiltig state.", null);
+        }
+
+        if (root is not JsonObject o)
+            return (false, "Ogiltig state.", null);
+
+        if (o["phase"]?.GetValue<string>() != "play")
+            return (false, "Fel fas.", null);
+        if (o["currentPlayerId"]?.GetValue<string>() != fromId)
+            return (false, "Inte din tur.", null);
+
+        var fromHand = o["playerHands"]?[fromId] as JsonArray;
+        if (fromHand == null)
+            return (false, "Saknar hand.", null);
+
+        var fromHasRank = fromHand.Any(c => string.Equals(c?["rank"]?.GetValue<string>(), rank, StringComparison.Ordinal));
+        if (!fromHasRank)
+            return (false, "Du har inte den valören.", null);
+
+        var toHand = o["playerHands"]?[toId] as JsonArray;
+        if (toHand == null)
+            return (false, "Motspelaren saknas.", null);
+
+        var keepTo = new JsonArray();
+        var matching = new List<JsonNode>();
+        foreach (var item in toHand)
+        {
+            if (string.Equals(item?["rank"]?.GetValue<string>(), rank, StringComparison.Ordinal))
+                matching.Add(item!);
+            else
+                keepTo.Add(item!);
+        }
+
+        o["playerHands"]![toId] = keepTo;
+
+        o["lastAsk"] = new JsonObject
+        {
+            ["from"] = fromId,
+            ["to"] = toId,
+            ["rank"] = rank,
+        };
+
+        if (matching.Count > 0)
+        {
+            foreach (var m in matching)
+                fromHand.Add(m.DeepClone());
+            SortFinnsisjonHand(fromHand);
+            PullQuartetsFromHand(o, fromId);
+            o["lastWasFinnsISjon"] = false;
+        }
+        else
+            o["lastWasFinnsISjon"] = true;
+
+        ApplyGameOverIfNeeded(o);
+        return (true, null, JsonSerializer.Serialize(o, JsonOptions));
+    }
+
+    private static (bool Ok, string? Error, string? NewJson) TryApplyDrawFromSjon(string stateJson, string playerId, int cardIndex)
+    {
+        JsonNode? root;
+        try
+        {
+            root = JsonNode.Parse(stateJson);
+        }
+        catch
+        {
+            return (false, "Ogiltig state.", null);
+        }
+
+        if (root is not JsonObject o)
+            return (false, "Ogiltig state.", null);
+
+        if (o["phase"]?.GetValue<string>() != "play")
+            return (false, "Fel fas.", null);
+        if (o["currentPlayerId"]?.GetValue<string>() != playerId)
+            return (false, "Inte din tur.", null);
+        if (o["lastWasFinnsISjon"]?.GetValue<bool>() != true)
+            return (false, "Du ska inte dra från sjön.", null);
+
+        var sjön = o["sjön"] as JsonArray;
+        if (sjön == null || cardIndex < 0 || cardIndex >= sjön.Count)
+            return (false, "Ogiltigt kortindex.", null);
+
+        var drawn = sjön[cardIndex]!.DeepClone();
+        sjön.RemoveAt(cardIndex);
+
+        var hand = o["playerHands"]?[playerId] as JsonArray;
+        if (hand == null)
+            return (false, "Saknar hand.", null);
+        hand.Add(drawn);
+        SortFinnsisjonHand(hand);
+        PullQuartetsFromHand(o, playerId);
+
+        var pids = o["playerIds"] as JsonArray;
+        if (pids == null)
+            return (false, "Saknar playerIds.", null);
+        o["currentPlayerId"] = GetNextPlayerId(pids, playerId);
+        o["lastWasFinnsISjon"] = false;
+
+        ApplyGameOverIfNeeded(o);
+        return (true, null, JsonSerializer.Serialize(o, JsonOptions));
+    }
+
+    private static string GetNextPlayerId(JsonArray playerIds, string current)
+    {
+        var list = playerIds.Select(n => n!.GetValue<string>()).ToList();
+        var i = list.IndexOf(current);
+        if (i < 0) return current;
+        return list[(i + 1) % list.Count];
+    }
+
+    private static void SortFinnsisjonHand(JsonArray hand)
+    {
+        var suitOrder = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["hearts"] = 0, ["clubs"] = 1, ["diamonds"] = 2, ["spades"] = 3,
+        };
+        var rankOrder = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["2"] = 0, ["3"] = 1, ["4"] = 2, ["5"] = 3, ["6"] = 4, ["7"] = 5, ["8"] = 6, ["9"] = 7,
+            ["10"] = 8, ["jack"] = 9, ["queen"] = 10, ["king"] = 11, ["ace"] = 12,
+        };
+        var items = hand.ToList();
+        hand.Clear();
+        foreach (var c in items.OrderBy(x => suitOrder.GetValueOrDefault(x?["suit"]?.GetValue<string>() ?? "", 99))
+                     .ThenBy(x => rankOrder.GetValueOrDefault(x?["rank"]?.GetValue<string>() ?? "", 99)))
+            hand.Add(c);
+    }
+
+    private static void PullQuartetsFromHand(JsonObject state, string playerId)
+    {
+        var hand = state["playerHands"]?[playerId] as JsonArray;
+        if (hand == null) return;
+
+        var byRank = new Dictionary<string, List<JsonNode>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var c in hand.ToList())
+        {
+            var r = c?["rank"]?.GetValue<string>() ?? "";
+            if (!byRank.ContainsKey(r))
+                byRank[r] = [];
+            byRank[r].Add(c!);
+        }
+
+        var newQuartets = 0;
+        var newHand = new JsonArray();
+        foreach (var (_, cards) in byRank)
+        {
+            if (cards.Count == CardsPerQuartet)
+                newQuartets++;
+            else
+            {
+                foreach (var c in cards)
+                    newHand.Add(c);
+            }
+        }
+
+        state["playerHands"]![playerId] = newHand;
+        SortFinnsisjonHand(newHand);
+
+        var qw = state["quartetsWon"] as JsonObject;
+        if (qw != null)
+        {
+            var cur = qw[playerId]?.GetValue<int>() ?? 0;
+            qw[playerId] = cur + newQuartets;
+        }
+    }
+
+    private static void ApplyGameOverIfNeeded(JsonObject o)
+    {
+        var sjön = o["sjön"] as JsonArray;
+        if (sjön == null || sjön.Count > 0) return;
+
+        var ph = o["playerHands"] as JsonObject;
+        if (ph == null) return;
+        foreach (var prop in ph)
+        {
+            if (prop.Value is JsonArray h && h.Count > 0)
+                return;
+        }
+
+        var qw = o["quartetsWon"] as JsonObject;
+        if (qw == null)
+        {
+            o["phase"] = "gameOver";
+            o["winnerId"] = null;
+            return;
+        }
+
+        var scores = qw.Select(p => (p.Key, p.Value?.GetValue<int>() ?? 0)).ToList();
+        var max = scores.Max(s => s.Item2);
+        var winners = scores.Where(s => s.Item2 == max).Select(s => s.Key).ToList();
+        o["phase"] = "gameOver";
+        o["winnerId"] = winners.Count == 1 ? winners[0] : null;
     }
 }

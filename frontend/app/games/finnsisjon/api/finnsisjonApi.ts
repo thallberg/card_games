@@ -68,11 +68,33 @@ export async function fetchFinnsisjonState(sessionId: string): Promise<Finnsisjo
   }
 }
 
-export async function sendFinnsisjonAction(sessionId: string, newState: GameState): Promise<FinnsisjonStateResponse | null> {
+/** Server applicerar fråga med riktiga händer (klienten ser maskerade kort). */
+export async function sendFinnsisjonAsk(
+  sessionId: string,
+  askTo: string,
+  askRank: string
+): Promise<FinnsisjonStateResponse | null> {
   const res = await apiFetch(`/api/gamesessions/${sessionId}/finnsisjon/action`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ newStateJson: JSON.stringify(newState) }),
+    body: JSON.stringify({ action: "ask", askTo, askRank }),
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  const state = data.state ? apiStateToGameState(data.state as Record<string, unknown>) : null;
+  const myPlayerId = data.myPlayerId ?? "p1";
+  if (!state) return null;
+  return { state, myPlayerId };
+}
+
+export async function sendFinnsisjonDraw(
+  sessionId: string,
+  drawCardIndex: number
+): Promise<FinnsisjonStateResponse | null> {
+  const res = await apiFetch(`/api/gamesessions/${sessionId}/finnsisjon/action`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "draw", drawCardIndex }),
   });
   if (!res.ok) return null;
   const data = await res.json();

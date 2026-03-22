@@ -3,6 +3,11 @@ import type { Card } from "../types";
 import { apiFetch } from "@/lib/api";
 import { normalizeCard, normalizeCards } from "@/lib/api-card-normalize";
 
+function num(v: unknown, fallback: number): number {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : fallback;
+}
+
 function normalizeState(raw: Record<string, unknown>): GameState {
   const r = raw as Record<string, unknown>;
   const playerHands = (r.playerHands ?? {}) as Record<string, unknown[]>;
@@ -50,11 +55,11 @@ function normalizeState(raw: Record<string, unknown>): GameState {
     phase: (r.phase ?? "draw") as GameState["phase"],
     deck: normalizeCards((r.deck ?? []) as unknown[]),
     playerHands: hands,
-    drawRound: Number(r.drawRound) ?? 0,
+    drawRound: num(r.drawRound, 0),
     drawPick: drawPickNorm,
     freeSwapUsedCount: Number(r.freeSwapUsedCount) ?? 0,
     currentPlayerId: (r.currentPlayerId ?? "p1") as "p1" | "p2",
-    trickNumber: Number(r.trickNumber) ?? 0,
+    trickNumber: num(r.trickNumber, 0),
     trickLeader: (r.trickLeader ?? "p2") as "p1" | "p2",
     trickCards,
     completedTricks: tricks,
@@ -62,7 +67,7 @@ function normalizeState(raw: Record<string, unknown>): GameState {
     roundUtspeletWinner: (r.roundUtspeletWinner ?? null) as "p1" | "p2" | null,
     roundHandPoints: (r.roundHandPoints ?? { p1: 0, p2: 0 }) as Record<string, number>,
     playPhaseHands: phaseHands,
-    rondNumber: Number(r.rondNumber) ?? 1,
+    rondNumber: num(r.rondNumber, 1),
   };
 }
 
