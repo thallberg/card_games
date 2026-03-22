@@ -117,12 +117,11 @@ export function useChicagoGameMultiplayer(sessionId: string | undefined) {
       const drawn: Card[] = [];
       for (let i = 0; i < toDiscard; i++) drawn.push(newDeck.pop()!);
       const newHand = sortHand([...tempHand, ...drawn]);
-      const otherId = myPlayerId === "p1" ? "p2" : "p1";
       nextState = {
         ...state,
         deck: newDeck,
         playerHands: { ...state.playerHands, [myPlayerId]: newHand },
-        currentPlayerId: otherId,
+        currentPlayerId: getNextPlayerId(myPlayerId, state),
       };
     }
     setSelectedToDiscard(new Set());
@@ -137,7 +136,6 @@ export function useChicagoGameMultiplayer(sessionId: string | undefined) {
       const other = choice === "open" ? hiddenCard : openCard;
       const newTempHand = [...tempHand, chosen];
       const deckWithBack = [...state.deck, other];
-      const otherId = myPlayerId === "p1" ? "p2" : "p1";
 
       let nextState: GameState;
       if (picksLeft === 0) {
@@ -146,7 +144,7 @@ export function useChicagoGameMultiplayer(sessionId: string | undefined) {
           deck: deckWithBack,
           drawPick: null,
           playerHands: { ...state.playerHands, [myPlayerId]: sortHand(newTempHand) },
-          currentPlayerId: isFreeSwap ? myPlayerId : otherId,
+          currentPlayerId: isFreeSwap ? myPlayerId : getNextPlayerId(myPlayerId, state),
         };
       } else {
         if (deckWithBack.length < 2) return;
@@ -184,8 +182,7 @@ export function useChicagoGameMultiplayer(sessionId: string | undefined) {
 
   const doneWithDraw = useCallback(() => {
     if (!state || state.phase !== "draw" || state.currentPlayerId !== myPlayerId || !sessionId) return;
-    const otherId = myPlayerId === "p1" ? "p2" : "p1";
-    applyAndSend({ ...state, currentPlayerId: otherId });
+    applyAndSend({ ...state, currentPlayerId: getNextPlayerId(myPlayerId, state) });
     setSelectedToDiscard(new Set());
   }, [state, myPlayerId, sessionId, applyAndSend]);
 

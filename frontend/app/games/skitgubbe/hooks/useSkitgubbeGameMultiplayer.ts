@@ -1,8 +1,13 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import type { PlayerId } from "../types";
+import type { PlayerId, Rank } from "../types";
 import { RANK_VALUE } from "../types";
+import {
+  highestRank,
+  isMultiLegalToPlay,
+  isValidStege,
+} from "../skitgubbe-trick-logic";
 import type { GameState } from "../game-state";
 import { getPlayerIds } from "../game-state";
 import {
@@ -114,6 +119,12 @@ export function useSkitgubbeGameMultiplayer(sessionId: string | undefined) {
   const humanHand = state?.playerHands[myPlayerId] ?? [];
   const isHumanTurn = state?.currentPlayerId === myPlayerId;
 
+  useEffect(() => {
+    if (state?.phase !== "play" || !isHumanTurn) {
+      setSelectedTrickIndices(new Set());
+    }
+  }, [state?.phase, isHumanTurn]);
+
   const playCardFromHand = useCallback(
     (handIndex: number) => {
       if (!state || state.phase !== "sticks" || state.currentPlayerId !== myPlayerId || state.stickShowingWinner) return;
@@ -143,17 +154,11 @@ export function useSkitgubbeGameMultiplayer(sessionId: string | undefined) {
   const toggleTrickSelection = useCallback((handIndex: number) => {
     setSelectedTrickIndices((prev) => {
       const next = new Set(prev);
-      const inFight = (state?.trickFighters?.length ?? 0) > 0 && state?.trickFighters?.includes(myPlayerId);
-      if (inFight) {
-        if (next.has(handIndex)) next.delete(handIndex);
-        else return new Set([handIndex]);
-        return next;
-      }
       if (next.has(handIndex)) next.delete(handIndex);
       else next.add(handIndex);
       return next;
     });
-  }, [state, myPlayerId]);
+  }, []);
 
   const confirmTrickPlay = useCallback(() => {
     if (!state || state.phase !== "play" || state.currentPlayerId !== myPlayerId || state.trickShowingWinner) return;
@@ -180,52 +185,55 @@ export function useSkitgubbeGameMultiplayer(sessionId: string | undefined) {
   );
 
   const playerCount = state?.numPlayers ?? null;
+  /** Samma logik som useSkitgubbeGame (single player) – annars blir inga handkort klickbara i stick-fasen. */
   const playableStickIndices = (() => {
     if (!state || state.phase !== "sticks" || !isHumanTurn || state.stickShowingWinner) return new Set<number>();
     const hand = state.playerHands[myPlayerId] ?? [];
-    if (state.stickLedRank === null) return new Set(hand.map((_, i) => i));
-    if (!state.playersMustPlay.includes(myPlayerId)) return new Set<number>();
-    const idx = hand.findIndex((c) => c.rank === state.stickLedRank);
-    return idx >= 0 ? new Set([idx]) : new Set<number>();
+    if (hand.length === 0) return new Set<number>();
+    if (state.stickLedRank !== null) {
+      if (state.playersMustPlay.includes(myPlayerId)) {
+        return new Set(hand.map((c, i) => (c.rank === state.stickLedRank ? i : -1)).filter((i) => i >= 0));
+      }
+      if (state.stickFighters.includes(myPlayerId) && state.tableStick.some((sc) => sc.playerId === myPlayerId)) {
+        return new Set(hand.map((_, i) => i));
+      }
+    }
+    return new Set(hand.map((_, i) => i));
   })();
 
-  const tableTrick = state?.tableTrick ?? [];
-  const tableTrickLen = tableTrick.length;
-  const trickLeadSuit = state?.trickLeadSuit;
-  const isLeading = tableTrickLen === 0 || !trickLeadSuit;
-  const inTrickFight = (state?.trickFighters?.length ?? 0) > 0 && (state?.trickFighters?.includes(myPlayerId) ?? false);
   const playableTrickIndices = (() => {
     if (!state || state.phase !== "play" || !isHumanTurn) return new Set<number>();
     const hand = state.playerHands[myPlayerId] ?? [];
     if (hand.length === 0) return new Set<number>();
-    if (inTrickFight) return new Set(hand.map((_, i) => i));
+    const tableTrick = state.tableTrick ?? [];
+    const isLeading = tableTrick.length === 0 || state.trickLeadSuit === null;
     if (isLeading) return new Set(hand.map((_, i) => i));
+
     const leadLen = state.trickLeadLength || 1;
     const toBeat = state.trickHighRank ?? null;
+    const leadSuit = state.trickLeadSuit;
     const trumpSuit = state.trumpSuit;
+
+    const highestTrumpOnTable = tableTrick
+      .filter((tc) => tc.card.suit === trumpSuit)
+      .reduce<Rank | null>((best, tc) => {
+        if (!best) return tc.card.rank;
+        return RANK_VALUE[tc.card.rank] > RANK_VALUE[best] ? tc.card.rank : best;
+      }, null);
+
     const indices = new Set<number>();
     for (let len = 1; len <= leadLen; len++) {
       for (let start = 0; start <= hand.length - len; start++) {
         const slice = hand.slice(start, start + len);
-        const sorted = [...slice].sort((a, b) => RANK_VALUE[a.rank] - RANK_VALUE[b.rank]);
-        let valid = sorted.every((c) => c.suit === sorted[0].suit);
-        if (valid && len > 1) {
-          for (let i = 1; i < sorted.length; i++) {
-            if (RANK_VALUE[sorted[i].rank] !== RANK_VALUE[sorted[i - 1].rank] + 1) {
-              valid = false;
-              break;
-            }
-          }
-        }
-        if (!valid && len > 1) continue;
-        const myHigh = slice.reduce((best, c) => (RANK_VALUE[c.rank] > RANK_VALUE[best] ? c.rank : best), slice[0].rank);
-        const inLeadSuit = slice.every((c) => c.suit === trickLeadSuit);
+        if (!isValidStege(slice)) continue;
+        const myHigh = highestRank(slice);
+        const inLeadSuit = slice.every((c) => c.suit === leadSuit);
         const inTrump = slice.every((c) => c.suit === trumpSuit);
-        const highestTrumpOnTable = tableTrick
-          .filter((tc) => tc.card.suit === trumpSuit)
-          .reduce<typeof toBeat | null>((b, tc) => (!b || RANK_VALUE[tc.card.rank] > RANK_VALUE[b] ? tc.card.rank : b), null);
-        if (inTrump && (!highestTrumpOnTable || RANK_VALUE[myHigh] > RANK_VALUE[highestTrumpOnTable])) slice.forEach((c) => indices.add(hand.indexOf(c)));
-        else if (inLeadSuit && toBeat && RANK_VALUE[myHigh] > RANK_VALUE[toBeat]) slice.forEach((c) => indices.add(hand.indexOf(c)));
+        if (inTrump && (!highestTrumpOnTable || RANK_VALUE[myHigh] > RANK_VALUE[highestTrumpOnTable])) {
+          for (let j = 0; j < slice.length; j++) indices.add(start + j);
+        } else if (inLeadSuit && toBeat && RANK_VALUE[myHigh] > RANK_VALUE[toBeat]) {
+          for (let j = 0; j < slice.length; j++) indices.add(start + j);
+        }
       }
     }
     return indices;
@@ -236,25 +244,19 @@ export function useSkitgubbeGameMultiplayer(sessionId: string | undefined) {
     const hand = state.playerHands[myPlayerId] ?? [];
     const cards = [...selectedTrickIndices].sort((a, b) => a - b).map((i) => hand[i]).filter(Boolean);
     if (cards.length !== selectedTrickIndices.size) return false;
-    if (inTrickFight) return selectedTrickIndices.size === 1;
-    if (isLeading) {
-      if (cards.length === 1) return true;
-      const suit = cards[0].suit;
-      if (!cards.every((c) => c.suit === suit)) return false;
-      const sorted = [...cards].sort((a, b) => RANK_VALUE[a.rank] - RANK_VALUE[b.rank]);
-      for (let i = 1; i < sorted.length; i++) if (RANK_VALUE[sorted[i].rank] !== RANK_VALUE[sorted[i - 1].rank] + 1) return false;
-      return true;
-    }
+    const tableTrick = state.tableTrick ?? [];
+    const isLeading = tableTrick.length === 0 || state.trickLeadSuit === null;
+    if (isLeading) return isValidStege(cards);
     const leadLen = state.trickLeadLength || 1;
     if (cards.length < 1 || cards.length > leadLen) return false;
-    return true;
+    if (!isValidStege(cards)) return false;
+    return isMultiLegalToPlay(state, cards);
   })();
 
   const canPickUpTrick =
     state?.phase === "play" &&
     isHumanTurn &&
     !state?.trickShowingWinner &&
-    (state?.trickFighters?.length ?? 0) === 0 &&
     (state?.tableTrick?.length ?? 0) > 0;
 
   const playerDisplayNames: Record<string, string> = {};
