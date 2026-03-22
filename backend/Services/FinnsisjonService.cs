@@ -183,9 +183,11 @@ public class FinnsisjonService
         var action = request.Action?.Trim().ToLowerInvariant();
         if (action == "ask")
         {
-            if (string.IsNullOrEmpty(request.AskTo) || string.IsNullOrEmpty(request.AskRank))
+            var askTo = request.AskTo?.Trim();
+            var askRank = request.AskRank?.Trim();
+            if (string.IsNullOrEmpty(askTo) || string.IsNullOrEmpty(askRank))
                 return (false, "askTo och askRank krävs.");
-            var (ok, err, json) = TryApplyAsk(row.StateJson, myPlayerId, request.AskTo, request.AskRank);
+            var (ok, err, json) = TryApplyAsk(row.StateJson, myPlayerId, askTo, askRank);
             if (!ok || json == null) return (false, err);
             row.StateJson = json;
             row.UpdatedAt = DateTime.UtcNow;
@@ -208,8 +210,33 @@ public class FinnsisjonService
         return (false, "Ange action \"ask\" eller \"draw\" (klienten ska inte skicka hela state).");
     }
 
+    /// <summary>
+    /// Läser suit/rank från JSON utan att kasta om värdet är nummer (t.ex. rank 6 utan citattecken).
+    /// </summary>
+    private static string? GetJsonStringProp(JsonNode? parent, string name)
+    {
+        if (parent is not JsonObject o) return null;
+        var v = o[name];
+        if (v is null) return null;
+        if (v is JsonValue jv)
+        {
+            if (jv.TryGetValue<string>(out var s)) return s;
+            if (jv.TryGetValue<int>(out var i)) return i.ToString();
+            if (jv.TryGetValue<long>(out var l)) return l.ToString();
+            if (jv.TryGetValue<double>(out var d) && Math.Abs(d - Math.Truncate(d)) < 1e-9)
+                return ((long)d).ToString();
+        }
+        return null;
+    }
+
+    private static bool RankEquals(string? a, string? b) =>
+        string.Equals(a?.Trim(), b?.Trim(), StringComparison.OrdinalIgnoreCase);
+
     private static (bool Ok, string? Error, string? NewJson) TryApplyAsk(string stateJson, string fromId, string toId, string rank)
     {
+        if (string.IsNullOrWhiteSpace(stateJson))
+            return (false, "Ogiltig state.", null);
+
         JsonNode? root;
         try
         {
@@ -232,7 +259,7 @@ public class FinnsisjonService
         if (fromHand == null)
             return (false, "Saknar hand.", null);
 
-        var fromHasRank = fromHand.Any(c => string.Equals(c?["rank"]?.GetValue<string>(), rank, StringComparison.Ordinal));
+        var fromHasRank = fromHand.Any(c => RankEquals(GetJsonStringProp(c as JsonObject, "rank"), rank));
         if (!fromHasRank)
             return (false, "Du har inte den valören.", null);
 
@@ -244,7 +271,7 @@ public class FinnsisjonService
         var matching = new List<JsonNode>();
         foreach (var item in toHand)
         {
-            if (string.Equals(item?["rank"]?.GetValue<string>(), rank, StringComparison.Ordinal))
+            if (RankEquals(GetJsonStringProp(item as JsonObject, "rank"), rank))
                 matching.Add(item!);
             else
                 keepTo.Add(item!);
@@ -276,6 +303,9 @@ public class FinnsisjonService
 
     private static (bool Ok, string? Error, string? NewJson) TryApplyDrawFromSjon(string stateJson, string playerId, int cardIndex)
     {
+        if (string.IsNullOrWhiteSpace(stateJson))
+            return (false, "Ogiltig state.", null);
+
         JsonNode? root;
         try
         {
@@ -341,8 +371,8 @@ public class FinnsisjonService
         };
         var items = hand.ToList();
         hand.Clear();
-        foreach (var c in items.OrderBy(x => suitOrder.GetValueOrDefault(x?["suit"]?.GetValue<string>() ?? "", 99))
-                     .ThenBy(x => rankOrder.GetValueOrDefault(x?["rank"]?.GetValue<string>() ?? "", 99)))
+        foreach (var c in items.OrderBy(x => suitOrder.GetValueOrDefault(GetJsonStringProp(x as JsonObject, "suit") ?? "", 99))
+                     .ThenBy(x => rankOrder.GetValueOrDefault(GetJsonStringProp(x as JsonObject, "rank") ?? "", 99)))
             hand.Add(c);
     }
 
@@ -354,7 +384,7 @@ public class FinnsisjonService
         var byRank = new Dictionary<string, List<JsonNode>>(StringComparer.OrdinalIgnoreCase);
         foreach (var c in hand.ToList())
         {
-            var r = c?["rank"]?.GetValue<string>() ?? "";
+            var r = GetJsonStringProp(c as JsonObject, "rank") ?? "";
             if (!byRank.ContainsKey(r))
                 byRank[r] = [];
             byRank[r].Add(c!);
